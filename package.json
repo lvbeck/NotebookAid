@@ -1,0 +1,45 @@
+{
+  "name": "notebookaid",
+  "version": "0.4.0-t04.8",
+  "private": true,
+  "description": "Local notes and writing assistant - T04 editor and formats preview",
+  "author": "Jin Lu <it@live.cn>",
+  "license": "BSD-3-Clause",
+  "main": "dist/runtime/desktop/main.js",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
+  "scripts": {
+    "build": "ng build && tsc -p tsconfig.desktop.json && node scripts/copy-html-runtime.cjs",
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "smoke": "node scripts/smoke.cjs",
+    "package": "node scripts/package.cjs"
+  },
+  "dependencies": {
+    "@angular/cdk": "22.2.2",
+    "@angular/common": "22.2.2",
+    "@angular/compiler": "22.2.2",
+    "@angular/core": "22.2.2",
+    "@angular/forms": "22.2.2",
+    "@angular/platform-browser": "22.2.2",
+    "dompurify": "3.4.16",
+    "highlight.js": "11.11.1",
+    "lucide": "1.54.0",
+    "marked": "18.1.0",
+    "quill": "2.0.3",
+    "rxjs": "7.8.2",
+    "tslib": "2.8.1",
+    "turndown": "7.2.4"
+  },
+  "devDependencies": {
+    "@angular/build": "22.2.2",
+    "@angular/cli": "22.2.2",
+    "@angular/compiler-cli": "22.2.2",
+    "@electron/packager": "20.3.0",
+    "@types/node": "24.10.1",
+    "@types/turndown": "5.0.6",
+    "electron": "44.7.0",
+    "typescript": "6.0.3"
+  }
+}

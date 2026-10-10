@@ -1,0 +1,42 @@
+import type { BrowserWindow } from 'electron';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+export async function smokeSelect(window: BrowserWindow, directory: string): Promise<void> {
+  const evaluate = (script: string) => window.webContents.executeJavaScript(script);
+  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const until = async (expression: string) => { for (let n = 0; n < 80; n++) { if (await evaluate(expression)) return; await wait(100); } throw new Error('Select UI timed out: ' + expression); };
+  const click = (selector: string) => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  const key = async (keyCode: string) => { window.webContents.sendInputEvent({ type: 'keyDown', keyCode }); window.webContents.sendInputEvent({ type: 'keyUp', keyCode }); await wait(80); };
+  const capture = async (name: string) => { await window.webContents.capturePage(); await wait(250); writeFileSync(join(directory, name), (await window.webContents.capturePage()).toPNG()); };
+  await click('[data-select-trigger=theme]');
+  await until("!!document.querySelector('.select-menu')");
+  if (!await evaluate(`(() => {const button=document.querySelector('[data-select-trigger=theme]'),menu=document.querySelector('.select-menu'),b=getComputedStyle(button),m=getComputedStyle(menu);return b.paddingLeft===b.paddingRight && b.borderRadius===m.borderRadius && menu.querySelectorAll('[aria-selected=true] .select-check').length===1 && getComputedStyle(menu.querySelector('[aria-selected=true] .select-check')).visibility==='visible';})()`)) throw new Error('Select padding/radius/check mismatch');
+  await capture('select-dark.png');
+  await click('.select-option[data-value=light]');
+  await until("document.documentElement.dataset.theme==='light' && !document.querySelector('.select-menu')");
+  await click('[data-select-trigger=theme]'); await capture('select-light.png');
+  await key('Escape'); await until("!document.querySelector('.select-menu')");
+  await key('Enter'); await key('End'); await key('Enter');
+  await until("document.documentElement.dataset.theme==='dark'");
+  await click('[data-select-trigger=theme]');
+  await evaluate("document.body.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));document.body.dispatchEvent(new MouseEvent('click',{bubbles:true}))");
+  await until("!document.querySelector('.select-menu')");
+  await click('[data-select-trigger=language]'); await key('e'); await key('Enter');
+  await until("document.querySelector('[data-testid=language]').value==='en'");
+  await click('[data-select-trigger=language]'); await click('.select-option[data-value=zh-CN]');
+  await until("document.querySelector('[data-testid=language]').value==='zh-CN'");
+  await click('[data-select-trigger=theme]'); await key('Tab');
+  await until("!document.querySelector('.select-menu')");
+  await click('[data-testid=notifications-bell]');
+  await until("!!document.querySelector('[data-select-trigger=notifications-type]')");
+  await click('[data-select-trigger=notifications-type]'); await key('Escape');
+  if (!await evaluate("!document.querySelector('.select-menu') && !!document.querySelector('[data-testid=notification-history]')")) throw new Error('Select Escape closed parent drawer');
+  await key('Escape'); await until("!document.querySelector('[data-testid=notification-history]')");
+  await evaluate("document.querySelector('.ql-picker-label').dispatchEvent(new MouseEvent('mousedown',{bubbles:true}))");
+  await until("!!document.querySelector('.ql-picker.ql-expanded')");
+  if (!await evaluate("getComputedStyle(document.querySelector('.ql-picker-label')).borderRadius===getComputedStyle(document.querySelector('.ql-picker-options')).borderRadius")) throw new Error('Quill picker radius mismatch');
+  await capture('select-editor-dark.png');
+  await evaluate("document.querySelector('.ql-picker-label').dispatchEvent(new MouseEvent('mousedown',{bubbles:true}))");
+  writeFileSync(join(directory, 'select-report.json'), JSON.stringify({ symmetricPadding: true, matchingRadius: true, selectedCheck: true, mouseSelection: true, keyboardSelection: true, typeahead: true, tabDismissal: true, nestedEscape: true, themes: true }, null, 2));
+}

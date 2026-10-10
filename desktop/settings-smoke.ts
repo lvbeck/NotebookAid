@@ -1,0 +1,74 @@
+import type { BrowserWindow } from 'electron';
+import { readFileSync, writeFileSync, unlinkSync, renameSync } from 'node:fs';
+import { join } from 'node:path';
+
+export async function smokeSettings(window: BrowserWindow, directory: string): Promise<void> {
+  const run = (script: string) => window.webContents.executeJavaScript(script);
+  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const until = async (script: string) => { for (let n = 0; n < 120; n++) { if (await run(script)) return; await wait(100); } throw Error('Settings UI timeout: ' + script); };
+  const click = (selector: string) => run(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  const change = (selector: string, value: string, event = 'change') => run(`(() => { const e=document.querySelector(${JSON.stringify(selector)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event(${JSON.stringify(event)},{bubbles:true})); })()`);
+  const idle = () => until("!document.querySelector('[data-testid=autosave-enabled]').disabled");
+  const get = async () => { const value = await run("window.notebookAid.library.settings({locale:null,theme:null,autosave:null})"); if (!value.ok) throw Error(value.code); return value.value; };
+  const registry = (await run('window.notebookAid.library.registry()')).value;
+  const a = registry.entries.find((entry: any) => entry.current); const b = registry.entries.find((entry: any) => !entry.current);
+  if (!a || !b) throw Error('Two library fixtures required');
+  const open = async (id: string) => {
+    await click('[data-testid=libraries-tab]'); await until("!!document.querySelector('[data-testid=libraries-page]')");
+    await click(`[data-library-id="${id}"] [data-testid=library-open]`);
+    await until("!document.querySelector('[data-testid=library-add]').disabled");
+    await click('[data-testid=settings-tab]');
+  };
+  await click('[data-testid=settings-tab]'); await click('[data-testid=settings-global]');
+  await idle(); await click('[data-testid=autosave-enabled]'); await idle(); await change('[data-testid=autosave-minutes]', '1'); await idle();
+  await run(`(() => { const set=window.setTimeout.bind(window),clear=window.clearTimeout.bind(window);window.__settingsTimers=new Map();window.setTimeout=(fn,ms,...args)=>{if(ms>=60000&&ms<=3600000&&ms%60000===0){const id=set(()=>{},7200000);window.__settingsTimers.set(id,{fn:()=>fn(...args),ms});return id;}return set(fn,ms,...args);};window.clearTimeout=id=>{window.__settingsTimers.delete(id);clear(id);}; })()`);
+  await change('[data-testid=note-title]', '设置计时测试', 'input');
+  await until('window.__settingsTimers.size===1');
+  await run('window.__staleSettingsCallback=[...window.__settingsTimers.values()][0].fn; void 0');
+  await change('[data-testid=autosave-minutes]', '2'); await idle();
+  await until('window.__settingsTimers.size===1 && [...window.__settingsTimers.values()][0].ms===120000');
+  const versionBefore = (await run('window.notebookAid.library.list()')).value[0].version;
+  await run('window.__staleSettingsCallback()'); await wait(100);
+  if ((await run('window.notebookAid.library.list()')).value[0].version !== versionBefore || !await run('window.__settingsTimers.size===1')) throw Error('Stale timer saved or cleared replacement timer');
+  await click('[data-testid=settings-library]'); await change('[data-testid=settings-library-select]', b.id);
+  if (!await run("document.querySelector('[data-testid=library-inherit]').checked && document.querySelector('[data-testid=settings-rebuild]').disabled")) throw Error('Inactive library defaults or maintenance guard failed');
+  const timerId = await run('[...window.__settingsTimers.keys()][0]');
+  await click('[data-testid=library-inherit]'); await idle(); await click('[data-testid=library-autosave-enabled]'); await idle();
+  if ((await get()).libraries[b.id].enabled !== false || !await run(`window.__settingsTimers.has(${timerId})`)) throw Error('Inactive override affected active timer');
+  writeFileSync(join(directory, 'simulate-settings-failure'), 'fixture');
+  await click('[data-testid=settings-global]'); await change('[data-testid=autosave-minutes]', '7'); await idle();
+  if ((await get()).global.autosave.minutes !== 2 || !await run("document.querySelector('[data-testid=autosave-minutes]').value==='2'")) throw Error('Write failure did not roll back UI');
+  if (!await run(`window.__settingsTimers.has(${timerId})`)) throw Error('Failed write changed timer');
+  unlinkSync(join(directory, 'simulate-settings-failure'));
+  await change('[data-testid=autosave-minutes]', '0'); await idle();
+  if ((await get()).global.autosave.minutes !== 2) throw Error('Invalid interval was accepted');
+  await change('[data-testid=autosave-minutes]', '2'); await idle();
+  const invalid = await run("window.notebookAid.library.librarySettings('00000000-0000-4000-8000-000000000000',{enabled:true,minutes:5})");
+  if (invalid.ok) throw Error('Unknown library setting accepted');
+  await open(b.id); await until("document.querySelector('[data-testid=note-title]').value==='第二库独立笔记'");
+  await change('[data-testid=note-title]', '本库关闭自动保存', 'input');
+  if (!await run('window.__settingsTimers.size===0')) throw Error('Disabled library scheduled autosave');
+  await open(a.id); await until("document.querySelector('[data-testid=note-title]').value==='设置计时测试'");
+  await click('[data-testid=settings-library]'); await change('[data-testid=settings-library-select]', b.id);
+  await click('[data-testid=library-inherit-reset]'); await idle();
+  if ((await get()).libraries[b.id] || !await run("document.querySelector('[data-testid=settings-effective]').textContent.includes('全局设置')")) throw Error('Inheritance restore failed');
+  await click('[data-testid=library-inherit]'); await idle(); await click('[data-testid=library-autosave-enabled]'); await idle();
+  const offline = b.path + '-offline'; renameSync(b.path, offline);
+  try {
+    await click('[data-testid=settings-library]'); await wait(100);
+    if (!await run("document.querySelector('[data-testid=settings-rebuild]').disabled")) throw Error('Offline library maintenance enabled');
+  } finally { renameSync(offline, b.path); }
+  await click('[data-testid=settings-library]'); await change('[data-testid=settings-library-select]', a.id);
+  if (!await run("!document.querySelector('[data-testid=settings-rebuild]').disabled")) throw Error('Current library maintenance disabled');
+  await run("document.querySelectorAll('[data-testid=notification] .icon-button').forEach(button=>button.click())");
+  await window.webContents.capturePage(); await wait(250); writeFileSync(join(directory, 'settings-library-dark.png'), (await window.webContents.capturePage()).toPNG());
+  await run("document.querySelector('[data-testid=settings-effective]').scrollIntoView({block:'center'})"); await window.webContents.capturePage(); await wait(250); writeFileSync(join(directory, 'settings-library-effective.png'), (await window.webContents.capturePage()).toPNG());
+  await run("document.querySelector('app-settings').scrollTop=0");
+  await click('[data-testid=settings-global]'); await change('[data-testid=autosave-minutes]', '10'); await idle(); await click('[data-testid=autosave-enabled]'); await idle();
+  await change('[data-testid=theme]', 'light'); await idle(); await window.webContents.capturePage(); await wait(250); writeFileSync(join(directory, 'settings-global-light.png'), (await window.webContents.capturePage()).toPNG());
+  await change('[data-testid=theme]', 'dark'); await idle();
+  const saved = await get(); writeFileSync(join(directory, 'settings-expected.json'), JSON.stringify(saved));
+  const backup = JSON.parse(readFileSync(join(directory, 'settings-legacy.t03c-backup.json'), 'utf8'));
+  if (backup.locale !== null || backup.theme !== null || backup.autosave !== null) throw Error('Unexpected first-run backup fixture');
+  writeFileSync(join(directory, 'settings-report.json'), JSON.stringify({ inheritanceAndOverride: true, inactiveLibraryIsolated: true, lateTimerIgnored: true, failedWriteRetainsValuesAndTimer: true, invalidInputRejected: true, switchSavesWithTimerDisabled: true, restoreInheritance: true, inactiveAndOfflineMaintenanceDisabled: true, timerAdvanceSimulated: true, global: saved.global }, null, 2));
+}

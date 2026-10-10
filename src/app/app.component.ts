@@ -1,0 +1,261 @@
+import { sourceIssues, type SourceIssue } from './source-issues';
+import { DomSanitizer } from '@angular/platform-browser';
+import { isolatedHtmlDocument } from './html-preview';
+import { SelectDirective } from './select.directive';
+import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, signal, inject, effect, untracked, computed } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import Quill from 'quill';
+import Delta from 'quill-delta';
+import hljs from 'highlight.js/lib/common';
+import type Table from 'quill/modules/table';
+import { codeLanguages, registerNoteFormats } from './editor-formats';
+import { NoteLink } from './note-link';
+import { cleanHtml, convertBody, markdownFromHtml, previewHtml, semanticHtml } from './note-codec';
+import { BodyHistory } from '../../shared/body-history';
+import type { NoteFormat, NoteInput } from '../../shared/library';
+import { IconComponent } from './icon.component';
+import { languages, Locale, MessageKey, translate } from './i18n';
+import type { RuntimeInfo } from '../../shared/contracts';
+import { NoteWorkspace } from './note-workspace';
+import { NotificationService } from './notification-service';
+import { SettingsComponent } from './settings.component';
+import { Preferences } from './preferences';
+import { LibrariesComponent } from './libraries.component';
+import { NotificationsComponent } from './notifications.component';
+
+type Theme = 'light' | 'dark' | 'system';
+
+@Component({
+  selector: 'app-root', standalone: true, imports: [SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
+})
+export class AppComponent implements AfterViewInit, OnDestroy {
+  readonly workspace = inject(NoteWorkspace);
+  readonly notifications = inject(NotificationService);
+  @ViewChild('editorHost', { static: true }) host!: ElementRef<HTMLElement>;
+  readonly languages = languages;
+  readonly prefs = inject(Preferences);
+  readonly locale = this.prefs.locale;
+  readonly theme = this.prefs.theme;
+  readonly ready = signal(false);
+  readonly tab = signal<'editor' | 'diagnostics' | 'settings' | 'libraries'>('editor');
+  readonly runtime = signal<RuntimeInfo | null>(null);
+  readonly sqliteResult = signal('');
+  readonly roundtripResult = signal('');
+  readonly roundtripStatus = signal('');
+  readonly busy = signal(false);
+  readonly warning = signal(false);
+  readonly issues = signal<SourceIssue[]>([]);
+  readonly sourceMode = signal(false);
+  readonly historyVersion = signal(0);
+  readonly history = new BodyHistory();
+  readonly newNoteMenuOpen = signal(false);
+  readonly noteFormats: NoteFormat[] = ['markdown', 'html', 'text'];
+  readonly exportFormat = signal<NoteFormat>('markdown');
+  readonly exportPreview = signal<NoteInput | null>(null);
+  readonly fileMessage = signal('');
+  readonly fileBusy = signal(false);
+  private composing = false;
+  format(): NoteFormat { return this.workspace.session()?.note.primaryFormat ?? 'markdown'; }
+  createNote(format: NoteFormat): void { this.newNoteMenuOpen.set(false); this.tab.set('editor'); void this.workspace.create({ primaryFormat: format, title: 'Untitled', body: '' }); }
+  importNote(): void { this.newNoteMenuOpen.set(false); this.tab.set('editor'); void this.workspace.importFile(); }
+  canUndo(): boolean { this.historyVersion(); return this.history.canUndo; }
+  canRedo(): boolean { this.historyVersion(); return this.history.canRedo; }
+  private record(): void { if (!this.composing) { this.history.push(this.source()); this.historyVersion.update(value => value + 1); } }
+  undo(redo = false): void {
+    if (this.composing || this.workspace.switching() || !this.workspace.session()) return;
+    this.workspace.updateBody(redo ? this.history.redo() : this.history.undo());
+    this.historyVersion.update(value => value + 1); this.loadSource();
+  }
+  toggleSource(value: boolean): void { if (this.composing) return; this.sourceMode.set(value); if (!value) this.loadSource(); }
+  prepareExport(): void {
+    if (!this.workspace.session() || this.composing) return;
+    this.exportPreview.set({ primaryFormat: this.exportFormat(), title: this.title, body: convertBody(this.source(), this.format(), this.exportFormat()) });
+    this.fileMessage.set('');
+  }
+  async saveExport(): Promise<void> {
+    const input = this.exportPreview(); if (!input || this.fileBusy()) return;
+    this.fileBusy.set(true);
+    try { const result = await window.notebookAid.library.exportFile(input); this.fileMessage.set(!result.ok ? `${this.t('exportFailed')} · ${result.code}` : result.value ? this.t('exportSuccess') : this.t('exportCancelled')); }
+    catch { this.fileMessage.set(this.t('exportFailed')); }
+    finally { this.fileBusy.set(false); }
+  }
+  get title(): string { return this.workspace.title(); }
+  set title(value: string) { this.workspace.updateTitle(value); }
+  readonly source = this.workspace.body;
+  private readonly sanitizer = inject(DomSanitizer);
+  readonly htmlPreview = computed(() => this.sanitizer.bypassSecurityTrustHtml(this.format() === 'html' ? isolatedHtmlDocument(this.source()) : ''));
+  readonly loadedSource = signal('');
+  readonly sourcePending = signal(false);
+  private readonly onEditorChange = (_delta: unknown, _previous: unknown, origin: string) => {
+    if (origin !== 'user') return;
+    if (this.warning() || this.sourcePending() || this.format() === 'text') return;
+    this.workspace.updateBody(this.format() === 'html' ? cleanHtml(semanticHtml(this.editor.getSemanticHTML())) : this.toMarkdown());
+    this.record();
+    this.roundtripResult.set('');
+    this.roundtripStatus.set('');
+  };
+  private editor!: Quill;
+  private readonly media = matchMedia('(prefers-color-scheme: dark)');
+  private readonly themeListener = () => this.applyTheme();
+  private readonly preventNavigation = (event: Event) => {
+    if ((event.target as Element).closest('a')) event.preventDefault();
+  };
+  readonly compositionStart = () => { this.composing = true; this.workspace.setComposing(true); };
+  readonly compositionEnd = () => { this.composing = false; this.record(); this.workspace.setComposing(false); };
+  private readonly keyboard = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && this.newNoteMenuOpen()) { this.newNoteMenuOpen.set(false); document.querySelector<HTMLButtonElement>('[data-testid=create-note]')?.focus(); }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void this.workspace.manualSave(); }
+    const target = event.target as HTMLElement;
+    if ((event.ctrlKey || event.metaKey) && target.closest('.editor-area,.body-source,[data-testid=markdown-source]') && ['z', 'y'].includes(event.key.toLowerCase())) {
+      event.preventDefault(); event.stopImmediatePropagation(); this.undo(event.shiftKey || event.key.toLowerCase() === 'y');
+    }
+  };
+  constructor() {
+    effect(() => { this.theme(); this.locale(); this.applyTheme(); });
+    effect(() => { if (this.workspace.libraryUnavailable()) this.tab.set('libraries'); });
+    effect(() => {
+      const ready = this.ready(); this.workspace.opened();
+      if (ready) untracked(() => { this.history.reset(this.source()); this.historyVersion.update(value => value + 1); this.sourceMode.set(false); this.exportPreview.set(null); this.fileMessage.set(''); this.loadSource(); });
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.applyTheme();
+    this.media.addEventListener('change', this.themeListener);
+    Quill.register('formats/link', NoteLink, true);
+    registerNoteFormats();
+    this.editor = new Quill(this.host.nativeElement, {
+      theme: 'snow',
+      formats: ['header', 'bold', 'italic', 'blockquote', 'code', 'code-block', 'code-token', 'list', 'indent', 'link', 'image', 'table', 'cell-header', 'cell-align'],
+      modules: { table: true, syntax: { hljs, languages: codeLanguages.map(key => ({ key, label: key })) }, toolbar: [[{ header: [1, 2, 3, false] }], ['bold', 'italic'], [{ list: 'ordered' }, { list: 'bullet' }, { list: 'check' }], [{ indent: '-1' }, { indent: '+1' }], ['blockquote', 'code-block', 'link', 'image'], ['clean']] }
+    });
+    this.editor.clipboard.addMatcher('PRE', (input: Node) => {
+      const node = input as HTMLElement;
+      const language = node.getAttribute('data-language') ?? node.querySelector('code')?.className.replace(/^language-/, '') ?? 'plain';
+      const text = node.querySelector('code')?.textContent ?? (node.textContent ?? '').replace(/\n$/, '');
+      return text.split('\n').reduce((delta, line) => delta.insert(line).insert('\n', { 'code-block': codeLanguages.includes(language) ? language : 'plain' }), new Delta());
+    });
+    this.editor.clipboard.addMatcher('TH, TD', (input: Node, delta: Delta) => {
+      const node = input as HTMLElement;
+      const attributes: Record<string, string> = {};
+      if (node.tagName === 'TH' || node.getAttribute('data-cell-header') === 'true') attributes['cell-header'] = 'true';
+      const align = node.getAttribute('align') ?? node.getAttribute('data-cell-align');
+      if (align && ['left', 'center', 'right'].includes(align)) attributes['cell-align'] = align;
+      return new Delta(delta.ops.map(op => typeof op.insert === 'string' && op.insert.includes('\n') ? { ...op, attributes: { ...op.attributes, ...attributes } } : op));
+    });
+    this.host.nativeElement.addEventListener('click', this.preventNavigation);
+    this.host.nativeElement.addEventListener('compositionstart', this.compositionStart);
+    this.host.nativeElement.addEventListener('compositionend', this.compositionEnd);
+    window.addEventListener('keydown', this.keyboard, true);
+    this.loadSource();
+    this.editor.on('text-change', this.onEditorChange);
+    this.editor.on('selection-change', range => { if (range) { const language = this.editor.getFormat(range)['code-block']; this.selectedCodeLanguage.set(typeof language === 'string' ? language : 'plain'); } });
+    this.ready.set(true);
+    void this.workspace.init();
+    window.notebookAid.runtime().then(value => this.runtime.set(value)).catch(() => this.sqliteResult.set(this.t('failed')));
+  }
+  ngOnDestroy(): void {
+    this.editor?.off('text-change', this.onEditorChange);
+    this.media.removeEventListener('change', this.themeListener);
+    this.host.nativeElement.removeEventListener('click', this.preventNavigation);
+    this.host.nativeElement.removeEventListener('compositionstart', this.compositionStart);
+    this.host.nativeElement.removeEventListener('compositionend', this.compositionEnd);
+    window.removeEventListener('keydown', this.keyboard, true);
+  }
+  t(key: MessageKey): string { return translate(this.locale(), key); }
+  async setLocale(event: Event): Promise<void> {
+    const input = event.target as HTMLSelectElement;
+    await this.prefs.update({ locale: input.value as Locale }); input.value = this.locale();
+  }
+  async setTheme(event: Event): Promise<void> {
+    const input = event.target as HTMLSelectElement;
+    await this.prefs.update({ theme: input.value as Theme }); input.value = this.theme();
+  }
+  loadSource(): void {
+    this.sourcePending.set(false);
+    this.loadedSource.set(this.source());
+    this.issues.set(sourceIssues(this.source(), this.format()));
+    this.warning.set(this.issues().length > 0);
+    const delta = this.editor.clipboard.convert({ html: previewHtml(this.source(), this.format()) });
+    this.editor.setContents(delta, 'api');
+    if (this.format() !== 'text' && !this.warning()) {
+      const output = this.format() === 'markdown' ? this.toMarkdown() : cleanHtml(semanticHtml(this.editor.getSemanticHTML()));
+      const back = this.editor.clipboard.convert({ html: previewHtml(output, this.format()) });
+      if (this.normalizedDelta(delta) !== this.normalizedDelta(back)) {
+        const formats = [...new Set([...delta.ops, ...back.ops].flatMap(op => Object.keys(op.attributes ?? {})))].join(', ');
+        this.issues.set([{ kind: 'issueRoundtrip', detail: formats, count: 1 }]); this.warning.set(true);
+      }
+    }
+    this.editor.enable(!!this.workspace.session() && !this.warning() && this.format() !== 'text');
+    (this.editor.getModule('history') as { clear(): void }).clear();
+    this.roundtripResult.set('');
+    this.roundtripStatus.set('');
+  }
+  private normalizedDelta(delta: Delta): string {
+    const rows = new Map<unknown, number>();
+    return JSON.stringify(delta.ops.map(op => {
+      const attributes = { ...op.attributes }; delete attributes['code-token'];
+      if (attributes['table'] != null) { const row = attributes['table']; if (!rows.has(row)) rows.set(row, rows.size + 1); attributes['table'] = rows.get(row); }
+      return { ...op, attributes: Object.fromEntries(Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b))) };
+    }));
+  }
+  tableAction(action: 'insertTable' | 'insertRowAbove' | 'insertRowBelow' | 'insertColumnLeft' | 'insertColumnRight' | 'deleteRow' | 'deleteColumn' | 'deleteTable'): void {
+    if (this.warning() || this.sourcePending() || !this.workspace.session()) return;
+    this.editor.focus();
+    const table = this.editor.getModule('table') as Table;
+    if (action === 'insertTable') table.insertTable(3, 3); else table[action]();
+    if (this.format() === 'markdown') this.host.nativeElement.querySelectorAll('table').forEach(element => {
+      const rows = Array.from(element.rows);
+      rows.forEach((row, index) => Array.from(row.cells).forEach((cell, column) => {
+        const blot = Quill.find(cell);
+        if (blot && 'offset' in blot) this.editor.formatLine(blot.offset(this.editor.scroll), 1, { 'cell-header': index === 0 ? 'true' : false, 'cell-align': rows[0]?.cells[column]?.getAttribute('data-cell-align') || false }, 'user');
+      }));
+    });
+  }
+  readonly codeLanguages = codeLanguages;
+  readonly selectedCodeLanguage = signal('plain');
+  setCodeLanguage(value: string): void {
+    if (!codeLanguages.includes(value) || this.warning() || this.sourcePending()) return;
+    this.selectedCodeLanguage.set(value);
+    const range = this.editor.getSelection(true);
+    if (range) {
+      const [line] = this.editor.getLine(range.index);
+      const parent = line?.parent;
+      if (parent?.domNode instanceof HTMLElement && parent.domNode.classList.contains('ql-code-block-container')) this.editor.formatLine(parent.offset(this.editor.scroll), parent.length(), 'code-block', value, 'user');
+      else this.editor.formatLine(range.index, range.length, 'code-block', value, 'user');
+    }
+  }
+  editSource(value: string): void {
+    this.workspace.updateBody(value); this.record(); this.sourcePending.set(true); this.editor.enable(false);
+    this.roundtripResult.set(''); this.roundtripStatus.set('');
+  }
+  saveLabel(): string { return this.t(this.workspace.saving() ? 'saving' : this.workspace.error() ? 'saveFailed' : this.workspace.dirty() ? 'unsaved' : 'saved'); }
+  displayTime(value: string): string { return new Date(value).toLocaleString(this.locale(), { dateStyle: 'short', timeStyle: 'short' }); }
+  roundtrip(): void {
+    this.loadSource();
+    if (this.format() === 'text' || this.warning()) { this.roundtripResult.set(this.source()); this.roundtripStatus.set(this.t('formatPreserved')); return; }
+    const output = this.format() === 'html' ? cleanHtml(semanticHtml(this.editor.getSemanticHTML())) : this.toMarkdown();
+    const before = this.editor.clipboard.convert({ html: previewHtml(this.source(), this.format()) });
+    const after = this.editor.clipboard.convert({ html: previewHtml(output, this.format()) });
+    this.roundtripResult.set(output);
+    this.roundtripStatus.set(this.t(this.normalizedDelta(before) === this.normalizedDelta(after) ? 'passed' : 'changed'));
+  }
+  private toMarkdown(): string {
+    return markdownFromHtml(semanticHtml(this.editor.getSemanticHTML()));
+  }
+  async probe(): Promise<void> {
+    this.busy.set(true);
+    try { this.sqliteResult.set(JSON.stringify(await window.notebookAid.probe(), null, 2)); void this.notifications.publish('sqliteSuccess', 'diagnostic'); }
+    catch { this.sqliteResult.set(this.t('failed')); void this.notifications.publish('sqliteFailed', 'diagnostic'); }
+    finally { this.busy.set(false); }
+  }
+  showLibraries(): void { this.tab.set('libraries'); void this.workspace.refreshRegistry(); }
+  activeLibraryName(): string { return this.workspace.registry().entries.find(item => item.current)?.name ?? this.t('library'); }
+  hide(): void { void window.notebookAid.hide(); }
+  quit(): void { void window.notebookAid.quit(); }
+  private applyTheme(): void {
+    document.documentElement.dataset['theme'] = this.theme() === 'system' ? (this.media.matches ? 'dark' : 'light') : this.theme();
+    document.documentElement.lang = this.locale();
+  }
+}

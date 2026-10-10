@@ -1,0 +1,75 @@
+import type { BrowserWindow } from 'electron';
+import { existsSync, renameSync, writeFileSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { NoteLibrary } from '../core/library';
+
+export async function smokeRegistry(window: BrowserWindow, directory: string): Promise<void> {
+  const run = (script: string) => window.webContents.executeJavaScript(script);
+  const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const until = async (script: string) => { for (let n = 0; n < 100; n++) { if (await run(script)) return; await wait(100); } throw Error('Registry UI timeout: ' + script); };
+  const click = (selector: string) => run(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  const state = async () => { const result = await run('window.notebookAid.library.registry()'); if (!result.ok) throw Error(result.code); return result.value; };
+  const choose = (path: string | null) => writeFileSync(join(directory, 'registry-dialog.json'), JSON.stringify({ path }));
+  const row = (id: string, action: string) => `[data-library-id="${id}"] [data-testid="library-${action}"]`;
+  const idle = () => until("!document.querySelector('[data-testid=library-add]').disabled");
+  const input = (selector: string, value: string) => run(`(() => { const e=document.querySelector(${JSON.stringify(selector)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true})); })()`);
+  await click('[data-testid=libraries-tab]'); await until("!!document.querySelector('[data-testid=libraries-page]')");
+  const first = (await state()).entries[0];
+  if (!await run(`document.querySelector(${JSON.stringify(row(first.id, 'remove'))}).disabled`)) throw Error('Current entry can be removed');
+  choose(null); await click('[data-testid=library-add]'); await idle(); if ((await state()).entries.length !== 1) throw Error('Cancel mutated list');
+  const secondPath = join(directory, '第二个笔记库'); choose(secondPath); await click('[data-testid=library-create]'); await idle();
+  const second = (await state()).entries[1]; if (!second) throw Error('New library not registered');
+  await click(row(second.id, 'rename')); await input('[data-testid=library-name]', '项目资料'); await click('[data-testid=library-rename-save]'); await idle();
+  await until("document.querySelector('[data-testid=libraries-page]').textContent.includes('项目资料')");
+  choose(secondPath); await click('[data-testid=library-add]'); await idle();
+  await until("document.querySelector('[data-testid=library-error]')?.textContent.includes('DUPLICATE_LIBRARY')");
+  writeFileSync(join(directory, 'simulate-write-failure'), 'fixture');
+  await input('[data-testid=note-title]', '切库保存测试'); await click(row(second.id, 'open')); await idle();
+  if ((await state()).activeId !== first.id || !await run("document.querySelector('[data-testid=note-title]').value === '切库保存测试'")) throw Error('Failed save lost active library or draft');
+  unlinkSync(join(directory, 'simulate-write-failure'));
+  writeFileSync(join(directory, 'simulate-registry-failure'), 'fixture');
+  await click(row(second.id, 'open')); await idle();
+  await until("document.querySelector('[data-testid=library-error]')?.textContent.includes('WRITE_FAILED')");
+  if ((await state()).activeId !== first.id) throw Error('Registry failure switched library');
+  unlinkSync(join(directory, 'simulate-registry-failure'));
+  const locked = new NoteLibrary(secondPath, undefined, 'existing');
+  try {
+    await click(row(second.id, 'open')); await idle();
+    await until("document.querySelector('[data-testid=library-error]')?.textContent.includes('LIBRARY_IN_USE')");
+    if ((await state()).activeId !== first.id) throw Error('Lock failure switched library');
+  } finally { locked.close(); }
+  await click(row(second.id, 'open')); await idle();
+  if ((await state()).activeId !== second.id) throw Error('Target did not activate');
+  await click('[data-testid=create-note]'); await click('[data-testid=create-markdown]');
+  await until("document.querySelector('[data-testid=note-title]').value.length > 0");
+  await click('[data-testid=libraries-tab]'); await until("!!document.querySelector('[data-testid=libraries-page]')"); await idle();
+  await input('[data-testid=note-title]', '第二库独立笔记');
+  await click(row(first.id, 'open')); await idle();
+  await until("document.querySelector('[data-testid=note-title]').value === '切库保存测试'");
+  const target = new NoteLibrary(secondPath, undefined, 'existing');
+  try { if (target.list().length !== 1 || target.list()[0].title !== '第二库独立笔记') throw Error('Cross-library save mismatch'); } finally { target.close(); }
+  const moved = join(directory, '移动后的笔记库'); renameSync(secondPath, moved);
+  await click(row(second.id, 'open')); await idle();
+  await until("document.querySelector('[data-testid=library-error]')?.textContent.includes('NOT_FOUND_OR_UNAVAILABLE')");
+  if (existsSync(secondPath) || (await state()).activeId !== first.id) throw Error('Missing library recreated or switched');
+  choose(first.path); await click(row(second.id, 'relocate')); await idle();
+  await until("document.querySelector('[data-testid=library-error]')?.textContent.includes('LIBRARY_ID_MISMATCH')");
+  choose(moved); await click(row(second.id, 'relocate')); await idle();
+  if ((await state()).entries[1].path !== moved) throw Error('Relocation failed');
+  await click(row(second.id, 'remove')); if ((await state()).entries.length !== 2) throw Error('Removal skipped confirmation');
+  await click('[data-testid=library-remove-confirm]'); await idle();
+  if ((await state()).entries.length !== 1 || !existsSync(join(moved, 'library.json'))) throw Error('Removal deleted disk files');
+  choose(moved); await click('[data-testid=library-add]'); await idle();
+  const added = (await state()).entries[1]; await click(row(added.id, 'rename')); await input('[data-testid=library-name]', '项目资料'); await click('[data-testid=library-rename-save]'); await idle();
+  unlinkSync(join(directory, 'registry-dialog.json'));
+  await run("document.querySelectorAll('[data-testid=notification] .icon-button').forEach(button=>button.click())");
+  await run('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))'); await window.webContents.capturePage(); await wait(250);
+  writeFileSync(join(directory, 'libraries-dark.png'), (await window.webContents.capturePage()).toPNG());
+  await run("(() => { const e=document.querySelector('[data-testid=theme]');e.value='light';e.dispatchEvent(new Event('change')); })()"); await wait(250); await window.webContents.capturePage(); await wait(250);
+  writeFileSync(join(directory, 'libraries-light.png'), (await window.webContents.capturePage()).toPNG());
+  await run("(() => { const e=document.querySelector('[data-testid=theme]');e.value='dark';e.dispatchEvent(new Event('change')); })()");
+  if (!await run("[...document.querySelectorAll('button')].every(button=>button.querySelector('svg'))")) throw Error('Library button missing icon');
+  writeFileSync(join(directory, 'registry-expected.json'), JSON.stringify((await state()).entries.map((entry: any) => ({ id: entry.id, name: entry.name, path: entry.path, libraryId: entry.libraryId }))));
+  writeFileSync(join(directory, 'registry-report.json'), JSON.stringify({ createAddRename: true, cancelNoChange: true, saveBeforeSwitch: true, saveFailureKeepsDraft: true, registryFailureKeepsLibrary: true, lockFailureKeepsLibrary: true, missingPathNotRecreated: true, relocateChecksIdentity: true, removalPreservesFiles: true, duplicateRejected: true, isolatedLibraries: true, dialogsSimulated: true }, null, 2));
+  await click('[data-testid=settings-tab]');
+}

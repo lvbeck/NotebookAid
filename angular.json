@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": { "analytics": false },
+  "projects": {
+    "notebookaid": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "outputPath": "dist/renderer",
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "tsConfig": "tsconfig.app.json",
+            "assets": [{ "glob": "notebookaid-64.png", "input": "assets", "output": "assets" }],
+            "styles": ["node_modules/quill/dist/quill.snow.css", "src/styles.css"],
+            "baseHref": "./",
+            "optimization": { "scripts": true, "styles": { "minify": true, "inlineCritical": false }, "fonts": false },
+            "sourceMap": false,
+            "outputHashing": "all",
+            "allowedCommonJsDependencies": ["turndown", "quill-delta"]
+          }
+        }
+      }
+    }
+  }
+}

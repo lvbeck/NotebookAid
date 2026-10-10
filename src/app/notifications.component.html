@@ -1,0 +1,39 @@
+<ng-template #cards>
+  <div class="notification-stack" aria-live="polite" aria-relevant="additions text">
+    @for (item of notifications.toasts(); track item.id) {
+      <article class="notification-card" [attr.data-type]="item.type" [attr.data-code]="item.code" data-testid="notification" (mouseenter)="notifications.pause(item.id, 'hover')" (mouseleave)="notifications.resume(item.id, 'hover')" (focusin)="notifications.pause(item.id, 'focus')" (focusout)="focusOut($event, item.id)">
+        <div class="notification-card-top"><span class="notification-symbol"><app-icon [name]="icon(item.type)" /></span><strong>{{ label(item.type) }}</strong><button class="icon-button" [attr.aria-label]="t('noticeClose')" (click)="notifications.dismiss(item.id)"><app-icon name="X" /></button></div>
+        <p>{{ t(item.code) }}</p>
+        @if (item.errorCode) { <small class="notification-code">{{ item.errorCode }}</small> }
+        @if (item.count > 1) { <small>{{ t('noticeOccurrences') }} {{ item.count }}</small> }
+        <button class="notification-link" (click)="notifications.openHistory()"><app-icon name="History" />{{ t('noticeViewHistory') }}</button>
+      </article>
+    }
+  </div>
+</ng-template>
+<ng-template #history>
+  <section class="notification-drawer" role="dialog" aria-modal="true" aria-labelledby="notification-heading" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" data-testid="notification-history">
+    <header class="notification-drawer-header"><div><span class="notification-eyebrow">NotebookAid</span><h2 id="notification-heading">{{ t('notifications') }} <span>{{ notifications.unread() }}</span></h2></div><button class="icon-button" cdkFocusInitial [attr.aria-label]="t('noticeClose')" (click)="close()"><app-icon name="X" /></button></header>
+    <div class="notification-controls">
+      <div class="notification-actions"><button class="secondary" data-testid="notifications-read-all" (click)="notifications.read(null)" [disabled]="notifications.busy() || !notifications.unread()"><app-icon name="CheckCheck" />{{ t('noticeReadAll') }}</button><button class="secondary" data-testid="notifications-clear" (click)="confirmClear.set(true)" [disabled]="notifications.busy() || !notifications.records().length"><app-icon name="Trash2" />{{ t('noticeClear') }}</button></div>
+      @if (confirmClear()) { <div class="notification-confirm" role="group" [attr.aria-label]="t('noticeClearConfirm')"><p>{{ t('noticeClearConfirm') }}</p><button class="secondary" (click)="confirmClear.set(false)"><app-icon name="X" />{{ t('noticeCancel') }}</button><button class="primary" data-testid="notifications-clear-confirm" (click)="clear()" [disabled]="notifications.busy()"><app-icon name="Trash2" />{{ t('noticeConfirm') }}</button></div> }
+      <div class="notification-filters">
+        <select appSelect [attr.aria-label]="t('noticeType')" data-testid="notifications-type" [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)"><option value="all">{{ t('noticeAllTypes') }}</option><option value="success">{{ t('noticeSuccess') }}</option><option value="info">{{ t('noticeInfo') }}</option><option value="warning">{{ t('noticeWarning') }}</option><option value="error">{{ t('noticeError') }}</option></select>
+        <select appSelect [attr.aria-label]="t('noticeLibrary')" data-testid="notifications-library" [ngModel]="libraryFilter()" (ngModelChange)="libraryFilter.set($event)"><option value="all">{{ t('noticeAllLibraries') }}</option><option value="global">{{ t('noticeGlobal') }}</option>@for (id of libraries(); track id) { <option [value]="id">{{ library(id) }}</option> }</select>
+      </div>
+      <label class="notification-unread"><input type="checkbox" data-testid="notifications-unread" [ngModel]="unreadOnly()" (ngModelChange)="unreadOnly.set($event)">{{ t('noticeUnreadOnly') }}</label>
+      @if (notifications.storageFailed()) { <p class="warning" role="alert">{{ t('noticeStorageFailed') }}</p><button class="secondary" (click)="notifications.reload()" [disabled]="notifications.busy()"><app-icon name="RefreshCw" />{{ t('noticeReload') }}</button> }
+    </div>
+    <div class="notification-history-list">
+      @for (item of filtered(); track item.id) {
+        <article class="notification-history-item" [attr.data-type]="item.type" [class.unread]="!item.read" data-testid="notification-record">
+          <div class="notification-item-heading"><span class="notification-symbol"><app-icon [name]="icon(item.type)" /></span><strong>{{ label(item.type) }}</strong>@if (!item.read) { <span class="unread-label">{{ t('noticeUnread') }}</span> }</div>
+          <time>{{ time(item) }}</time><span class="notification-library">{{ library(item.libraryId) }}</span>
+          <p>{{ t(item.code) }}</p>@if (item.errorCode) { <small class="notification-code">{{ item.errorCode }}</small> }@if (item.count > 1) { <small>{{ t('noticeOccurrences') }} {{ item.count }}</small> }
+          <div class="notification-item-actions">@if (!item.read) { <button class="notification-link" data-testid="notification-read" (click)="notifications.read(item.id)" [disabled]="notifications.busy()"><app-icon name="Check" />{{ t('noticeRead') }}</button> }<button class="notification-link" data-testid="notification-remove" (click)="notifications.remove(item.id)" [disabled]="notifications.busy()"><app-icon name="Trash2" />{{ t('noticeDelete') }}</button></div>
+        </article>
+      } @empty { <div class="notification-empty"><app-icon name="Bell" /><p>{{ t('noticeEmpty') }}</p></div> }
+    </div>
+    <footer class="notification-history-footer">{{ t('noticeRetention') }} · {{ notifications.records().length }}/100</footer>
+  </section>
+</ng-template>

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "rootDir": ".",
+    "outDir": "dist/runtime",
+    "types": ["node"],
+    "lib": ["ES2022"]
+  },
+  "include": ["desktop/**/*.ts", "core/**/*.ts", "shared/**/*.ts"]
+}
