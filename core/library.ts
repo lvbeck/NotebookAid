@@ -1,4 +1,7 @@
-import { recoverImport } from './library-import';
+import { isSvg, attachmentHash, attachmentName, imageType, readAttachmentFile, validateAttachments } from './attachments';
+import type { AttachmentRequest, AttachmentView } from '../shared/attachments';
+import { basename, extname } from 'node:path';
+import { copyTree, recoverImport } from './library-import';
 import type { Organization, OrganizationEdit, NotePlacement, PlacementRequest, NoteQuery } from '../shared/organization';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomUUID } from 'node:crypto';
@@ -50,7 +53,7 @@ export class NoteLibrary {
       if (!existsSync(manifestPath)) this.atomic(manifestPath, JSON.stringify({ schemaVersion: 1, libraryId: randomUUID(), createdAt: new Date().toISOString() }));
       recoverImport(this.path);
       const manifest = this.json(manifestPath) as { schemaVersion: number; libraryId: string };
-      if (![1, 2, 3].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      if (![1, 2, 3, 4].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       this.libraryId = manifest.libraryId;
       this.manifest = manifest;
       const organizationPath = this.safe('organization.json');
@@ -116,6 +119,7 @@ export class NoteLibrary {
       const text = readFileSync(metaPath, 'utf8');
       const meta = JSON.parse(text) as Metadata;
       if (digest(text) !== head.metadataHash || meta.schemaVersion !== 1 || meta.id !== head.id || meta.revisionId !== head.revisionId || meta.version !== head.version || !Object.hasOwn(formatExtensions, meta.primaryFormat)) throw new Error();
+      if (meta.attachments !== undefined) validateAttachments(meta.attachments);
       this.validateContent(meta.title, ''); this.validatePlacement(meta, false);
       if (!Number.isSafeInteger(meta.contentVersion) || meta.contentVersion < 1 || !uuid.test(meta.operationId) || (meta.parentRevisionId !== null && !uuid.test(meta.parentRevisionId))) throw new Error();
       if (meta.contentVersion > meta.version || !Number.isFinite(Date.parse(meta.createdAt)) || !Number.isFinite(Date.parse(meta.updatedAt)) || (meta.deletedAt !== null && !Number.isFinite(Date.parse(meta.deletedAt))) || (meta.version === 1) !== (meta.parentRevisionId === null)) throw new Error();
@@ -123,7 +127,7 @@ export class NoteLibrary {
       if (statSync(bodyPath).size > maxBody) throw new Error();
       const body = readFileSync(bodyPath, 'utf8');
       if (digest(body) !== meta.bodyHash) throw new Error();
-      return { id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body, folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned };
+      return { id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body, folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned, ...(meta.attachments ? { attachments: meta.attachments } : {}) };
     } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
   }
   private documents(): NoteDocument[] {
@@ -328,6 +332,66 @@ export class NoteLibrary {
     const current = this.read(request.noteId);
     if (current.version !== request.expectedVersion) throw new LibraryError('VERSION_CONFLICT');
     return this.commit({ ...current, title: request.title, body: request.body }, current, request.operationId, hash);
+  }
+  attachmentList(id: string): AttachmentView[] {
+    return (this.read(id).attachments ?? []).map(item => {
+      try { const bytes = this.attachmentBytes(id, item.id); return { ...item, mediaType: isSvg(bytes) || /\.svg$/i.test(item.name) ? 'image/svg+xml' : item.mediaType, available: true }; }
+      catch { return { ...item, available: false }; }
+    });
+  }
+  attachmentBytes(noteId: string, id: string): Buffer {
+    this.id(noteId); this.id(id);
+    const item = this.read(noteId).attachments?.find(row => row.id === id);
+    if (!item) throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
+    return readAttachmentFile(this.safe('notes', noteId, 'attachments', id), item);
+  }
+  private attachmentSession(request: AttachmentRequest, owner: string): NoteDocument {
+    if (!request || typeof request !== 'object') throw new LibraryError('INVALID_INPUT');
+    this.id(request.noteId); this.id(request.operationId);
+    const session = this.sessions.get(request.noteId);
+    if (!session || session.owner !== owner || session.token !== request.token || session.generation !== request.generation) throw new LibraryError('SESSION_EXPIRED');
+    return this.read(request.noteId);
+  }
+  addAttachment(request: AttachmentRequest, owner: string, path: string, sanitizedBytes?: Buffer): SaveResult {
+    const current = this.attachmentSession(request, owner);
+    const sourceBytes = readAttachmentFile(path);
+    const bytes = sanitizedBytes ?? sourceBytes;
+    const hash = digest(JSON.stringify(['attachment', request.noteId, request.expectedVersion, basename(path), attachmentHash(bytes)]));
+    const replay = this.operation(request.operationId, hash); if (replay) return replay;
+    if (current.version !== request.expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+    const existing = current.attachments ?? []; const original = attachmentName(basename(path));
+    let name = original, suffix = 2;
+    const extension = extname(original), stem = basename(original, extension);
+    while (existing.some(row => row.name.normalize('NFKC').toLowerCase() === name.normalize('NFKC').toLowerCase())) name = stem.slice(0,140) + ' (' + suffix++ + ')' + extension.slice(0,20);
+    const item = { id: randomUUID(), name, size: bytes.length, sha256: attachmentHash(bytes), mediaType: imageType(bytes) };
+    const attachments = [...existing, item]; validateAttachments(attachments);
+    if (this.manifest.schemaVersion < 4) {
+      const backup = join(dirname(this.path), basename(this.path) + '.attachment-backups', randomUUID());
+      copyTree(this.path, backup);
+      this.atomic(this.safe('library.json'), JSON.stringify({ ...this.manifest, schemaVersion: 4 })); this.manifest.schemaVersion = 4;
+    }
+    const directory = this.safe('notes', current.id, 'attachments'); mkdirSync(directory, { recursive: true });
+    const fd = openSync(this.safe('notes', current.id, 'attachments', item.id), 'wx');
+    try { writeFileSync(fd, bytes); fsyncSync(fd); } finally { closeSync(fd); }
+    return this.commit({ ...current, attachments }, current, request.operationId, hash);
+  }
+  renameAttachment(request: AttachmentRequest, owner: string, id: string, value: string): SaveResult {
+    const current = this.attachmentSession(request, owner); this.id(id); const name = attachmentName(value);
+    const hash = digest(JSON.stringify(['attachment-name', request.noteId, request.expectedVersion, id, name]));
+    const replay = this.operation(request.operationId, hash); if (replay) return replay;
+    if (current.version !== request.expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+    if (!current.attachments?.some(row => row.id === id)) throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
+    const attachments = current.attachments.map(row => row.id === id ? { ...row, name } : row); validateAttachments(attachments);
+    return this.commit({ ...current, attachments }, current, request.operationId, hash);
+  }
+  unlinkAttachment(request: AttachmentRequest, owner: string, id: string): SaveResult {
+    const current = this.attachmentSession(request, owner); this.id(id);
+    const hash = digest(JSON.stringify(['attachment-unlink', request.noteId, request.expectedVersion, id]));
+    const replay = this.operation(request.operationId, hash); if (replay) return replay;
+    if (current.version !== request.expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+    if (!current.attachments?.some(row => row.id === id)) throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
+    const attachments = current.attachments.filter(row => row.id !== id);
+    return this.commit({ ...current, attachments }, current, request.operationId, hash);
   }
   trash(id: string, expectedVersion: number, operationId: string): SaveResult {
     this.id(id); this.id(operationId);

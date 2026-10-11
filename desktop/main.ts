@@ -58,7 +58,7 @@ function runtime(): RuntimeInfo {
 async function createWindow(show = true): Promise<BrowserWindow> {
   if (mainWindow && !mainWindow.isDestroyed()) { if (show) mainWindow.show(); return mainWindow; }
   mainWindow = new BrowserWindow({ width: 1300, height: 860, minWidth: 960, minHeight: 640, show: false,
-    title: 'NotebookAid · T04', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
+    title: 'NotebookAid · T06', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
     webPreferences: { preload: join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false }
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -96,7 +96,7 @@ async function start(): Promise<void> {
   storage = registerLibrary(dataPath, () => mainWindow, authorize, selfTest, updateTray);
   notifications = registerNotifications(dataPath, authorize, selfTest);
   tray = new Tray(nativeImage.createFromPath(join(app.getAppPath(), 'assets/notebookaid.ico')));
-  tray.setToolTip('NotebookAid · T04');
+  tray.setToolTip('NotebookAid · T06');
   updateTray(storage.locale());
   tray.on('double-click', () => { void createWindow(); });
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });

@@ -1,3 +1,4 @@
+import { AttachmentsComponent } from './attachments.component';
 import { TooltipDirective } from './tooltip.directive';
 import { OrganizationComponent } from './organization.component';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -31,7 +32,7 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
@@ -39,6 +40,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly notifications = inject(NotificationService);
   @ViewChild('editorHost', { static: true }) host!: ElementRef<HTMLElement>;
   @ViewChild('toolbarHost', { static: true }) toolbar!: ElementRef<HTMLElement>;
+  @ViewChild(AttachmentsComponent) attachmentsPanel?: AttachmentsComponent;
   @ViewChild('folderTrigger') folderTrigger?: CdkMenuTrigger;
   readonly sidebarCollapsed = computed(() => this.prefs.state().global.sidebarCollapsed ?? false);
   readonly editorFullscreen = signal(false);
@@ -51,6 +53,58 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly tagFilterOpen = signal(false);
   readonly tagMenuOpen = signal(false);
   readonly tagMenuNote = computed(() => this.workspace.session()?.note.id);
+  readonly selectedImage = signal<HTMLImageElement | null>(null);
+  @ViewChild('imageSizePanel') imageSizePanel?: ElementRef<HTMLElement>;
+  readonly imagePanelPosition = signal({ left: 0, top: 0, width: 760, visible: false });
+  private imagePositionFrame = 0;
+  private readonly positionImagePanel = () => {
+    if (this.imagePositionFrame) return;
+    this.imagePositionFrame = requestAnimationFrame(() => {
+      this.imagePositionFrame = 0;
+      const image = this.selectedImage(), panel = this.imageSizePanel?.nativeElement;
+      const pane = this.host.nativeElement.closest('.editor-pane');
+      if (!image?.isConnected || !panel || !pane) return;
+      const bounds = pane.getBoundingClientRect(), rect = image.getBoundingClientRect();
+      const heading = pane.querySelector('.editor-heading')?.getBoundingClientRect();
+      const left = Math.max(8, bounds.left + 12), right = Math.min(innerWidth - 8, bounds.right - 12);
+      const top = Math.max(8, bounds.top, heading?.bottom ?? 0) + 8, bottom = Math.min(innerHeight - 8, bounds.bottom - 8);
+      const visible = rect.bottom > top && rect.top < bottom && rect.right > left && rect.left < right;
+      const width = Math.max(1, Math.min(760, right - left));
+      const height = panel.getBoundingClientRect().height;
+      const x = Math.max(left, Math.min((Math.max(left, rect.left) + Math.min(right, rect.right) - width) / 2, right - width));
+      const y = rect.bottom + 10 + height <= bottom ? rect.bottom + 10 : Math.max(top, Math.min((Math.max(top, rect.top) + Math.min(bottom, rect.bottom) - height) / 2, bottom - height));
+      this.imagePanelPosition.set({ left: x, top: y, width, visible });
+    });
+  };
+  imageWidth = 1; imageHeight = 1; imageScale = 100; imageScaleMax = 200; imageKeepRatio = true;
+  private imageOriginalWidth = 1; private imageOriginalHeight = 1;
+  private readonly selectImage = (event: Event) => {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement) || !image.naturalWidth || !image.naturalHeight || image.hasAttribute('aria-label')) { this.selectedImage.set(null); return; }
+    this.imageOriginalWidth = image.naturalWidth; this.imageOriginalHeight = image.naturalHeight;
+    this.imageWidth = Number(image.getAttribute('width')) || image.naturalWidth;
+    this.imageHeight = Number(image.getAttribute('height')) || image.naturalHeight;
+    this.imageScale = Math.round(this.imageWidth / image.naturalWidth * 100);
+    this.imageScaleMax = Math.max(200, this.imageScale);
+    this.imageKeepRatio = Math.abs(this.imageWidth / this.imageHeight - image.naturalWidth / image.naturalHeight) < 0.01;
+    this.selectedImage.set(image);
+  };
+  resizeImage(axis: 'width' | 'height' | 'scale', value: number): void {
+    const image = this.selectedImage();
+    if (!image?.isConnected || this.workspace.switching() || this.warning() || this.sourceMode() || !Number.isFinite(value) || value <= 0) return;
+    let width = this.imageWidth, height = this.imageHeight;
+    const ratio = this.imageOriginalWidth / this.imageOriginalHeight;
+    if (axis === 'scale') { width = this.imageOriginalWidth * Math.min(this.imageScaleMax, value) / 100; height = this.imageKeepRatio ? width / ratio : height * width / this.imageWidth; }
+    else if (axis === 'width') { width = value; if (this.imageKeepRatio) height = width / ratio; }
+    else { height = value; if (this.imageKeepRatio) width = height * ratio; }
+    const limit = Math.min(1, 8192 / Math.max(width, height));
+    this.imageWidth = Math.max(1, Math.round(width * limit)); this.imageHeight = Math.max(1, Math.round(height * limit));
+    this.imageScale = Math.round(this.imageWidth / this.imageOriginalWidth * 100);
+    if (axis !== 'scale') this.imageScaleMax = Math.max(200, this.imageScale);
+    const blot = Quill.find(image);
+    if (blot && 'offset' in blot) this.editor.formatText(blot.offset(this.editor.scroll), 1, { width: String(this.imageWidth), height: String(this.imageHeight) }, 'user');
+  }
+  lockImageRatio(value: boolean): void { this.imageKeepRatio = value; if (value) this.resizeImage('width', this.imageWidth); }
   readonly inTable = signal(false);
   readonly inCodeBlock = signal(false);
   readonly languages = languages;
@@ -145,6 +199,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly compositionEnd = () => { this.composing = false; this.record(); this.workspace.setComposing(false); };
   private readonly keyboard = (event: KeyboardEvent) => {
     if (!event.isComposing && event.ctrlKey && event.shiftKey && event.code === 'KeyF') { event.preventDefault(); if (!event.repeat) this.toggleEditorFullscreen(); return; }
+    if (event.key === 'Escape' && this.selectedImage()) { this.selectedImage.set(null); event.preventDefault(); return; }
     if (event.key === 'Escape' && this.editorFullscreen() && !event.defaultPrevented && !document.querySelector('.cdk-overlay-pane:not(.notification-overlay):not(.sidebar-tooltip-overlay)')) { this.editorFullscreen.set(false); event.preventDefault(); return; }
     if (event.key === 'Escape' && this.newNoteMenuOpen()) { this.newNoteMenuOpen.set(false); document.querySelector<HTMLButtonElement>('[data-testid=create-note]')?.focus(); }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void this.workspace.manualSave(); }
@@ -154,6 +209,21 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
   };
   constructor() {
+    effect(onCleanup => {
+      const image = this.selectedImage();
+      if (!image) return;
+      if (this.tab() !== 'editor' || this.sourceMode() || this.warning()) { this.selectedImage.set(null); return; }
+      this.imagePanelPosition.update(value => ({ ...value, visible: false }));
+      const observer = new ResizeObserver(this.positionImagePanel);
+      observer.observe(image);
+      const pane = this.host.nativeElement.closest('.editor-pane');
+      if (pane) observer.observe(pane);
+      const frame = requestAnimationFrame(() => { if (this.imageSizePanel) observer.observe(this.imageSizePanel.nativeElement); this.positionImagePanel(); });
+      document.addEventListener('scroll', this.positionImagePanel, true);
+      window.addEventListener('resize', this.positionImagePanel);
+      this.positionImagePanel();
+      onCleanup(() => { observer.disconnect(); cancelAnimationFrame(frame); cancelAnimationFrame(this.imagePositionFrame); this.imagePositionFrame = 0; document.removeEventListener('scroll', this.positionImagePanel, true); window.removeEventListener('resize', this.positionImagePanel); });
+    });
     effect(() => { if (this.tab() !== 'editor' || !this.workspace.session()) this.editorFullscreen.set(false); });
     effect(() => { this.tab(); this.tagMenuNote(); this.tagMenuOpen.set(false); });
     effect(() => { this.theme(); this.locale(); this.applyTheme(); });
@@ -172,7 +242,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.editor = new Quill(this.host.nativeElement, {
       theme: 'snow',
       formats: ['header', 'bold', 'italic', 'blockquote', 'code', 'code-block', 'code-token', 'list', 'indent', 'link', 'image', 'table', 'cell-header', 'cell-align'],
-      modules: { table: true, syntax: { hljs, languages: codeLanguages.map(key => ({ key, label: key })) }, toolbar: { container: this.toolbar.nativeElement } }
+      modules: { table: true, syntax: { hljs, languages: codeLanguages.map(key => ({ key, label: key })) }, toolbar: { container: this.toolbar.nativeElement, handlers: { image: () => void this.attachmentsPanel?.chooseImage() } } }
     });
     this.editor.clipboard.addMatcher('PRE', (input: Node) => {
       const node = input as HTMLElement;
@@ -189,6 +259,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       return new Delta(delta.ops.map(op => typeof op.insert === 'string' && op.insert.includes('\n') ? { ...op, attributes: { ...op.attributes, ...attributes } } : op));
     });
     this.host.nativeElement.addEventListener('click', this.preventNavigation);
+    this.host.nativeElement.addEventListener('click', this.selectImage);
     this.host.nativeElement.addEventListener('compositionstart', this.compositionStart);
     this.host.nativeElement.addEventListener('compositionend', this.compositionEnd);
     window.addEventListener('keydown', this.keyboard, true);
@@ -204,6 +275,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.editor?.off('text-change', this.onEditorChange);
     this.media.removeEventListener('change', this.themeListener);
     this.host.nativeElement.removeEventListener('click', this.preventNavigation);
+    this.host.nativeElement.removeEventListener('click', this.selectImage);
     this.host.nativeElement.removeEventListener('compositionstart', this.compositionStart);
     this.host.nativeElement.removeEventListener('compositionend', this.compositionEnd);
     window.removeEventListener('keydown', this.keyboard, true);
@@ -218,6 +290,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     await this.prefs.update({ theme: input.value as Theme }); input.value = this.theme();
   }
   loadSource(): void {
+    this.selectedImage.set(null);
     this.sourcePending.set(false);
     this.loadedSource.set(this.source());
     this.issues.set(sourceIssues(this.source(), this.format()));
@@ -236,6 +309,38 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     (this.editor.getModule('history') as { clear(): void }).clear();
     this.roundtripResult.set('');
     this.roundtripStatus.set('');
+    void this.hydrateImages();
+  }
+  insertAttachmentImage(id: string): void {
+    if (this.workspace.switching() || !this.workspace.session()?.note.attachments?.some(item => item.id === id)) return;
+    const reference = 'attachments/' + id;
+    if (this.sourceMode() || this.warning() || this.format() === 'text') {
+      this.editSource(this.source() + '\n' + (this.format() === 'html' ? '<img src="' + reference + '">' : this.format() === 'markdown' ? '![](' + reference + ')' : reference));
+    } else {
+      const index = this.editor.getSelection(true)?.index ?? this.editor.getLength() - 1;
+      this.editor.insertEmbed(index, 'image', reference, 'user'); this.editor.setSelection(index + 1);
+      void this.hydrateImages();
+    }
+  }
+  private async hydrateImages(): Promise<void> {
+    const session = this.workspace.session(); if (!session) return;
+    let reportedCleaning = false;
+    const requests = new Map<string, ReturnType<typeof window.notebookAid.library.previewAttachment>>();
+    for (const node of this.host.nativeElement.querySelectorAll<HTMLImageElement>('img[data-note-src]')) {
+      const reference = node.getAttribute('data-note-src') ?? '';
+      const match = /^attachments\/([a-f0-9-]{36})$/i.exec(reference); if (!match) continue;
+      if (!session.note.attachments?.some(item => item.id === match[1])) { node.setAttribute('aria-label', this.t('attachmentMissing')); continue; }
+      try {
+        if (!requests.has(match[1])) requests.set(match[1], window.notebookAid.library.previewAttachment(session.note.id, match[1]));
+        const result = await requests.get(match[1])!;
+        if (this.workspace.session()?.generation !== session.generation || !node.isConnected) return;
+        if (result.ok && result.value.dataUrl) {
+          node.src = result.value.dataUrl; node.removeAttribute('aria-label');
+          if (result.value.removedUnsafeSvg && !reportedCleaning) { reportedCleaning = true; void this.notifications.publish('svgSanitized', 'open', this.workspace.status()?.libraryId); }
+        }
+        else node.setAttribute('aria-label', this.t('attachmentMissing'));
+      } catch { node.setAttribute('aria-label', this.t('attachmentMissing')); }
+    }
   }
   private normalizedDelta(delta: Delta): string {
     const rows = new Map<unknown, number>();

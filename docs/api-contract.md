@@ -90,3 +90,12 @@ library:settings(legacy)、updateSettings(patch)、librarySettings(entryId,autos
 editOrganization 新增 kind=folder-order，参数 ids 为全库文件夹 ID 的无重复完整排列，expectedVersion 防止覆盖过期组织版本。通过原子组织写入保存，拒绝缺失/额外/重复 ID；不改变父子关系。
 
 Global settings may include optional boolean `sidebarCollapsed`. Missing means expanded. Renderer updates use the existing validated settings IPC; write errors retain the previous value. Fullscreen editor state is transient.
+
+
+T06 新增：`attachments(noteId)` 返回带可用状态的附件清单；`addAttachment(request)` 由主进程文件选择器提供来源；`renameAttachment(request,id,name)` 使用编辑会话、版本、operationId；`previewAttachment(noteId,id)` 仅返回受控图片数据 URL、转义显示用 UTF-8 文本或媒体类型；`exportAttachment(noteId,id)` 由原生保存对话框选目标并以独占创建防覆盖。渲染进程不能指定磁盘源路径。
+
+T06 follow-up: `unlinkAttachment(request,id)` uses the same session/version/operationId validation as renaming. It commits a new attachment list without deleting payloads, historical metadata or body references. Registry entries expose `schemaVersion: number | null` read from the validated notebook manifest.
+
+### T06.3 SVG policy
+
+SVG attachments use the existing schema 4 octet-stream metadata for backward compatibility. Runtime classification recognizes SVG content; clean display data is generated in a network-denied sandbox. New SVG attachments store sanitized bytes, while existing revisions remain unchanged. `SaveResult` and `AttachmentPreview` may include `removedUnsafeSvg` to report sanitization. Image width/height are note content attributes, not attachment metadata; the same attachment can appear at different sizes.

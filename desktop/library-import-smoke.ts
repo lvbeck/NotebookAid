@@ -23,7 +23,7 @@ export async function smokeLibraryImport(window: BrowserWindow, directory: strin
   writeFileSync(join(directory, 'registry-dialog.json'), JSON.stringify({ path: sourcePath }));
   await click(`[data-library-id="${entry.id}"] [data-testid=library-import]`);
   await until("!!document.querySelector('[data-testid=library-import-preview]')");
-  if (!await run("document.querySelector('[data-testid=library-upgrade-hint]').textContent.includes('版本 3')")) throw Error('Missing upgrade notice');
+  if (!await run("document.querySelector('[data-testid=library-upgrade-hint]').textContent.includes('v3')")) throw Error('Missing upgrade notice');
   await until("document.querySelector('[data-testid=library-import-confirm]').getBoundingClientRect().bottom < window.innerHeight");
   await run("document.querySelectorAll('[data-testid=notification] .icon-button').forEach(button=>button.click())");
   await window.webContents.capturePage(); await wait(450); writeFileSync(join(directory, 'import-preview-dark.png'), (await window.webContents.capturePage()).toPNG());

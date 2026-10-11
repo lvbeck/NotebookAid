@@ -1,4 +1,5 @@
 import type { SettingsApi } from './settings';
+import type { Attachment, AttachmentRequest, AttachmentView, AttachmentPreview } from './attachments';
 import type { Organization, OrganizationEdit, NotePlacement, PlacementRequest, NoteQuery } from './organization';
 import type { LibraryImportPreview, LibraryImportResult } from './library-import';
 import type { RegistryApi } from './registry';
@@ -8,12 +9,18 @@ export type NoteFormat = 'markdown' | 'html' | 'text';
 export const formatExtensions: Record<NoteFormat, string> = { markdown: 'md', html: 'html', text: 'txt' };
 export interface NoteInput { primaryFormat: NoteFormat; title: string; body: string; folderId?: string | null; }
 export interface NoteSummary extends NotePlacement { id: string; title: string; primaryFormat: NoteFormat; version: number; contentVersion: number; createdAt: string; updatedAt: string; deletedAt: string | null; }
-export interface NoteDocument extends NoteSummary { body: string; revisionId: string; }
+export interface NoteDocument extends NoteSummary { body: string; revisionId: string; attachments?: Attachment[]; }
 export interface EditSession { token: string; generation: string; note: NoteDocument; }
 export interface SaveRequest { noteId: string; token: string; generation: string; expectedVersion: number; operationId: string; title: string; body: string; }
-export interface SaveResult { note: NoteDocument; saved: true; indexed: boolean; }
+export interface SaveResult { removedUnsafeSvg?: number; note: NoteDocument; saved: true; indexed: boolean; }
 export interface LibraryStatus { path: string; libraryId: string; indexed: boolean; issues: string[]; pendingRecovery: number; }
 export interface LibraryApi extends RegistryApi, SettingsApi {
+  attachments(noteId: string): Promise<Result<AttachmentView[]>>;
+  addAttachment(request: AttachmentRequest): Promise<Result<SaveResult | null>>;
+  unlinkAttachment(request: AttachmentRequest, id: string): Promise<Result<SaveResult>>;
+  renameAttachment(request: AttachmentRequest, id: string, name: string): Promise<Result<SaveResult>>;
+  previewAttachment(noteId: string, id: string): Promise<Result<AttachmentPreview>>;
+  exportAttachment(noteId: string, id: string): Promise<Result<boolean>>;
   previewLibraryImport(): Promise<Result<LibraryImportPreview | null>>;
   confirmLibraryImport(token: string): Promise<Result<LibraryImportResult>>;
   organization(): Promise<Result<Organization>>;

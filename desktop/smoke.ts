@@ -1,4 +1,5 @@
 import { smokeI18n } from './i18n-smoke';
+import { smokeAttachments } from './attachment-smoke';
 import { smokeLayout } from './layout-smoke';
 import { smokeOrganization } from './organization-smoke';
 import { type BrowserWindow } from 'electron';
@@ -30,6 +31,11 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
     const expectedSettings = JSON.parse(readFileSync(join(directory, 'settings-expected.json'), 'utf8'));
     if (!preferences.ok || JSON.stringify(preferences.value) !== JSON.stringify(expectedSettings)) throw new Error('Scoped settings did not survive restart');
     if (!await evaluate("document.querySelector('.app-shell').classList.contains('sidebar-collapsed')")) throw Error('Sidebar collapsed state not restored');
+    const attachmentExpected = JSON.parse(readFileSync(join(directory, 'attachments-expected.json'), 'utf8'));
+    const attachmentState = await evaluate(`window.notebookAid.library.attachments('${attachmentExpected.id}')`);
+    if (!attachmentState.ok || attachmentState.value.length !== attachmentExpected.attachments.length || attachmentState.value.some((row: any) => !row.available)) throw Error('Attachments did not survive restart');
+    await until("Array.from(document.querySelectorAll('.ql-editor img')).some(image => image.src.startsWith('data:image/png;'))");
+    if (attachmentExpected.attachments.some((item: any) => item.name.endsWith('.svg'))) await until("Array.from(document.querySelectorAll('.ql-editor img')).some(image => image.src.startsWith('data:image/svg+xml;') && image.naturalWidth === 800 && image.getAttribute('width') === '300' && image.getAttribute('height') === '150')");
     const notifications = await evaluate('window.notebookAid.notifications.state()');
     if (!notifications.ok || JSON.stringify(notifications.value) !== readFileSync(join(directory, 'notification-expected.json'), 'utf8')) throw new Error('Notification history/position/read state did not survive restart');
     if (!await evaluate("document.querySelector('[data-testid=autosave-minutes]').value === '10' && !document.querySelector('[data-testid=autosave-enabled]').checked")) throw new Error('Settings did not persist');
@@ -128,6 +134,7 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
   await smokeLibraryImport(window, directory);
   await smokeLayout(window, directory);
   await smokeI18n(window, directory);
+  await smokeAttachments(window, directory);
   await smokeNotifications(window, directory);
   writeFileSync(join(directory, 'settings-expected.json'), JSON.stringify((await evaluate("window.notebookAid.library.settings({locale:null,theme:null,autosave:null})")).value));
   writeFileSync(join(directory, 'expected-exit-version.json'), JSON.stringify((await evaluate('window.notebookAid.library.list()')).value[0].version + 1));

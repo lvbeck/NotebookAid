@@ -211,3 +211,16 @@ The product name for a library is now Notebook (Chinese: 笔记本); keep intern
 用户指定繁体中文采用中国香港用语。八种界面语言使用完整独立字典，新增文案由 TypeScript 检查键完整性，不再以简体中文或英语隐式填补缺项。繁体选项显示「繁體中文（香港）」；保留既有配置 ID `zh-TW` 以兼容已保存偏好，界面 lang 与日期使用 `zh-HK`。正文、自定义笔记标题、文件夹和标签名称不随语言转换。
 
 覆盖编辑器正文／标题选项、链接浮层、工具栏无障碍标签、新笔记默认标题、系统托盘及未保存退出提示。语言切换不重新创建编辑器、不改变笔记内容。
+
+
+T06 实施默认值：每个附件不超过 20 MB，每篇笔记最多 50 个／200 MB；添加同名自动编号、重命名冲突拒绝。界面沿用现有操作区和主题浮层；受管图片用稳定引用，原生笔记本导入携带附件及历史。PNG/JPEG/GIF/WebP 图片和小型 UTF-8 文本可安全预览，其他格式导出后查看。首次使用升级到格式 4 并创建独立完整回退备份。详见 [T06 测试与边界](t06-testing.md)。
+
+### T06 attachment association and schema display
+
+Attachment association removal retains the payload and revision history and does not rewrite note content. Remaining inline image references become unavailable, explained before confirming the action. Notebook settings show the validated manifest schemaVersion; Simplified Chinese uses 架构版本.
+
+### SVG and editable image dimensions
+
+Quill's image action accepts local SVG, with isolated sanitization and no external resource loading. Only sanitized new SVG bytes are stored; existing attachments are sanitized before display without rewriting old history. Removed content is reported. Selected images expose width, height, original aspect ratio lock and scale controls; dimensions survive saving, source/rich switching and restart. Markdown uses an inline img element where dimensions cannot be represented by standard image syntax.
+
+T06 图片尺寸工具栏补充：选中图片时在图片下方或可见区域中间显示浮层，随滚动和尺寸变化定位，不要求返回编辑器顶部。保持现有宽高、原始比例和缩放操作。

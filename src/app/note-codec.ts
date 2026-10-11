@@ -30,6 +30,7 @@ export function cleanHtml(html: string): string {
 }
 export function markdownFromHtml(html: string): string {
   const converter = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+  converter.addRule('sizedImage', { filter: node => node.nodeName === 'IMG' && (node.hasAttribute('width') || node.hasAttribute('height')), replacement: (_content, node) => '\n\n' + node.outerHTML + '\n\n' });
   converter.addRule('taskItem', { filter: node => node.nodeName === 'LI' && ['checked', 'unchecked'].includes(node.getAttribute('data-list') ?? ''), replacement: (content, node) => {
     const marker = node.getAttribute('data-list') === 'checked' ? '[x]' : '[ ]';
     return `- ${marker} ` + content.replace(/^\n+/, '').replace(/\n+$/, '\n').replace(/\n/g, '\n  ') + (node.nextSibling ? '\n' : '');
@@ -48,6 +49,10 @@ export function markdownFromHtml(html: string): string {
     const separator = '| ' + cells(rows[0]!).map(cell => ({ left: ':---', center: ':---:', right: '---:' }[cell.getAttribute('align') ?? ''] ?? '---')).join(' | ') + ' |';
     return '\n\n' + [line(rows[0]!), separator, ...rows.slice(1).map(line)].join('\n') + '\n\n';
   } });
+  converter.addRule('sizedImageBlock', {
+    filter: node => ['P','H1','H2','H3','OL','UL','BLOCKQUOTE','TABLE'].includes(node.nodeName) && !!node.querySelector('img[width],img[height]'),
+    replacement: (_content, node) => '\n\n' + node.outerHTML + '\n\n'
+  });
   return converter.turndown(cleanHtml(html));
 }
 export function previewHtml(body: string, format: NoteFormat): string {

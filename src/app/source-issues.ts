@@ -27,7 +27,8 @@ export function sourceIssues(body: string, format: NoteFormat): SourceIssue[] {
       const line = start < 0 ? undefined : body.slice(0, start).split('\n').length;
       if (token.type === 'code' && start >= 0) excluded.push([start, start + raw.length]);
       const kinds: Record<string, SourceIssueKind> = { html: 'issueEmbeddedHtml', hr: 'issueRule', del: 'issueStrike' };
-      if (kinds[token.type]) add(kinds[token.type]!, '', line);
+      const sizedImages = token.type === 'html' && /<img\b/i.test(raw) && sourceIssues(raw, 'html').length === 0;
+      if (kinds[token.type] && !sizedImages) add(kinds[token.type]!, '', line);
       if (token.type === 'heading' && token.depth > 3) add('issueHeading', `H${token.depth}`, line);
       if (token.type === 'code' && token.lang && !codeLanguages.includes(token.lang)) add('issueCodeLanguage', token.lang.slice(0, 80), line);
       if (token.type === 'image' && !safeImage(token.href)) add('issueImage', token.href.slice(0, 80), line);

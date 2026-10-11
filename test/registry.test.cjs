@@ -87,3 +87,16 @@ test('corrupt registry is retained without fallback and mismatched replacement l
   const file = path.join(data, 'libraries.json'); fs.writeFileSync(file, 'corrupt fixture');
   assert.throws(() => new LibraryRegistry(data, initial), code('REGISTRY_INVALID')); assert.equal(fs.readFileSync(file, 'utf8'), 'corrupt fixture');
 });
+
+test('Registry reports each notebook schema from its manifest, with unknown for unavailable entries', () => {
+  const { data, initial } = fixture(); const registry = new LibraryRegistry(data, initial);
+  try {
+    registry.get();assert.equal(registry.state().entries[0].schemaVersion,1);
+    const other=path.join(data,'other');registry.add(other,'create');
+    const file=path.join(other,'library.json'), manifest=JSON.parse(fs.readFileSync(file));
+    fs.writeFileSync(file,JSON.stringify({...manifest,schemaVersion:4}));
+    assert.equal(registry.state().entries[1].schemaVersion,4);
+    fs.renameSync(file,file+'.missing');assert.equal(registry.state().entries[1].schemaVersion,null);
+    assert.equal(registry.state().entries[0].schemaVersion,1);
+  } finally {registry.close();}
+});

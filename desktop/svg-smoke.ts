@@ -1,0 +1,62 @@
+import type { BrowserWindow } from 'electron';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { cleanSvg } from './svg-import';
+
+export async function smokeSvg(window: BrowserWindow, directory: string): Promise<void> {
+  const run = (script: string) => window.webContents.executeJavaScript(script).catch(async error => { writeFileSync(join(directory,'svg-failure-dom.txt'),await window.webContents.executeJavaScript('document.body.innerHTML'));throw Error(script.slice(0,200)+': '+error); });
+  const wait = () => new Promise(resolve => setTimeout(resolve,150));
+  const until = async (script: string) => { for(let i=0;i<100;i++){if(await run(script))return;await wait();}throw Error('SVG timeout: '+script); };
+  const click = async (selector: string) => {await run(`document.querySelector(${JSON.stringify(selector)}).click()`);await wait();};
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400" viewBox="0 0 800 400" onload="alert(1)"><script>alert(1)</script><style>@import url(https://example.invalid/style)</style><foreignObject><iframe src="https://example.invalid"/></foreignObject><image href="file:///C:/secret.png"/><animate attributeName="href" values="https://example.invalid"/><defs><linearGradient id="paint"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#777"/></linearGradient><clipPath id="clip"><rect width="800" height="400"/></clipPath></defs><rect width="800" height="400" fill="url(#paint)" clip-path="url(#clip)"/><path d="M0 0L800 400" stroke="url(https://example.invalid/a)"/></svg>';
+  const reusable = await cleanSvg(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><path id="letter" d="M1 1L60 60"/></defs><use href="#letter"/></svg>'));
+  if (!reusable.body.includes('<use') || !reusable.body.includes('href="#letter"')) throw Error('Local SVG shape reuse lost');
+  const repeated = await cleanSvg(Buffer.from(reusable.body));
+  if(repeated.removed)throw Error('Clean SVG reported false sanitization: '+JSON.stringify(repeated));
+  const recursive = await cleanSvg(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><g id="loop"><use href="#loop"/></g><use href="https://example.invalid/shape"/></svg>'));
+  if(recursive.body.includes('<use'))throw Error('Recursive/external use retained');
+  const safe = await cleanSvg(Buffer.from(svg));
+  writeFileSync(join(directory,'svg-clean-result.json'),JSON.stringify(safe));
+  if(!safe.removed || /script|onload|foreignObject|<image|<style|<animate|example.invalid|file:/i.test(safe.body) || !safe.body.includes('linearGradient') || !safe.body.includes('url(#paint)'))throw Error('SVG policy failed');
+  for(const invalid of ['<!DOCTYPE svg [<!ENTITY x "value">]><svg xmlns="http://www.w3.org/2000/svg"/>','<svg><broken>','<html/>']) {
+    let rejected=false;try {await cleanSvg(Buffer.from(invalid));}catch {rejected=true;}if(!rejected)throw Error('Invalid SVG accepted');
+  }
+  const path=join(directory,'safe-test.svg');writeFileSync(path,svg);writeFileSync(join(directory,'note-file-dialog.json'),JSON.stringify({path}));
+  await run("{const heading=document.querySelector('select.ql-header');heading.value='1';heading.dispatchEvent(new Event('change',{bubbles:true}));}");await wait();
+  await click('.ql-image');
+  await until("Array.from(document.querySelectorAll('.ql-editor img')).some(i=>i.src.startsWith('data:image/svg+xml;') && i.naturalWidth===800)");
+  const imageSelector='.ql-editor img[src^="data:image/svg+xml;"]';
+  await click(imageSelector);await until("!!document.querySelector('[data-testid=image-width]')");
+  const input=async (name:string,value:number)=>{await run(`{const el=document.querySelector('[data-testid=image-${name}]');el.value='${value}';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}`);await wait();};
+  await input('width',400);await until("document.querySelector('[data-testid=image-height]').value==='200'");
+  await input('height',100);await until("document.querySelector('[data-testid=image-width]').value==='200'");
+  await input('scale',50);await until("document.querySelector('[data-testid=image-width]').value==='400' && document.querySelector('[data-testid=image-height]').value==='200'");
+  await click('[data-testid=image-ratio]');await input('width',300);await until("document.querySelector('[data-testid=image-height]').value==='200'");
+  await click('[data-testid=image-ratio]');await until("document.querySelector('[data-testid=image-height]').value==='150'");
+  await click('[data-testid=save-note]');
+  const expected=JSON.parse(readFileSync(join(directory,'attachments-expected.json'),'utf8'));
+  const session=(await run(`window.notebookAid.library.begin('${expected.id}')`)).value;
+  if(!/width="300"/.test(session.note.body) || !/height="150"/.test(session.note.body))throw Error('Image dimensions lost in persisted Markdown');
+  const item=session.note.attachments.at(-1), status=(await run('window.notebookAid.library.status()')).value;
+  const stored=readFileSync(join(status.path,'notes',expected.id,'attachments',item.id),'utf8');
+  if(stored!==safe.body || readFileSync(path,'utf8')!==svg)throw Error('SVG cleaning changed source or stored unsafe bytes');
+  writeFileSync(join(directory,'attachments-expected.json'),JSON.stringify({id:expected.id,attachments:session.note.attachments}));
+  await new Promise<void>(resolve=>{window.webContents.once('did-finish-load',()=>resolve());window.webContents.reload();});
+  await until("Array.from(document.querySelectorAll('.ql-editor img')).some(i=>i.naturalWidth===800 && i.getAttribute('width')==='300' && i.getAttribute('height')==='150')");
+  await click(imageSelector);
+  window.setSize(1200,900);await wait();await window.webContents.capturePage();await wait();
+  writeFileSync(join(directory,'svg-size.png'),(await window.webContents.capturePage()).toPNG());
+  await run("{const image=document.querySelector('"+imageSelector+"');image.style.marginTop='1600px';image.scrollIntoView({block:'center'});}");await wait();await wait();
+  const positioned = "(()=>{const p=document.querySelector('.image-size-controls'),i=document.querySelector('"+imageSelector+"'),r=p.getBoundingClientRect(),a=i.getBoundingClientRect();return getComputedStyle(p).position==='fixed' && getComputedStyle(p).visibility==='visible' && r.top>=0 && r.bottom<=innerHeight && r.left>=0 && r.right<=innerWidth && r.top>=a.top && r.top<=a.bottom+12;})()";
+  await until(positioned);
+  await run("document.querySelector('.editor-pane').scrollBy(0,-50)");await wait();await until(positioned);
+  await input('width',320);await until(positioned);await input('width',300);
+  writeFileSync(join(directory,'image-floating.png'),(await window.webContents.capturePage()).toPNG());
+  await run("document.querySelector('"+imageSelector+"').style.marginTop=''");await wait();
+  await click('.image-size-controls button');
+  await click('.ql-editor img[src^="data:image/png;"]');await input('width',100);
+  await until("document.querySelector('[data-testid=image-height]').value==='100'");
+  await click('[data-testid=save-note]');
+  await click('.image-size-controls button');
+  writeFileSync(join(directory,'svg-report.json'),JSON.stringify({floatingImagePanel:true,scrollReposition:true,sanitized:true,externalResourcesRemoved:true,invalidRejected:true,originalFileUnchanged:true,svgInserted:true,ratioBothDirections:true,unlockedWidth:true,slider:true,markdownDimensionsPersist:true,reload:true}));
+}

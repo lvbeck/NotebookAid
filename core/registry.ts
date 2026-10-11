@@ -12,7 +12,7 @@ const pathKey = (path: string) => resolve(path).toLowerCase();
 function valid(value: unknown, code: LibraryErrorCode = 'INVALID_INPUT'): asserts value { if (!value) throw new LibraryError(code); }
 function readJson(file: string): any { valid(statSync(file).size <= 1024 * 1024, 'INTEGRITY_CHECK_FAILED'); return JSON.parse(readFileSync(file, 'utf8')); }
 
-export function inspectLibrary(directory: string): { path: string; libraryId: string } {
+export function inspectLibrary(directory: string): { path: string; libraryId: string; schemaVersion: number } {
   try {
     valid(typeof directory === 'string' && isAbsolute(directory));
     valid(!lstatSync(directory).isSymbolicLink());
@@ -20,9 +20,9 @@ export function inspectLibrary(directory: string): { path: string; libraryId: st
     const manifest = join(path, 'library.json');
     valid(!lstatSync(manifest).isSymbolicLink());
     const value = readJson(manifest);
-    valid(value && [1, 2, 3].includes(value.schemaVersion), 'UNSUPPORTED_LIBRARY');
+    valid(value && [1, 2, 3, 4].includes(value.schemaVersion), 'UNSUPPORTED_LIBRARY');
     valid(typeof value.libraryId === 'string' && uuid.test(value.libraryId), 'INTEGRITY_CHECK_FAILED');
-    return { path, libraryId: value.libraryId };
+    return { path, libraryId: value.libraryId, schemaVersion: value.schemaVersion };
   } catch (error) {
     if (error instanceof LibraryError) throw error;
     throw new LibraryError(error instanceof SyntaxError ? 'INTEGRITY_CHECK_FAILED' : 'NOT_FOUND_OR_UNAVAILABLE');
@@ -88,9 +88,11 @@ export class LibraryRegistry {
   state(): RegistryState {
     return { activeId: this.currentId, entries: this.config.entries.map(entry => {
       let availability: 'available' | LibraryErrorCode = 'available';
+      let schemaVersion: number | null = null;
       try {
         const inspected = inspectLibrary(entry.path);
         valid(!entry.libraryId || inspected.libraryId === entry.libraryId, 'LIBRARY_ID_MISMATCH');
+        schemaVersion = inspected.schemaVersion;
         if (entry.id !== this.currentId) {
           const lockPath = join(inspected.path, '.writer.sqlite');
           if (existsSync(lockPath)) {
@@ -102,7 +104,7 @@ export class LibraryRegistry {
           }
         }
       } catch (error) { availability = error instanceof LibraryError ? error.code : 'NOT_FOUND_OR_UNAVAILABLE'; }
-      return { ...entry, availability, current: entry.id === this.currentId };
+      return { ...entry, schemaVersion, availability, current: entry.id === this.currentId };
     }) };
   }
   activate(id: unknown) {
@@ -114,7 +116,7 @@ export class LibraryRegistry {
     const next = new NoteLibrary(inspected.path, this.fault, 'existing');
     try {
       valid(next.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
-      this.persist({ ...this.config, activeId: entry.id, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, ...inspected, lastOpenedAt: new Date().toISOString() } : item) });
+      this.persist({ ...this.config, activeId: entry.id, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, path: inspected.path, libraryId: inspected.libraryId, lastOpenedAt: new Date().toISOString() } : item) });
     } catch (error) { next.close(); throw error; }
     this.library?.close(); this.library = next; this.currentId = entry.id;
     return next.status();
@@ -130,7 +132,7 @@ export class LibraryRegistry {
       inspected = { path: created.path, libraryId: created.libraryId }; created.close();
     } else inspected = inspectLibrary(directory);
     this.checkDuplicate(inspected.path, inspected.libraryId);
-    this.persist({ ...this.config, entries: [...this.config.entries, { id: randomUUID(), ...inspected, name: basename(inspected.path).slice(0, 100) || 'NotebookAid', lastOpenedAt: null }] });
+    this.persist({ ...this.config, entries: [...this.config.entries, { id: randomUUID(), path: inspected.path, libraryId: inspected.libraryId, name: basename(inspected.path).slice(0, 100) || 'NotebookAid', lastOpenedAt: null }] });
     return this.state();
   }
   rename(id: unknown, name: unknown): RegistryState {
@@ -142,7 +144,7 @@ export class LibraryRegistry {
     valid(entry.libraryId, 'LIBRARY_ID_MISMATCH');
     const inspected = inspectLibrary(directory); valid(inspected.libraryId === entry.libraryId, 'LIBRARY_ID_MISMATCH');
     this.checkDuplicate(inspected.path, inspected.libraryId, entry.id);
-    this.persist({ ...this.config, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, ...inspected } : item) }); return this.state();
+    this.persist({ ...this.config, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, path: inspected.path, libraryId: inspected.libraryId } : item) }); return this.state();
   }
   remove(id: unknown): RegistryState {
     const entry = this.entry(id); valid(entry.id !== this.currentId, 'CURRENT_LIBRARY');

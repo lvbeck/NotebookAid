@@ -118,6 +118,7 @@
               <label><input type="radio" name="editor-mode" data-testid="source-mode" [checked]="sourceMode() || warning()" (change)="selectEditorMode(true, $event)" [disabled]="!workspace.session() || workspace.switching()"><span><app-icon name="FileText" />{{ t('sourceMode') }}</span></label>
             </div>
           }
+        <app-attachments [locale]="locale()" (insertImage)="insertAttachmentImage($event)" (unlinked)="loadSource()" />
         <div class="export-actions">
           <select appSelect data-testid="export-format" [attr.aria-label]="t('exportFormat')" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set($event); exportPreview.set(null)"><option value="markdown">Markdown</option><option value="html">HTML</option><option value="text">TXT</option></select>
           <button class="secondary" data-testid="prepare-export" (click)="prepareExport()" [disabled]="!workspace.session() || workspace.switching() || fileBusy()"><app-icon name="FileOutput" />{{ t('exportCopy') }}</button>
@@ -149,6 +150,16 @@
             <button cdkMenuItem (cdkMenuItemTriggered)="tableAction('deleteTable')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Trash2" />{{ t('deleteTable') }}</button>
           </div>
         </ng-template>
+        @if (selectedImage()?.isConnected && !sourceMode() && !warning()) {
+          <div #imageSizePanel class="image-size-controls" [style.left.px]="imagePanelPosition().left" [style.top.px]="imagePanelPosition().top" [style.width.px]="imagePanelPosition().width" [style.visibility]="imagePanelPosition().visible ? 'visible' : 'hidden'" data-testid="image-size-controls" role="group" [attr.aria-label]="t('imageSize')">
+            <app-icon name="Image" /><span>{{ t('imageSize') }}</span>
+            <label>{{ t('imageWidth') }} <input type="number" min="1" max="8192" data-testid="image-width" [ngModel]="imageWidth" (ngModelChange)="resizeImage('width', +$event)" [disabled]="workspace.switching()"> px</label>
+            <label>{{ t('imageHeight') }} <input type="number" min="1" max="8192" data-testid="image-height" [ngModel]="imageHeight" (ngModelChange)="resizeImage('height', +$event)" [disabled]="workspace.switching()"> px</label>
+            <label><input type="checkbox" data-testid="image-ratio" [ngModel]="imageKeepRatio" (ngModelChange)="lockImageRatio($event)" [disabled]="workspace.switching()">{{ t('imageKeepRatio') }}</label>
+            <label>{{ t('imageScale') }} <input type="range" min="1" [max]="imageScaleMax" step="1" data-testid="image-scale" [ngModel]="imageScale" (ngModelChange)="resizeImage('scale', +$event)" [disabled]="workspace.switching()">{{ imageScale }}%</label>
+            <button class="icon-button" [attr.aria-label]="t('noticeClose')" (click)="selectedImage.set(null)"><app-icon name="X" /></button>
+          </div>
+        }
         @if (warning()) {
           <section class="source-diagnostics" data-testid="format-warning">
             <p>{{ format() === 'markdown' ? 'Markdown' : 'HTML' }} · {{ t('sourceProtected') }}</p>

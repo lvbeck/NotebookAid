@@ -1,8 +1,8 @@
 {
   "name": "notebookaid",
-  "version": "0.5.0-t05a.11",
+  "version": "0.6.0-t06.4",
   "private": true,
-  "description": "Local notes and writing assistant - T05-A native library import preview",
+  "description": "Local notes and writing assistant - T06 attachments preview",
   "author": "Jin Lu <it@live.cn>",
   "license": "BSD-3-Clause",
   "main": "dist/runtime/desktop/main.js",

@@ -16,6 +16,7 @@ export async function smokeSettings(window: BrowserWindow, directory: string): P
   const open = async (id: string) => {
     await click('[data-testid=libraries-tab]'); await until("!!document.querySelector('[data-testid=libraries-page]')");
     await click(`[data-library-id="${id}"] [data-testid=library-open]`);
+    await until(`window.notebookAid.library.registry().then(result => result.ok && result.value.activeId === '${id}')`);
     await until("!document.querySelector('[data-testid=library-add]').disabled");
     await click('[data-testid=settings-tab]');
   };

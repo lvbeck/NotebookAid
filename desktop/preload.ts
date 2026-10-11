@@ -11,6 +11,12 @@ const api: PrototypeApi = {
     position: value => ipcRenderer.invoke('notifications:position', value)
   },
   library: {
+    attachments: noteId => ipcRenderer.invoke('library:attachments', noteId),
+    addAttachment: request => ipcRenderer.invoke('library:addAttachment', request),
+    unlinkAttachment: (request, id) => ipcRenderer.invoke('library:unlinkAttachment', request, id),
+    renameAttachment: (request, id, name) => ipcRenderer.invoke('library:renameAttachment', request, id, name),
+    previewAttachment: (noteId, id) => ipcRenderer.invoke('library:previewAttachment', noteId, id),
+    exportAttachment: (noteId, id) => ipcRenderer.invoke('library:exportAttachment', noteId, id),
     previewLibraryImport: () => ipcRenderer.invoke('library:previewImport'),
     confirmLibraryImport: token => ipcRenderer.invoke('library:confirmImport', token),
     organization: () => ipcRenderer.invoke('library:organization'),

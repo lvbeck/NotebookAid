@@ -1,0 +1,74 @@
+import { smokeSvg } from './svg-smoke';
+import type { BrowserWindow } from 'electron';
+import { writeFileSync, readFileSync, mkdirSync, unlinkSync, renameSync } from 'node:fs';
+import { join, basename } from 'node:path';
+import { tmpdir } from 'node:os';
+
+export async function smokeAttachments(window: BrowserWindow, directory: string): Promise<void> {
+  const run = (script: string) => window.webContents.executeJavaScript(script).catch(error => { throw new Error(script.slice(0, 240) + ": " + error); });
+  const wait = () => new Promise(resolve => setTimeout(resolve, 120));
+  const until = async (expression: string) => { for(let i=0;i<100;i++){if(await run(expression))return;await wait();}writeFileSync(join(directory,'attachment-failure-dom.txt'),await run('document.body.innerHTML'));throw Error('Attachment UI timeout: '+expression); };
+  const click = async (selector: string) => { await run(`document.querySelector(${JSON.stringify(selector)}).click()`);await wait(); };
+  const fixture = join(directory,'attachment.txt');writeFileSync(fixture,'<script>Not executed</script>\nAttachment preview');
+  writeFileSync(join(directory,'note-file-dialog.json'),JSON.stringify({path:fixture}));
+  await click('[data-testid=attachments-toggle]');await click('[data-testid=attachment-add]');
+  await until("document.querySelectorAll('[data-attachment]').length===1 && !document.querySelector('[data-testid=attachment-add]').disabled");
+  await click('[data-attachment] button[aria-label="查看"]');
+  await until("document.querySelector('.attachment-preview pre')?.textContent.includes('<script>Not executed</script>')");
+  await click('[data-attachment] button[aria-label="重命名"]');
+  await run("const name=document.querySelector('[data-testid=attachment-name]');name.value='renamed.txt';name.dispatchEvent(new Event('input',{bubbles:true}))");
+  await click('.attachment-rename .primary');await until("document.querySelector('.attachment-label')?.textContent.includes('renamed.txt')");
+  const exportRoot=join(tmpdir(),`notebookaid-export-${basename(directory)}`);mkdirSync(exportRoot,{recursive:true});
+  const exported=join(exportRoot,'attachment-copy.txt');writeFileSync(join(directory,'note-file-dialog.json'),JSON.stringify({path:exported}));
+  await click('[data-attachment] button[aria-label="导出副本…"]');
+  await until("document.querySelector('.attachment-panel [role=status]')?.textContent.includes('导出成功')");
+  if(readFileSync(exported,'utf8')!==readFileSync(fixture,'utf8'))throw Error('Attachment export changed bytes');
+  await click('.attachment-heading button[aria-label="关闭"]');
+  const png=join(directory,'attachment.png');writeFileSync(png,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aK1cAAAAASUVORK5CYII=','base64'));
+  writeFileSync(join(directory,'note-file-dialog.json'),JSON.stringify({path:png}));
+  await click('.ql-image');
+  await until("document.querySelector('.ql-editor img[data-note-src^=\"attachments/\"]')?.src.startsWith('data:image/png;')");
+  await click('[data-testid=save-note]');await wait();
+  const notes=(await run('window.notebookAid.library.list()')).value;
+  const session=(await run(`window.notebookAid.library.begin('${notes[0].id}')`)).value;
+  if(session.note.attachments.length!==2 || !session.note.body.includes('attachments/') || session.note.body.includes('data:image/png'))throw Error('Attachment reference was not persisted');
+  const libraryPath=(await run('window.notebookAid.library.status()')).value.path;
+  const imagePath=join(libraryPath,'notes',session.note.id,'attachments',session.note.attachments[1].id);
+  const reload = async () => { await new Promise<void>(resolve => { window.webContents.once('did-finish-load', () => resolve());window.webContents.reload(); });await until("document.querySelector('app-root')?.dataset.ready==='true'");await until("document.querySelector('[data-testid=attachments-toggle]')?.disabled===false");await wait(); };
+  renameSync(imagePath,imagePath+'.missing');
+  try {
+    await reload();await until("document.querySelector('.ql-editor img[data-note-src^=\"attachments/\"]')?.getAttribute('aria-label')==='附件缺失或已损坏'");
+    await click('[data-testid=save-note]');
+    const current=(await run(`window.notebookAid.library.begin('${session.note.id}')`)).value.note;
+    if(current.body!==session.note.body || current.version!==session.note.version)throw Error('Missing attachment changed the saved body');
+  } finally {renameSync(imagePath+'.missing',imagePath);}
+  await reload();await until("document.querySelector('.ql-editor img[data-note-src^=\"attachments/\"]')?.src.startsWith('data:image/png;')");
+  writeFileSync(join(directory,'attachments-expected.json'),JSON.stringify({id:session.note.id,attachments:session.note.attachments}));
+  await click('[data-testid=attachments-toggle]');
+  writeFileSync(join(directory,'note-file-dialog.json'),JSON.stringify({path:fixture}));
+  await click('[data-testid=attachment-add]');
+  await until("document.querySelectorAll('[data-attachment]').length===3 && !document.querySelector('[data-testid=attachment-add]').disabled");
+  const beforeUnlink=(await run(`window.notebookAid.library.begin('${session.note.id}')`)).value.note;
+  const removedId=beforeUnlink.attachments[2].id;
+  // Reload renews the editor session after inspecting the stored revision.
+  await reload();await click('[data-testid=attachments-toggle]');
+  await until(`!!document.querySelector('[data-attachment="${removedId}"] button[aria-label="移除关联"]')`);
+  await run(`document.querySelector('[data-attachment="${removedId}"] button[aria-label="移除关联"]').click()`);await wait();
+  await click('[data-testid=attachment-unlink-cancel]');
+  if(await run("!!document.querySelector('[data-testid=attachment-unlink-confirm]')"))throw Error('Unlink cancellation did not close confirmation');
+  await run(`document.querySelector('[data-attachment="${removedId}"] button[aria-label="移除关联"]').click()`);await wait();
+  await click('[data-testid=attachment-unlink-confirm]');
+  await until("document.querySelectorAll('[data-attachment]').length===2 && !document.querySelector('[data-testid=attachment-add]').disabled");
+  if(readFileSync(join(libraryPath,'notes',session.note.id,'attachments',removedId),'utf8')!==readFileSync(fixture,'utf8'))throw Error('Unlink deleted payload');
+  const afterUnlink=(await run(`window.notebookAid.library.begin('${session.note.id}')`)).value.note;
+  if(afterUnlink.body!==beforeUnlink.body || afterUnlink.attachments.length!==2)throw Error('Unlink changed body or retained association');
+  window.setSize(1120,800);await wait();await window.webContents.capturePage();await wait();
+  writeFileSync(join(directory,'attachments.png'),(await window.webContents.capturePage()).toPNG());
+  await click('.attachment-heading button[aria-label="关闭"]');
+  await click('[data-testid=settings-tab]');await click('[data-testid=settings-library]');
+  await until("document.querySelector('[data-testid=library-schema-version]')?.textContent.trim()==='架构版本 · 4'");
+  await click('nav button[aria-label="全部笔记"]');await reload();
+  await smokeSvg(window, directory);
+  unlinkSync(join(directory,'note-file-dialog.json'));
+  writeFileSync(join(directory,'attachments-report.json'),JSON.stringify({add:true,previewEscaped:true,rename:true,exportBytes:true,managedImage:true,missingImageDoesNotChangeSource:true,restoredImageReloads:true,unlinkCancel:true,unlinkRetainsBytesAndBody:true,schemaVersion:true}));
+}

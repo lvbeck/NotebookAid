@@ -9,8 +9,12 @@ import { LibraryRegistry } from '../core/registry';
 import { SettingsStore } from '../core/settings';
 import { formatExtensions, type NoteInput, type Result, type SaveRequest } from '../shared/library';
 import { importNote, exportNote } from '../core/note-files';
+import { cleanSvg } from './svg-import';
+import { readAttachmentFile } from '../core/attachments';
 import { cleanHtmlImport } from './html-import';
 import { planImport, executeImport } from '../core/library-import';
+import { exportAttachmentFile, imageType, isSvg } from '../core/attachments';
+import type { AttachmentRequest } from '../shared/attachments';
 
 export function registerLibrary(dataPath: string, window: () => BrowserWindow | null, authorize: (event: IpcMainInvokeEvent) => void, selfTest = false, localeChanged: (locale: Locale) => void = () => {}) {
   let registry: LibraryRegistry | null = null;
@@ -85,6 +89,55 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   });
   handle('query', (_owner, input) => get().query(input));
   handle('list', () => get().list());
+  handle('attachments', (_owner, noteId: string) => get().attachmentList(noteId));
+  handle('unlinkAttachment', (owner, request: AttachmentRequest, id: string) => get().unlinkAttachment(request, owner, id));
+  handle('renameAttachment', (owner, request: AttachmentRequest, id: string, name: string) => get().renameAttachment(request, owner, id, name));
+  handle('previewAttachment', async (_owner, noteId: string, id: string) => {
+    const bytes = get().attachmentBytes(noteId, id), mediaType = imageType(bytes);
+    if (isSvg(bytes) || /\.svg$/i.test(get().read(noteId).attachments!.find(item => item.id === id)!.name)) {
+      const clean = await cleanSvg(bytes);
+      return { mediaType: 'image/svg+xml', dataUrl: 'data:image/svg+xml;base64,' + Buffer.from(clean.body).toString('base64'), removedUnsafeSvg: clean.removed };
+    }
+    if (mediaType.startsWith('image/')) return { mediaType, dataUrl: `data:${mediaType};base64,${bytes.toString('base64')}` };
+    if (bytes.length <= 1024 * 1024) {
+      try { const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); if (!text.includes('\0')) return { mediaType: 'text/plain', text }; } catch { /* Binary files remain exportable without execution. */ }
+    }
+    return { mediaType };
+  });
+  handle('addAttachment', async (owner, request: AttachmentRequest) => {
+    const target = window(); if (!target || choosing) throw new LibraryError('LIBRARY_IN_USE');
+    choosing = true;
+    try {
+      let path: string | null;
+      if (selfTest) path = await fileDialog();
+      else { const result = await dialog.showOpenDialog(target, { properties: ['openFile'] }); path = result.canceled ? null : result.filePaths[0]; }
+      if (!path) return null;
+      if (!selfTest && JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 4) {
+        const result = await dialog.showMessageBox(target, { type: 'info', title: 'NotebookAid', message: translate(currentLocale(), 'attachmentUpgrade'), buttons: [translate(currentLocale(), 'cancelOperation'), translate(currentLocale(), 'addAttachment')], defaultId: 0, cancelId: 0 });
+        if (result.response !== 1) return null;
+      }
+      const library = get();
+      const bytes = readAttachmentFile(path);
+      if (isSvg(bytes) || /\.svg$/i.test(path)) {
+        const clean = await cleanSvg(bytes);
+        return { ...library.addAttachment(request, owner, path, Buffer.from(clean.body)), removedUnsafeSvg: clean.removed };
+      }
+      return library.addAttachment(request, owner, path);
+    } finally { choosing = false; }
+  });
+  handle('exportAttachment', async (_owner, noteId: string, id: string) => {
+    const target = window(); if (!target || choosing) throw new LibraryError('LIBRARY_IN_USE');
+    choosing = true;
+    try {
+      const bytes = get().attachmentBytes(noteId, id), item = get().read(noteId).attachments!.find(row => row.id === id)!;
+      let path: string | null | undefined;
+      if (selfTest) path = await fileDialog();
+      else { const result = await dialog.showSaveDialog(target, { defaultPath: item.name }); path = result.canceled ? null : result.filePath; }
+      if (!path) return false;
+      exportAttachmentFile(path, bytes, [dataPath, app.isPackaged ? dirname(process.execPath) : app.getAppPath(), ...manager().state().entries.map(entry => entry.path)]);
+      return true;
+    } finally { choosing = false; }
+  });
   handle('create', (_owner, id: string, input?: NoteInput) => get().create(id, input));
   const fileDialog = async (input?: NoteInput): Promise<string | null> => {
     const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');

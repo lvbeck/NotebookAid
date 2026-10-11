@@ -23,7 +23,7 @@
 | T04 | Quill 编辑器、Markdown／HTML／TXT、导入导出、撤销重做及格式保真样本 | 已批准 | 用户明确“T04的测试都通过了”，侧栏修复后基线提交 455a4bf；随后授权“开始T05吧” |
 | T05 | 文件夹树、移动、标签、搜索过滤、置顶和最近使用 | 已批准 | 2026-10-11：多语言修正完成后验收 T05； 2026-10-11：“开始T05吧”；同层名称唯一规则已确认；自动化通过不等于用户验收 |
 | T05-A | 原生跨库导入、目标库升级、预览与备份回滚（R41） | 已批准 | 2026-10-11：多语言修正完成后验收 T05-A； 2026-10-11：“来源旧库保持不变，只升级目标库和导入的数据。开始T05A，完成后我再验收T05的其他项” |
-| T06 | 图片附件、重名与路径、生命周期和缺失处理 | 待开发 | 无 |
+| T06 | 图片附件、重名与路径、生命周期和缺失处理 | 已批准 | 2026-10-11：用户明确“这个修改完成后，验收T05-A和T05完成，直接开始T06吧” |
 | T06-A | 可选 Delta 原生富文本笔记、版本化存储、受控导入导出与旧格式兼容（R40） | 待开发；计划在 T06 后、T07 前 | 2026-10-11 用户批准加入计划；未授权实施 |
 | T07 | 回收站、恢复、主动永久删除、历史版本及保留规则 | 待开发 | 无 |
 | T08 | 主密码、逐笔记加密、恢复密钥、锁定、核心可见性过滤及残留边界 | 待开发 | 无 |
@@ -377,3 +377,36 @@ T05 验收修复 0.5.0-t05a.10：补齐界面中“新库／当前库／此库�
 ## T05 / T05-A 验收与香港繁体修正（2026-10-11）
 
 用户明确授权：“这个修改完成后，验收T05-A和T05完成，直接开始T06吧”。0.5.0-t05a.11 已完成八语言独立完整字典（各 273 键）、香港繁体用语、Quill 控件及托盘文案。生产构建、TypeScript、9 项语言／设置测试、打包版完整界面及重启回归通过（output/smoke-packaged/1791732840932，consoleErrors=[]）。依此实际条件验收 T05-A 与 T05；不把自动化本身当作用户批准。此前核心全量测试的偶发 Windows EPERM 记录保留，未宣称全部核心测试重跑通过；隐藏截图帧滞后、Win10 和母语审校边界见 T05 测试文档。下一步用户已授权 T06，T06-A 仍待授权。
+
+
+## T06 附件实施（2026-10-11）
+
+T05/T05-A 已提交 ab9abc6，0.5.0-t05a.11 已部署并核对哈希，无测试目录备份。T06 在其后开始。附件范围、20 MB／50 个／200 MB 限额、格式 4 与升级备份、原生跨笔记本导入、错误与回退边界见 [T06 测试](t06-testing.md)。T06-A 与 T07 未开工。
+
+T06.1 交付验证：生产构建、TypeScript、串行 63 项核心测试、最终打包版完整界面及重启通过（output/smoke-packaged/1791734444217，consoleErrors=[]）。并行测试中既有存储的一次偶发 WRITE_FAILED 保留在验证记录；具体边界见 T06 测试文档。T06 未验收，未提交，不继续 T06-A/T07。
+
+T06.1 部署完成：release/NotebookAid-0.6.0-t06.1-win-x64.zip，SHA-256 17ab9921166586253e8be68704116ba09b015b292cdbe27f8077b19397f4e62a。Prepare-TestPortable.ps1 已清空并解压至 C:\Softwares\NotebookAid-win32-x64，EXE 位于根目录，verified=true，backupCreated=false。等待用户验收 T06。
+
+### T06 acceptance follow-up (0.6.0-t06.2)
+
+- Add attachment unlink as a revisioned core operation with session, version and replay checks. Retain physical payloads, historical associations and unchanged body references; inline confirmation explains that remaining image references become unavailable.
+- Show each notebook manifest schemaVersion in notebook settings, localized as 架构版本 in Simplified Chinese and 架構版本 in Hong Kong Traditional Chinese. Unavailable manifests show an em dash.
+- SVG remains a generic attachment with escaped source preview. The current application image allowlist is PNG/JPEG/GIF/WebP; safe SVG sanitization and controlled rendering are not implemented in this follow-up.
+- T06 remains awaiting user acceptance; no commit or task advancement.
+
+### T06 SVG and image sizing (0.6.0-t06.3; awaiting acceptance)
+
+- Authorized local SVG support: parse XML in an isolated sandbox with network/permissions/navigation denied, use DOMPurify and a static SVG allowlist, strip scripts/events/style sheets/foreign objects/external references/animations and unsafe recursive reuse. Preserve local gradients, clip paths and bounded shape reuse. New SVG attachments store cleaned bytes, source files remain unchanged; existing SVG payloads are cleaned for every display. Sanitization produces a warning notification when content is removed.
+- Keep schema 4 metadata compatible: stored SVG remains application/octet-stream; runtime image classification derives from bounded content or SVG filename. No notebook schema migration for this change.
+- Contextual image sizing below the toolbar: width/height (1–8192 px), original-aspect-ratio checkbox, proportional scale slider. Only shown when an available image is selected. HTML persists dimensions; Markdown uses supported inline img tags with dimensions. SVG import/preview is limited to 1 MB and 5000 elements.
+- T06 is not accepted or committed. No advancement to T06-A/T07.
+
+### T06 image sizing position fix (0.6.0-t06.4; awaiting acceptance)
+
+- Replace the permanent image sizing row with a fixed contextual panel anchored to the selected image. Prefer below the image; use its visible center when there is insufficient room below. Constrain the panel to the visible editor bounds and track scrolling, image resizing, pane resizing and fullscreen changes.
+- Hide the panel when the image leaves the visible editor; close on Escape, another editor selection, source mode or note/page change. Preserve existing dimensions and serialization.
+- T06 remains awaiting user acceptance; no commit or task advancement.
+
+## T06 用户验收完成（2026-10-11）
+
+用户明确：“图片尺寸浮层验收通过，T06完成，提交commit后开始下一步任务。”验收版本 0.6.0-t06.4；最终便携界面及重启报告 output/smoke-packaged/1791743233125，测试目录已部署且哈希验证通过。按用户要求提交 T06，随后进入计划中的下一任务 T06-A。

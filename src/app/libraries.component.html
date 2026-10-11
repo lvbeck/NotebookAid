@@ -36,7 +36,7 @@
       <p>{{ t('importTarget') }}: <span class="path">{{ preview.targetPath }}</span> · v{{ preview.targetVersion }}</p>
       <p>{{ t('importCounts') }}: {{ preview.notes }} / {{ preview.revisions }} / {{ preview.folders }} / {{ preview.tags }}</p>
       <p>{{ t('importSkipped') }}: {{ preview.skipped }} · {{ t('importConflicts') }}: {{ preview.conflicts }} · {{ t('importDeleted') }}: {{ preview.deleted }}</p>
-      @if (preview.sourceVersion < 3 || preview.targetVersion < 3) { <p class="warning" data-testid="library-upgrade-hint">{{ t('importUpgrade') }}</p> }
+      @if (preview.targetVersion < preview.sourceVersion || preview.targetVersion < 3) { <p class="warning" data-testid="library-upgrade-hint">{{ t('importUpgrade') }} · v{{ preview.sourceVersion === 4 || preview.targetVersion === 4 ? 4 : 3 }}</p> }
       <p class="muted">{{ t('importNativeHint') }}</p>
       <button class="primary" data-testid="library-import-confirm" (click)="confirmImport()" [disabled]="importing() || workspace.switching()"><app-icon name="FileInput" />{{ t('importConfirm') }}</button>
       <button class="secondary" (click)="importPreview.set(null)" [disabled]="importing()"><app-icon name="X" />{{ t('noticeCancel') }}</button>

@@ -1,6 +1,6 @@
 import type { LibraryErrorCode, LibraryStatus, Result } from './library';
 export interface LibraryEntry { id: string; libraryId: string | null; name: string; path: string; lastOpenedAt: string | null; }
-export interface LibraryEntryState extends LibraryEntry { availability: 'available' | LibraryErrorCode; current: boolean; }
+export interface LibraryEntryState extends LibraryEntry { availability: 'available' | LibraryErrorCode; current: boolean; schemaVersion: number | null; }
 export interface RegistryState { entries: LibraryEntryState[]; activeId: string | null; }
 export interface RegistryApi {
   registry(): Promise<Result<RegistryState>>;

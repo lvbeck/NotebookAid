@@ -20,7 +20,7 @@
   <div [hidden]="section() !== 'library'">
     <label class="setting-row settings-panel"><span>{{ t('chooseLibrary') }}</span><select appSelect data-testid="settings-library-select" [ngModel]="selectedId()" (ngModelChange)="select($event)" [disabled]="prefs.busy() || workspace.switching()">@for (item of workspace.registry().entries; track item.id) { <option [value]="item.id">{{ item.name }}{{ item.current ? ' · ' + t('libCurrent') : '' }}</option> }</select></label>
     @if (entry(); as item) {
-      <article class="panel settings-panel"><h2>{{ item.name }}</h2><p class="path">{{ item.path }}</p><p>{{ item.current ? t('libCurrent') : t('notActiveLibrary') }} · {{ item.availability === 'available' ? t('libAvailable') : item.availability }}</p>
+      <article class="panel settings-panel"><h2>{{ item.name }}</h2><p class="path">{{ item.path }}</p><p data-testid="library-schema-version">{{ t('schemaVersion') }} · {{ item.schemaVersion ?? '—' }}</p><p>{{ item.current ? t('libCurrent') : t('notActiveLibrary') }} · {{ item.availability === 'available' ? t('libAvailable') : item.availability }}</p>
         @if (renaming()) { <div class="actions"><input [(ngModel)]="name" [attr.aria-label]="t('libRename')" maxlength="100"><button class="primary" (click)="rename()" [disabled]="workspace.switching() || !name.trim()"><app-icon name="Check" />{{ t('save') }}</button><button class="secondary" (click)="renaming.set(false)"><app-icon name="X" />{{ t('noticeCancel') }}</button></div> } @else { <button class="secondary" (click)="beginRename()"><app-icon name="NotebookPen" />{{ t('libRename') }}</button> }
         @if (workspace.registryError()) { <p class="warning">{{ workspace.registryError() }}</p> }
       </article>
