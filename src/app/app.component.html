@@ -1,44 +1,69 @@
 <app-notifications [locale]="locale()" />
-<div class="app-shell" [attr.inert]="notifications.drawerOpen() ? '' : null">
+<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()" [class.editor-fullscreen]="editorFullscreen()" [attr.inert]="notifications.drawerOpen() ? '' : null">
   <aside class="sidebar">
     <div class="brand"><img class="brand-mark" src="assets/notebookaid-64.png" alt=""><strong>NotebookAid</strong></div>
     <p class="tagline">{{ t('tagline') }}</p>
     <div class="sidebar-actions">
-      <button class="sidebar-action new-note" data-testid="create-note" (click)="newNoteMenuOpen.set(!newNoteMenuOpen())" [attr.aria-expanded]="newNoteMenuOpen()" aria-controls="new-note-formats" [disabled]="workspace.switching() || !workspace.status()"><app-icon name="Plus" />{{ t('newNote') }}</button>
-      @if (newNoteMenuOpen()) {
+      <button class="sidebar-action new-note" cdkOverlayOrigin #createOrigin="cdkOverlayOrigin" data-testid="create-note" (click)="newNoteMenuOpen.set(!newNoteMenuOpen())" [attr.aria-expanded]="newNoteMenuOpen()" aria-controls="new-note-formats" [disabled]="workspace.switching() || !workspace.status()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('newNote') : ''" [attr.aria-label]="t('newNote')"><app-icon name="Plus" /><span class="sidebar-text">{{ t('newNote') }}</span></button>
+      <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="createOrigin" [cdkConnectedOverlayOpen]="newNoteMenuOpen()" [cdkConnectedOverlayPositions]="[{originX: 'end', originY: 'top', overlayX: 'start', overlayY: 'top', offsetX: 8}]" [cdkConnectedOverlayPush]="true" (overlayOutsideClick)="newNoteMenuOpen.set(false)">
         <div id="new-note-formats" class="new-note-formats" role="group" [attr.aria-label]="t('newFormat')">
           <span>{{ t('newFormat') }}</span>
           @for (format of noteFormats; track format) {
             <button [attr.data-testid]="'create-' + format" (click)="createNote(format)" [disabled]="workspace.switching() || !workspace.status()"><app-icon name="FileText" />{{ format === 'markdown' ? 'Markdown' : format === 'html' ? 'HTML' : 'TXT' }}</button>
           }
         </div>
-      }
-      <button class="sidebar-action" data-testid="import-note" (click)="importNote()" [disabled]="workspace.switching() || !workspace.status()"><app-icon name="FileInput" />{{ t('importNote') }}</button>
+      </ng-template>
+      <button class="sidebar-action" data-testid="import-note" (click)="importNote()" [disabled]="workspace.switching() || !workspace.status()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('importNote') : ''" [attr.aria-label]="t('importNote')"><app-icon name="FileInput" /><span class="sidebar-text">{{ t('importNote') }}</span></button>
     </div>
     <nav [attr.aria-label]="t('library')">
-      <button class="nav-item" [class.active]="tab() === 'editor'" (click)="tab.set('editor')"><app-icon name="Files" />{{ t('all') }}<span class="count">{{ workspace.notes().length }}</span></button>
-      <button class="nav-item" disabled><app-icon name="Pin" />{{ t('pinned') }}</button>
-      <button class="nav-item" disabled><app-icon name="Clock3" />{{ t('recent') }}</button>
+      <button class="nav-item" [class.active]="tab() === 'editor' && workspace.query().view === 'all' && workspace.query().folderId === undefined" (click)="tab.set('editor'); workspace.filter({view: 'all', folderId: undefined})" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('all') : ''" [attr.aria-label]="t('all')"><app-icon name="Files" /><span class="sidebar-text">{{ t('all') }}</span><span class="count">{{ workspace.notes().length }}</span></button>
+      <button class="nav-item" data-testid="pinned-tab" [class.active]="workspace.query().view === 'pinned' && tab() === 'editor'" (click)="tab.set('editor'); workspace.filter({view: 'pinned', folderId: undefined})" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('pinned') : ''" [attr.aria-label]="t('pinned')"><app-icon name="Pin" /><span class="sidebar-text">{{ t('pinned') }}</span></button>
+      <button class="nav-item" data-testid="recent-tab" [class.active]="workspace.query().view === 'recent' && tab() === 'editor'" (click)="tab.set('editor'); workspace.filter({view: 'recent', folderId: undefined})" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('recent') : ''" [attr.aria-label]="t('recent')"><app-icon name="Clock3" /><span class="sidebar-text">{{ t('recent') }}</span></button>
     </nav>
     <div class="section-label">{{ t('folders') }}</div>
-    <button class="nav-item folder" (click)="tab.set('editor')"><app-icon name="ChevronRight" /><app-icon name="Folder" />{{ t('welcome') }}</button>
+    @if (sidebarCollapsed()) {
+      <button class="nav-item folder-browser-trigger" data-testid="folder-browser" #folderTrigger="cdkMenuTriggerFor" [cdkMenuTriggerFor]="folderBrowser" [cdkMenuPosition]="[{originX: 'end', originY: 'top', overlayX: 'start', overlayY: 'top', offsetX: 12}]" [appTooltip]="t('folders')" [attr.aria-label]="t('folders')" [class.active]="tab() === 'editor' && workspace.query().folderId !== undefined"><app-icon name="Folder" /></button>
+      <ng-template #folderBrowser>
+        <div cdkMenu class="folder-browser-menu" [attr.aria-label]="t('folders')">
+          <div class="folder-browser-heading">{{ t('folders') }}</div>
+          <button cdkMenuItem data-testid="folder-browser-unfiled" [class.active]="workspace.query().folderId === null" (cdkMenuItemTriggered)="tab.set('editor'); workspace.filter({folderId: null, view: 'all'})"><app-icon name="Folder" /><span>{{ t('rootFolder') }}</span></button>
+          @for (folder of workspace.folderRows(); track folder.id) {
+            <button cdkMenuItem [attr.data-browser-folder]="folder.id" [title]="folder.path" [style.padding-left.px]="12 + folder.depth * 12" [class.active]="workspace.query().folderId === folder.id" (cdkMenuItemTriggered)="tab.set('editor'); workspace.filter({folderId: folder.id, view: 'all'})"><app-icon name="Folder" /><span>{{ folder.name }}</span></button>
+          }
+        </div>
+      </ng-template>
+    } @else {
+    <div class="folder-tree">
+      <div class="folder-row"><button class="nav-item" data-testid="unfiled-folder" [title]="t('unfiledHint')" (click)="tab.set('editor'); workspace.filter({folderId: null, view: 'all'})" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('rootFolder') : ''" [attr.aria-label]="t('rootFolder')"><app-icon name="Folder" /><span class="sidebar-text">{{ t('rootFolder') }}</span></button></div>
+      @for (folder of workspace.folderRows(); track folder.id) {
+        @if (folderVisible(folder.id)) {
+          <div class="folder-row" [style.padding-left.px]="sidebarCollapsed() ? 0 : folder.depth * 12">
+            @if (!sidebarCollapsed() && hasChildren(folder.id)) { <button class="icon-button folder-toggle" [attr.aria-label]="t('folders') + ': ' + folder.name" [attr.aria-expanded]="!collapsedFolders().has(folder.id)" (click)="toggleFolder(folder.id)"><app-icon [name]="collapsedFolders().has(folder.id) ? 'ChevronRight' : 'ChevronDown'" /></button> }
+            <button class="nav-item folder" [attr.data-folder]="folder.id" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? folder.path : ''" [attr.aria-label]="folder.path" [class.active]="workspace.query().folderId === folder.id && tab() === 'editor'" (click)="tab.set('editor'); workspace.filter({folderId: folder.id, view: 'all'})"><app-icon name="Folder" /><span class="sidebar-text">{{ folder.name }}</span></button>
+          </div>
+        }
+      }
+    </div>
+    }
+    <button class="nav-item" data-testid="organization-tab" [class.active]="tab() === 'organization'" (click)="tab.set('organization'); workspace.refresh()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('organize') : ''" [attr.aria-label]="t('organize')"><app-icon name="Tag" /><span class="sidebar-text">{{ t('organize') }}</span></button>
     <div class="sidebar-bottom">
-      <button class="nav-item" disabled><app-icon name="Trash2" />{{ t('trash') }}</button>
-      <button class="nav-item" data-testid="diagnostics-tab" [class.active]="tab() === 'diagnostics'" (click)="tab.set('diagnostics')"><app-icon name="FlaskConical" />{{ t('diagnostics') }}</button>
-      <button class="nav-item" data-testid="libraries-tab" [class.active]="tab() === 'libraries'" (click)="showLibraries()" [disabled]="workspace.switching()"><app-icon name="FolderOpen" />{{ t('chooseLibrary') }}</button>
-      <button class="nav-item" data-testid="settings-tab" [class.active]="tab() === 'settings'" (click)="tab.set('settings')"><app-icon name="Settings" />{{ t('settings') }}</button>
-      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T04</span></div>
+      <button class="nav-item unavailable-entry" aria-disabled="true" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('trash') : ''" [attr.aria-label]="t('trash')"><app-icon name="Trash2" /><span class="sidebar-text">{{ t('trash') }}</span></button>
+      <button class="nav-item" data-testid="diagnostics-tab" [class.active]="tab() === 'diagnostics'" (click)="tab.set('diagnostics')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('diagnostics') : ''" [attr.aria-label]="t('diagnostics')"><app-icon name="FlaskConical" /><span class="sidebar-text">{{ t('diagnostics') }}</span></button>
+      <button class="nav-item" data-testid="libraries-tab" [class.active]="tab() === 'libraries'" (click)="showLibraries()" [disabled]="workspace.switching()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('chooseLibrary') : ''" [attr.aria-label]="t('chooseLibrary')"><app-icon name="BookOpen" /><span class="sidebar-text">{{ t('chooseLibrary') }}</span></button>
+      <button class="nav-item" data-testid="settings-tab" [class.active]="tab() === 'settings'" (click)="tab.set('settings')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('settings') : ''" [attr.aria-label]="t('settings')"><app-icon name="Settings" /><span class="sidebar-text">{{ t('settings') }}</span></button>
+      <button class="nav-item sidebar-collapse-toggle" data-testid="sidebar-toggle" (click)="toggleSidebar()" [disabled]="!prefs.ready() || prefs.busy()" [attr.aria-expanded]="!sidebarCollapsed()" [attr.aria-label]="t(sidebarCollapsed() ? 'expandSidebar' : 'collapseSidebar')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('expandSidebar') : ''"><app-icon [name]="sidebarCollapsed() ? 'PanelLeftOpen' : 'PanelLeftClose'" /><span class="sidebar-text">{{ t('collapseSidebar') }}</span></button>
+      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T05</span></div>
     </div>
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="breadcrumb">{{ activeLibraryName() }}<span>/</span><b>{{ tab() === 'libraries' ? t('libTitle') : tab() === 'editor' ? t('welcome') : tab() === 'settings' ? t('settings') : t('diagnostics') }}</b></div>
+      <div class="breadcrumb">{{ activeLibraryName() }}<span>/</span><b>{{ tab() === 'libraries' ? t('libTitle') : tab() === 'organization' ? t('organize') : tab() === 'editor' ? (workspace.folderPath(workspace.session()?.note?.folderId ?? null) || t('rootFolder')) : tab() === 'settings' ? t('settings') : t('diagnostics') }}</b></div>
       <div class="preferences">
         <button class="notifications-bell icon-button" data-testid="notifications-bell" (click)="notifications.openHistory()" [attr.aria-label]="t('notifications') + ' · ' + notifications.unread()" [attr.aria-expanded]="notifications.drawerOpen()"><app-icon name="Bell" />@if (notifications.unread()) { <span class="notification-badge">{{ notifications.unread() }}</span> }</button>
-        <select appSelect aria-label="Language" data-testid="language" [ngModel]="locale()" (change)="setLocale($event)" [disabled]="prefs.busy() || !prefs.ready()">
+        <select appSelect [attr.aria-label]="t('language')" data-testid="language" [ngModel]="locale()" (change)="setLocale($event)" [disabled]="prefs.busy() || !prefs.ready()">
           @for (language of languages; track language.code) { <option [value]="language.code">{{ language.label }}</option> }
         </select>
-        <select appSelect aria-label="Theme" data-testid="theme" [ngModel]="theme()" (change)="setTheme($event)" [disabled]="prefs.busy() || !prefs.ready()">
+        <select appSelect [attr.aria-label]="t('theme')" data-testid="theme" [ngModel]="theme()" (change)="setTheme($event)" [disabled]="prefs.busy() || !prefs.ready()">
           <option value="system">{{ t('system') }}</option><option value="light">{{ t('light') }}</option><option value="dark">{{ t('dark') }}</option>
         </select>
       </div>
@@ -49,27 +74,81 @@
     @if (notifications.storageFailed()) { <div class="library-warning" role="status">{{ t('noticeStorageFailed') }} <button class="secondary" (click)="notifications.reload()" [disabled]="notifications.busy()"><app-icon name="RefreshCw" />{{ t('noticeReload') }}</button></div> }
     @if (!prefs.ready() && prefs.error()) { <div class="library-warning" role="alert">{{ t('preferencesFailed') }} · {{ prefs.error() }}</div> }
     <main class="content">
+      @if (tab() === 'organization') { <app-organization [locale]="locale()" /> }
       @if (tab() === 'libraries') { <app-libraries [locale]="locale()" /> }
       <app-settings [hidden]="tab() !== 'settings'" [locale]="locale()" />
       <aside class="note-list" [hidden]="tab() !== 'editor'">
-        <div class="list-heading"><h2>{{ t('all') }}</h2><span>{{ workspace.notes().length }}</span></div>
-        @for (note of workspace.notes(); track note.id) {
-          <button class="note-card" [class.selected]="workspace.session()?.note?.id === note.id" (click)="workspace.select(note.id)" [disabled]="workspace.switching()"><div class="note-meta"><app-icon name="FileText" />v{{ note.version }}<span>{{ note.primaryFormat === 'markdown' ? 'MD' : note.primaryFormat === 'html' ? 'HTML' : 'TXT' }}</span></div><strong>{{ note.title }}</strong><p>{{ displayTime(note.updatedAt) }}</p></button>
+        <div class="list-heading"><h2>{{ workspace.query().folderId ? workspace.folderPath(workspace.query().folderId!) : t(workspace.query().view === 'pinned' ? 'pinned' : workspace.query().view === 'recent' ? 'recent' : 'all') }}</h2><span data-testid="query-total">{{ workspace.total() }}</span></div>
+        <label class="note-search"><app-icon name="Search" /><input data-testid="note-search" [attr.aria-label]="t('searchNotes')" [placeholder]="t('searchNotes')" [ngModel]="workspace.query().text || ''" (ngModelChange)="workspace.filter({text: $event}, true)" maxlength="300"></label>
+        <div class="tag-filter-header"><button class="secondary tag-filter-toggle" [title]="t('filterTags')" data-testid="tag-filter-toggle" [attr.aria-expanded]="tagFilterOpen()" aria-controls="tag-filter-options" (click)="tagFilterOpen.set(!tagFilterOpen())"><app-icon name="Tag" /><span class="tag-filter-label">{{ t('filterTags') }}</span><span class="tag-count">{{ workspace.query().tagIds?.length || 0 }}</span><app-icon class="filter-chevron" name="ChevronDown" /></button><button class="secondary" data-testid="clear-filters" [title]="t('clearFilters')" [attr.aria-label]="t('clearFilters')" (click)="workspace.filter({text: '', tagIds: [], folderId: undefined, view: 'all'})"><app-icon name="X" /></button></div>
+        <div id="tag-filter-options" class="tag-filter-chips" [hidden]="!tagFilterOpen()">
+          @for (tag of workspace.sortedTags(); track tag.id) { <button [attr.aria-pressed]="workspace.query().tagIds?.includes(tag.id) || false" (click)="filterTag(tag.id)"><app-icon name="Tag" [style.color]="tag.color" />{{ tag.name }}</button> }
+        </div>
+        @if (workspace.query().view === 'recent') { <p class="muted">{{ t('recentHint') }}</p> }
+        @for (note of workspace.results(); track note.id) {
+          <button class="note-card" [attr.data-note-id]="note.id" [class.selected]="workspace.session()?.note?.id === note.id" (click)="workspace.select(note.id)" [disabled]="workspace.switching()"><div class="note-meta"><app-icon name="FileText" />v{{ note.version }}<span>{{ note.primaryFormat === 'markdown' ? 'MD' : note.primaryFormat === 'html' ? 'HTML' : 'TXT' }}</span></div><strong>@if (note.pinned) { <app-icon name="Pin" /> }{{ note.title }}</strong><p class="note-folder">{{ workspace.folderPath(note.folderId) || t('rootFolder') }}</p><div class="note-tags">@for (tag of workspace.sortedTags(); track tag.id) { @if (note.tagIds.includes(tag.id)) { <span><i class="tag-dot" [style.background]="tag.color"></i>{{ tag.name }}</span> } }</div><p>{{ displayTime(note.updatedAt) }}</p></button>
         }
-        @if (!workspace.notes().length) { <p class="muted">{{ t('emptyLibrary') }}</p> }
+        @if (!workspace.results().length) { <p class="muted" data-testid="empty-results">{{ t(workspace.notes().length ? 'noResults' : 'emptyLibrary') }}</p> }
+        <div class="pagination"><button class="icon-button" data-testid="previous-page" [attr.aria-label]="t('previousPage')" [disabled]="!workspace.query().offset || workspace.searching()" (click)="workspace.filter({offset: (workspace.query().offset || 0) - 30})"><app-icon name="ChevronLeft" /></button><span>{{ (workspace.query().offset || 0) + (workspace.total() ? 1 : 0) }}–{{ (workspace.query().offset || 0) + workspace.results().length }} / {{ workspace.total() }}</span><button class="icon-button" data-testid="next-page" [attr.aria-label]="t('nextPage')" [disabled]="(workspace.query().offset || 0) + 30 >= workspace.total() || workspace.searching()" (click)="workspace.filter({offset: (workspace.query().offset || 0) + 30})"><app-icon name="ChevronRight" /></button></div>
         <div class="list-empty"><app-icon name="BookOpen" /><p>{{ t('about') }}</p></div>
       </aside>
       <section class="editor-pane" [hidden]="tab() !== 'editor'">
-        <div class="editor-heading"><span class="format-badge">{{ format() === 'text' ? 'TXT' : format().toUpperCase() }} · v{{ workspace.session()?.note?.version || 0 }}</span><span class="save-status" data-testid="save-status">{{ saveLabel() }}</span><button class="primary" data-testid="save-note" (click)="workspace.manualSave()" [disabled]="!workspace.session() || workspace.saving()"><app-icon name="Save" />{{ t(workspace.saving() ? 'saving' : 'save') }}</button></div>
+        <div class="editor-heading"><span class="format-badge">{{ format() === 'text' ? 'TXT' : format().toUpperCase() }} · v{{ workspace.session()?.note?.version || 0 }}</span><span class="save-status" data-testid="save-status">{{ saveLabel() }}</span><button class="secondary fullscreen-toggle" data-testid="editor-fullscreen" (click)="toggleEditorFullscreen()" [disabled]="!workspace.session()" [attr.aria-pressed]="editorFullscreen()" [attr.aria-label]="t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff')" [title]="t(editorFullscreen() ? 'exitFullscreen' : 'enterFullscreen') + ' (Ctrl+Shift+F · Esc)'"><app-icon [name]="editorFullscreen() ? 'Minimize2' : 'Maximize2'" /><span>{{ t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff') }}</span></button><button class="primary" data-testid="save-note" (click)="workspace.manualSave()" [disabled]="!workspace.session() || workspace.saving()"><app-icon name="Save" />{{ t(workspace.saving() ? 'saving' : 'save') }}</button></div>
         <input class="note-title" data-testid="note-title" [attr.aria-label]="t('title')" [(ngModel)]="title" [disabled]="!workspace.session() || workspace.switching()" (compositionstart)="workspace.setComposing(true)" (compositionend)="workspace.setComposing(false)" maxlength="300">
+        @if (workspace.session(); as session) {
+          <div class="note-organization">
+            <button class="secondary" data-testid="pin-note" [attr.aria-pressed]="session.note.pinned" (click)="workspace.place({pinned: !session.note.pinned})" [disabled]="workspace.switching()"><app-icon name="Pin" />{{ t(session.note.pinned ? 'unpinNote' : 'pinNote') }}</button>
+            <label>{{ t('moveNote') }}<select appSelect data-testid="note-folder" [ngModel]="session.note.folderId || ''" (ngModelChange)="workspace.place({folderId: $event || null})" [disabled]="workspace.switching()"><option value="">{{ t('rootFolder') }}</option>@for (folder of workspace.folderRows(); track folder.id) { <option [value]="folder.id">{{ folder.path }}</option> }</select></label>
+            <button class="secondary note-tag-trigger" data-testid="note-tag-menu" cdkOverlayOrigin #tagOrigin="cdkOverlayOrigin" (click)="tagMenuOpen.set(!tagMenuOpen())" [attr.aria-expanded]="tagMenuOpen()" [class.open]="tagMenuOpen()" [disabled]="workspace.switching()"><app-icon name="Tag" />{{ t('tags') }}<span class="tag-count">{{ session.note.tagIds.length }}</span><app-icon name="ChevronDown" /></button>
+            <div class="selected-note-tags" aria-live="polite">@for (tag of workspace.sortedTags(); track tag.id) { @if (session.note.tagIds.includes(tag.id)) { <span class="selected-note-tag" [attr.data-selected-tag]="tag.id"><span class="tag-dot" [style.background]="tag.color"></span>{{ tag.name }}</span> } }</div>
+            <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="tagOrigin" [cdkConnectedOverlayOpen]="tagMenuOpen()" [cdkConnectedOverlayOffsetY]="8" [cdkConnectedOverlayPush]="true" (overlayOutsideClick)="tagMenuOpen.set(false)" (overlayKeydown)="closeTagMenu($event)" (detach)="tagMenuOpen.set(false)">
+              <div cdkTrapFocus [cdkTrapFocusAutoCapture]="true" role="group" class="note-tag-menu" [attr.aria-label]="t('noteTags')">
+                <div class="note-tag-menu-heading"><span>{{ t('selectNoteTags') }}</span><span>{{ t('multipleTags') }}</span></div>
+                @for (tag of workspace.sortedTags(); track tag.id) {
+                  <label class="note-tag-option"><input type="checkbox" [attr.data-note-tag]="tag.id" [checked]="workspace.session()?.note?.tagIds?.includes(tag.id) ?? false" (change)="workspace.toggleTag(tag.id)" [disabled]="workspace.switching()"><span class="tag-dot" [style.background]="tag.color"></span><span class="tag-name">{{ tag.name }}</span><app-icon class="tag-check" name="Check" /></label>
+                } @empty { <p class="note-tag-empty">{{ t('noTagsHint') }}</p> }
+              </div>
+            </ng-template>
+          </div>
+        }
         <div class="editor-actions">
           @if (format() !== 'text') {
-            <button class="secondary" data-testid="rich-mode" [attr.aria-pressed]="!sourceMode() && !warning()" (click)="toggleSource(false)" [disabled]="!workspace.session() || workspace.switching()"><app-icon name="NotebookPen" />{{ t('richText') }}</button>
-            <button class="secondary" data-testid="source-mode" [attr.aria-pressed]="sourceMode() || warning()" (click)="toggleSource(true)" [disabled]="!workspace.session() || workspace.switching()"><app-icon name="FileText" />{{ t('sourceMode') }}</button>
+            <div class="segmented-radio" role="radiogroup" [attr.aria-label]="t('editor')">
+              <label><input type="radio" name="editor-mode" data-testid="rich-mode" [checked]="!sourceMode() && !warning()" (change)="selectEditorMode(false, $event)" [disabled]="!workspace.session() || workspace.switching()"><span><app-icon name="NotebookPen" />{{ t('richText') }}</span></label>
+              <label><input type="radio" name="editor-mode" data-testid="source-mode" [checked]="sourceMode() || warning()" (change)="selectEditorMode(true, $event)" [disabled]="!workspace.session() || workspace.switching()"><span><app-icon name="FileText" />{{ t('sourceMode') }}</span></label>
+            </div>
           }
-          <button class="secondary" data-testid="undo-body" (click)="undo()" [disabled]="!canUndo() || workspace.switching()"><app-icon name="Undo2" />{{ t('undo') }}</button>
-          <button class="secondary" data-testid="redo-body" (click)="undo(true)" [disabled]="!canRedo() || workspace.switching()"><app-icon name="Redo2" />{{ t('redo') }}</button>
+        <div class="export-actions">
+          <select appSelect data-testid="export-format" [attr.aria-label]="t('exportFormat')" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set($event); exportPreview.set(null)"><option value="markdown">Markdown</option><option value="html">HTML</option><option value="text">TXT</option></select>
+          <button class="secondary" data-testid="prepare-export" (click)="prepareExport()" [disabled]="!workspace.session() || workspace.switching() || fileBusy()"><app-icon name="FileOutput" />{{ t('exportCopy') }}</button>
         </div>
+        </div>
+        <div #toolbarHost class="compact-editor-toolbar" role="toolbar" [attr.aria-label]="t('editor')" [attr.inert]="workspace.switching() ? '' : null">
+          <span class="ql-formats">
+            <button class="editor-tool" data-testid="undo-body" [title]="t('undo')" [attr.aria-label]="t('undo')" (mousedown)="$event.preventDefault()" (click)="undo()" [disabled]="!canUndo() || workspace.switching()"><app-icon name="Undo2" /></button>
+            <button class="editor-tool" data-testid="redo-body" [title]="t('redo')" [attr.aria-label]="t('redo')" (mousedown)="$event.preventDefault()" (click)="undo(true)" [disabled]="!canRedo() || workspace.switching()"><app-icon name="Redo2" /></button>
+          </span>
+          <span class="rich-tools" [hidden]="sourceMode() || format() === 'text' || warning()">
+            <span class="ql-formats"><select class="ql-header" [attr.aria-label]="t('heading')"><option value="1"></option><option value="2"></option><option value="3"></option><option selected></option></select></span>
+            <span class="ql-formats"><button class="ql-bold" [attr.aria-label]="t('bold')"></button><button class="ql-italic" [attr.aria-label]="t('italic')"></button></span>
+            <span class="ql-formats"><button class="ql-list" value="ordered" [attr.aria-label]="t('orderedList')"></button><button class="ql-list" value="bullet" [attr.aria-label]="t('bulletList')"></button><button class="ql-list" value="check" [attr.aria-label]="t('taskList')"></button><button class="ql-indent" value="-1" [attr.aria-label]="t('decreaseIndent')"></button><button class="ql-indent" value="+1" [attr.aria-label]="t('increaseIndent')"></button></span>
+            <span class="ql-formats"><button class="ql-blockquote" [attr.aria-label]="t('quote')"></button><button class="ql-code-block" [attr.aria-label]="t('codeBlock')"></button><button class="ql-link" [attr.aria-label]="t('link')"></button><button class="ql-image" [attr.aria-label]="t('image')" [title]="t('imageOffline')"></button>
+              <button class="editor-tool" data-testid="table-menu" [title]="t('tableTools')" [attr.aria-label]="t('tableTools')" [cdkMenuTriggerFor]="tableMenu" (mousedown)="$event.preventDefault()" [disabled]="!workspace.session() || sourcePending()"><app-icon name="Table2" /></button>
+            </span>
+            <span class="ql-formats"><button class="ql-clean" [attr.aria-label]="t('clearFormatting')"></button></span>
+            @if (inCodeBlock()) { <span class="code-language-control"><select appSelect data-testid="code-language" [attr.aria-label]="t('codeLanguage')" [ngModel]="selectedCodeLanguage()" (ngModelChange)="setCodeLanguage($event)">@for (language of codeLanguages; track language) { <option [value]="language">{{ language }}</option> }</select></span> }
+          </span>
+        </div>
+        <ng-template #tableMenu>
+          <div cdkMenu class="editor-table-menu" [attr.aria-label]="t('tableTools')">
+            <button cdkMenuItem data-testid="insert-table" (cdkMenuItemTriggered)="tableAction('insertTable')" [cdkMenuItemDisabled]="inTable()"><app-icon name="Table2" />{{ t('insertTable') }}</button>
+            <button cdkMenuItem data-testid="table-row" (cdkMenuItemTriggered)="tableAction('insertRowBelow')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Plus" />{{ t('addRow') }}</button>
+            <button cdkMenuItem data-testid="table-column" (cdkMenuItemTriggered)="tableAction('insertColumnRight')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Plus" />{{ t('addColumn') }}</button>
+            <button cdkMenuItem (cdkMenuItemTriggered)="tableAction('deleteRow')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Trash2" />{{ t('deleteRow') }}</button>
+            <button cdkMenuItem (cdkMenuItemTriggered)="tableAction('deleteColumn')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Trash2" />{{ t('deleteColumn') }}</button>
+            <button cdkMenuItem (cdkMenuItemTriggered)="tableAction('deleteTable')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Trash2" />{{ t('deleteTable') }}</button>
+          </div>
+        </ng-template>
         @if (warning()) {
           <section class="source-diagnostics" data-testid="format-warning">
             <p>{{ format() === 'markdown' ? 'Markdown' : 'HTML' }} · {{ t('sourceProtected') }}</p>
@@ -91,22 +170,6 @@
         }
         @if (format() === 'html' && warning()) { <details class="html-preview"><summary>{{ t('htmlPreview') }}</summary><iframe sandbox="" [srcdoc]="htmlPreview()" [title]="t('htmlPreview')" referrerpolicy="no-referrer"></iframe></details> }
         <div class="editor-area" [hidden]="sourceMode() || format() === 'text' || warning()" [attr.inert]="workspace.switching() ? '' : null"><div #editorHost></div></div>
-        @if (!sourceMode() && format() !== 'text' && !warning()) {
-          <div class="editor-actions table-actions">
-            <label>{{ t('codeLanguage') }} <select appSelect data-testid="code-language" [ngModel]="selectedCodeLanguage()" (ngModelChange)="setCodeLanguage($event)">@for (language of codeLanguages; track language) { <option [value]="language">{{ language }}</option> }</select></label>
-            <button class="secondary" data-testid="insert-table" (mousedown)="$event.preventDefault()" (click)="tableAction('insertTable')"><app-icon name="Plus" />{{ t('insertTable') }}</button>
-            <button class="secondary" data-testid="table-row" (mousedown)="$event.preventDefault()" (click)="tableAction('insertRowBelow')"><app-icon name="Plus" />{{ t('addRow') }}</button>
-            <button class="secondary" data-testid="table-column" (mousedown)="$event.preventDefault()" (click)="tableAction('insertColumnRight')"><app-icon name="Plus" />{{ t('addColumn') }}</button>
-            <button class="secondary" (mousedown)="$event.preventDefault()" (click)="tableAction('deleteRow')"><app-icon name="Trash2" />{{ t('deleteRow') }}</button>
-            <button class="secondary" (mousedown)="$event.preventDefault()" (click)="tableAction('deleteColumn')"><app-icon name="Trash2" />{{ t('deleteColumn') }}</button>
-            <button class="secondary" (mousedown)="$event.preventDefault()" (click)="tableAction('deleteTable')"><app-icon name="Trash2" />{{ t('deleteTable') }}</button>
-          </div>
-          <p class="muted">{{ t('imageOffline') }}</p>
-        }
-        <div class="export-actions">
-          <select appSelect data-testid="export-format" [attr.aria-label]="t('exportFormat')" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set($event); exportPreview.set(null)"><option value="markdown">Markdown</option><option value="html">HTML</option><option value="text">TXT</option></select>
-          <button class="secondary" data-testid="prepare-export" (click)="prepareExport()" [disabled]="!workspace.session() || workspace.switching() || fileBusy()"><app-icon name="FileOutput" />{{ t('exportCopy') }}</button>
-        </div>
         @if (exportPreview(); as preview) {
           <section class="export-preview panel"><h3>{{ t('exportPreviewTitle') }}</h3><p class="muted">{{ t('exportHint') }}</p>
             <textarea data-testid="export-preview" [value]="preview.body" readonly [attr.aria-label]="t('exportPreviewTitle')"></textarea>
@@ -114,7 +177,7 @@
             <p role="status" data-testid="file-message">{{ fileMessage() }}</p>
           </section>
         }
-        <footer class="editor-footer"><span>Quill 2.0.3</span><span>{{ t('ready') }}</span></footer>
+        <footer class="editor-footer"><span>{{ t('ready') }}</span></footer>
       </section>
       <section class="diagnostics-pane" [hidden]="tab() !== 'diagnostics'">
         <h1>{{ t('checks') }}</h1><p class="muted">{{ t('limitations') }}</p><p class="path">{{ workspace.status()?.path }}</p><button class="secondary rebuild-button" data-testid="rebuild-index" (click)="workspace.rebuild()" [disabled]="workspace.rebuilding()"><app-icon name="RefreshCw" [class.spinning]="workspace.rebuilding()" />{{ t(workspace.rebuilding() ? 'rebuilding' : 'rebuild') }}</button>
@@ -122,7 +185,7 @@
           <article class="panel"><h2>SQLite</h2><p class="muted">{{ t('sqliteHint') }}</p><button class="primary" data-testid="sqlite" (click)="probe()" [disabled]="busy()"><app-icon name="Database" />{{ t(busy() ? 'loading' : 'sqlite') }}</button><pre data-testid="sqlite-result">{{ sqliteResult() }}</pre></article>
           <article class="panel"><h2>{{ t('runtime') }}</h2><dl><dt>Electron / Node.js</dt><dd>{{ runtime()?.electron }} / {{ runtime()?.node }}</dd><dt>Process</dt><dd>{{ runtime()?.pid }}</dd><dt>Data</dt><dd class="path">{{ runtime()?.dataPath }}</dd></dl><p class="muted">{{ t('bridgeHint') }}</p><button class="secondary" (click)="hide()"><app-icon name="PanelLeftClose" />{{ t('hide') }}</button><button class="secondary" (click)="quit()"><app-icon name="Power" />{{ t('quit') }}</button></article>
         </div>
-        <article class="panel"><h2>{{ t('sourceMode') }}</h2><textarea aria-label="Note source" data-testid="markdown-source" [ngModel]="source()" (ngModelChange)="editSource($event)" [disabled]="!workspace.session() || workspace.switching()" (compositionstart)="compositionStart()" (compositionend)="compositionEnd()" spellcheck="false"></textarea>
+        <article class="panel"><h2>{{ t('sourceMode') }}</h2><textarea [attr.aria-label]="t('sourceMode')" data-testid="markdown-source" [ngModel]="source()" (ngModelChange)="editSource($event)" [disabled]="!workspace.session() || workspace.switching()" (compositionstart)="compositionStart()" (compositionend)="compositionEnd()" spellcheck="false"></textarea>
           <details><summary>{{ t('originalSource') }}</summary><pre data-testid="loaded-source">{{ loadedSource() }}</pre></details>
           @if (warning()) { <p class="warning">{{ t('formatWarning') }}</p> }
           <div class="actions"><button class="secondary" data-testid="load-source" (click)="loadSource()"><app-icon name="FileInput" />{{ t('load') }}</button><button class="primary" data-testid="roundtrip" (click)="roundtrip()"><app-icon name="ArrowLeftRight" />{{ t('roundtrip') }}</button></div>

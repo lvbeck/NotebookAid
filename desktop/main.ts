@@ -1,3 +1,4 @@
+import { translate, type Locale } from '../src/app/i18n';
 import { smokeHtmlImport } from './html-import-smoke';
 import { smokeLibrary } from './smoke';
 import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain } from 'electron';
@@ -83,17 +84,20 @@ function authorize(event: Electron.IpcMainInvokeEvent): void {
   }
 }
 
+function updateTray(locale: Locale): void {
+  tray?.setContextMenu(Menu.buildFromTemplate([
+    { label: translate(locale, 'openApp'), click: () => { void createWindow(); } },
+    { type: 'separator' }, { label: translate(locale, 'quit'), click: quitByUser }
+  ]));
+}
 async function start(): Promise<void> {
   if (existsSync(stoppedFile)) unlinkSync(stoppedFile);
   Menu.setApplicationMenu(null);
-  storage = registerLibrary(dataPath, () => mainWindow, authorize, selfTest);
+  storage = registerLibrary(dataPath, () => mainWindow, authorize, selfTest, updateTray);
   notifications = registerNotifications(dataPath, authorize, selfTest);
   tray = new Tray(nativeImage.createFromPath(join(app.getAppPath(), 'assets/notebookaid.ico')));
   tray.setToolTip('NotebookAid · T04');
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '打开 NotebookAid / Open', click: () => { void createWindow(); } },
-    { type: 'separator' }, { label: '退出 / Exit', click: quitByUser }
-  ]));
+  updateTray(storage.locale());
   tray.on('double-click', () => { void createWindow(); });
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });
   ipcMain.handle('prototype:sqlite', event => { authorize(event); return runSqliteProbe(dataPath); });

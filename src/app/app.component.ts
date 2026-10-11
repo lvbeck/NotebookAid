@@ -1,3 +1,8 @@
+import { TooltipDirective } from './tooltip.directive';
+import { OrganizationComponent } from './organization.component';
+import { A11yModule } from '@angular/cdk/a11y';
+import { OverlayModule } from '@angular/cdk/overlay';
+import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu';
 import { sourceIssues, type SourceIssue } from './source-issues';
 import { DomSanitizer } from '@angular/platform-browser';
 import { isolatedHtmlDocument } from './html-preview';
@@ -14,7 +19,7 @@ import { cleanHtml, convertBody, markdownFromHtml, previewHtml, semanticHtml } f
 import { BodyHistory } from '../../shared/body-history';
 import type { NoteFormat, NoteInput } from '../../shared/library';
 import { IconComponent } from './icon.component';
-import { languages, Locale, MessageKey, translate } from './i18n';
+import { languages, Locale, MessageKey, regionalLocale, translate } from './i18n';
 import type { RuntimeInfo } from '../../shared/contracts';
 import { NoteWorkspace } from './note-workspace';
 import { NotificationService } from './notification-service';
@@ -26,19 +31,34 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
   readonly workspace = inject(NoteWorkspace);
   readonly notifications = inject(NotificationService);
   @ViewChild('editorHost', { static: true }) host!: ElementRef<HTMLElement>;
+  @ViewChild('toolbarHost', { static: true }) toolbar!: ElementRef<HTMLElement>;
+  @ViewChild('folderTrigger') folderTrigger?: CdkMenuTrigger;
+  readonly sidebarCollapsed = computed(() => this.prefs.state().global.sidebarCollapsed ?? false);
+  readonly editorFullscreen = signal(false);
+  toggleSidebar(): void { this.folderTrigger?.close(); this.newNoteMenuOpen.set(false); void this.prefs.update({ sidebarCollapsed: !this.sidebarCollapsed() }); }
+  toggleEditorFullscreen(): void {
+    if (this.tab() !== 'editor' || !this.workspace.session()) return;
+    this.folderTrigger?.close(); this.tagMenuOpen.set(false); this.newNoteMenuOpen.set(false);
+    this.editorFullscreen.update(value => !value);
+  }
+  readonly tagFilterOpen = signal(false);
+  readonly tagMenuOpen = signal(false);
+  readonly tagMenuNote = computed(() => this.workspace.session()?.note.id);
+  readonly inTable = signal(false);
+  readonly inCodeBlock = signal(false);
   readonly languages = languages;
   readonly prefs = inject(Preferences);
   readonly locale = this.prefs.locale;
   readonly theme = this.prefs.theme;
   readonly ready = signal(false);
-  readonly tab = signal<'editor' | 'diagnostics' | 'settings' | 'libraries'>('editor');
+  readonly tab = signal<'editor' | 'diagnostics' | 'settings' | 'libraries' | 'organization'>('editor');
   readonly runtime = signal<RuntimeInfo | null>(null);
   readonly sqliteResult = signal('');
   readonly roundtripResult = signal('');
@@ -50,14 +70,23 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly historyVersion = signal(0);
   readonly history = new BodyHistory();
   readonly newNoteMenuOpen = signal(false);
+  readonly collapsedFolders = signal<Set<string>>(new Set());
+  hasChildren(id: string): boolean { return this.workspace.organization().folders.some(folder => folder.parentId === id); }
+  folderVisible(id: string): boolean {
+    let parent = this.workspace.organization().folders.find(folder => folder.id === id)?.parentId;
+    while (parent) { if (this.collapsedFolders().has(parent)) return false; parent = this.workspace.organization().folders.find(folder => folder.id === parent)?.parentId; }
+    return true;
+  }
+  toggleFolder(id: string): void { this.collapsedFolders.update(value => { const next = new Set(value); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
   readonly noteFormats: NoteFormat[] = ['markdown', 'html', 'text'];
   readonly exportFormat = signal<NoteFormat>('markdown');
   readonly exportPreview = signal<NoteInput | null>(null);
   readonly fileMessage = signal('');
   readonly fileBusy = signal(false);
   private composing = false;
+  filterTag(id: string): void { const tags = this.workspace.query().tagIds ?? []; this.workspace.filter({ tagIds: tags.includes(id) ? tags.filter(tag => tag !== id) : [...tags, id] }); }
   format(): NoteFormat { return this.workspace.session()?.note.primaryFormat ?? 'markdown'; }
-  createNote(format: NoteFormat): void { this.newNoteMenuOpen.set(false); this.tab.set('editor'); void this.workspace.create({ primaryFormat: format, title: 'Untitled', body: '' }); }
+  createNote(format: NoteFormat): void { this.newNoteMenuOpen.set(false); this.tab.set('editor'); void this.workspace.create({ primaryFormat: format, title: this.t('untitled'), body: '', folderId: this.workspace.query().folderId ?? null }); }
   importNote(): void { this.newNoteMenuOpen.set(false); this.tab.set('editor'); void this.workspace.importFile(); }
   canUndo(): boolean { this.historyVersion(); return this.history.canUndo; }
   canRedo(): boolean { this.historyVersion(); return this.history.canRedo; }
@@ -66,6 +95,17 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (this.composing || this.workspace.switching() || !this.workspace.session()) return;
     this.workspace.updateBody(redo ? this.history.redo() : this.history.undo());
     this.historyVersion.update(value => value + 1); this.loadSource();
+  }
+  closeTagMenu(event: KeyboardEvent): void {
+    if (event.key === 'Escape') { this.tagMenuOpen.set(false); event.preventDefault(); }
+  }
+  selectEditorMode(value: boolean, event: Event): void {
+    this.toggleSource(value);
+    // Restore the actual mode when conversion protection or composition prevents switching.
+    const group = (event.target as HTMLInputElement).closest('.segmented-radio');
+    group?.querySelectorAll<HTMLInputElement>('input').forEach(input => {
+      input.checked = (input.dataset['testid'] === 'source-mode') === (this.sourceMode() || this.warning());
+    });
   }
   toggleSource(value: boolean): void { if (this.composing) return; this.sourceMode.set(value); if (!value) this.loadSource(); }
   prepareExport(): void {
@@ -104,6 +144,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly compositionStart = () => { this.composing = true; this.workspace.setComposing(true); };
   readonly compositionEnd = () => { this.composing = false; this.record(); this.workspace.setComposing(false); };
   private readonly keyboard = (event: KeyboardEvent) => {
+    if (!event.isComposing && event.ctrlKey && event.shiftKey && event.code === 'KeyF') { event.preventDefault(); if (!event.repeat) this.toggleEditorFullscreen(); return; }
+    if (event.key === 'Escape' && this.editorFullscreen() && !event.defaultPrevented && !document.querySelector('.cdk-overlay-pane:not(.notification-overlay):not(.sidebar-tooltip-overlay)')) { this.editorFullscreen.set(false); event.preventDefault(); return; }
     if (event.key === 'Escape' && this.newNoteMenuOpen()) { this.newNoteMenuOpen.set(false); document.querySelector<HTMLButtonElement>('[data-testid=create-note]')?.focus(); }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void this.workspace.manualSave(); }
     const target = event.target as HTMLElement;
@@ -112,11 +154,13 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
   };
   constructor() {
+    effect(() => { if (this.tab() !== 'editor' || !this.workspace.session()) this.editorFullscreen.set(false); });
+    effect(() => { this.tab(); this.tagMenuNote(); this.tagMenuOpen.set(false); });
     effect(() => { this.theme(); this.locale(); this.applyTheme(); });
     effect(() => { if (this.workspace.libraryUnavailable()) this.tab.set('libraries'); });
     effect(() => {
       const ready = this.ready(); this.workspace.opened();
-      if (ready) untracked(() => { this.history.reset(this.source()); this.historyVersion.update(value => value + 1); this.sourceMode.set(false); this.exportPreview.set(null); this.fileMessage.set(''); this.loadSource(); });
+      if (ready) untracked(() => { this.inTable.set(false); this.inCodeBlock.set(false); this.history.reset(this.source()); this.historyVersion.update(value => value + 1); this.sourceMode.set(false); this.exportPreview.set(null); this.fileMessage.set(''); this.loadSource(); });
     });
   }
 
@@ -128,7 +172,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.editor = new Quill(this.host.nativeElement, {
       theme: 'snow',
       formats: ['header', 'bold', 'italic', 'blockquote', 'code', 'code-block', 'code-token', 'list', 'indent', 'link', 'image', 'table', 'cell-header', 'cell-align'],
-      modules: { table: true, syntax: { hljs, languages: codeLanguages.map(key => ({ key, label: key })) }, toolbar: [[{ header: [1, 2, 3, false] }], ['bold', 'italic'], [{ list: 'ordered' }, { list: 'bullet' }, { list: 'check' }], [{ indent: '-1' }, { indent: '+1' }], ['blockquote', 'code-block', 'link', 'image'], ['clean']] }
+      modules: { table: true, syntax: { hljs, languages: codeLanguages.map(key => ({ key, label: key })) }, toolbar: { container: this.toolbar.nativeElement } }
     });
     this.editor.clipboard.addMatcher('PRE', (input: Node) => {
       const node = input as HTMLElement;
@@ -150,7 +194,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     window.addEventListener('keydown', this.keyboard, true);
     this.loadSource();
     this.editor.on('text-change', this.onEditorChange);
-    this.editor.on('selection-change', range => { if (range) { const language = this.editor.getFormat(range)['code-block']; this.selectedCodeLanguage.set(typeof language === 'string' ? language : 'plain'); } });
+    this.editor.on('editor-change', () => this.updateEditorContext());
+    this.localizeEditor();
     this.ready.set(true);
     void this.workspace.init();
     window.notebookAid.runtime().then(value => this.runtime.set(value)).catch(() => this.sqliteResult.set(this.t('failed')));
@@ -201,7 +246,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }));
   }
   tableAction(action: 'insertTable' | 'insertRowAbove' | 'insertRowBelow' | 'insertColumnLeft' | 'insertColumnRight' | 'deleteRow' | 'deleteColumn' | 'deleteTable'): void {
-    if (this.warning() || this.sourcePending() || !this.workspace.session()) return;
+    if (this.warning() || this.sourcePending() || this.workspace.switching() || !this.workspace.session()) return;
     this.editor.focus();
     const table = this.editor.getModule('table') as Table;
     if (action === 'insertTable') table.insertTable(3, 3); else table[action]();
@@ -212,6 +257,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         if (blot && 'offset' in blot) this.editor.formatLine(blot.offset(this.editor.scroll), 1, { 'cell-header': index === 0 ? 'true' : false, 'cell-align': rows[0]?.cells[column]?.getAttribute('data-cell-align') || false }, 'user');
       }));
     });
+    this.updateEditorContext();
+  }
+  private updateEditorContext(): void {
+    const range = this.editor.getSelection();
+    if (!range) return;
+    const language = this.editor.getFormat(range)['code-block'];
+    this.inCodeBlock.set(!!language);
+    this.selectedCodeLanguage.set(typeof language === 'string' ? language : 'plain');
+    this.inTable.set(!!(this.editor.getModule('table') as Table).getTable(range)[0]);
   }
   readonly codeLanguages = codeLanguages;
   readonly selectedCodeLanguage = signal('plain');
@@ -231,7 +285,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.roundtripResult.set(''); this.roundtripStatus.set('');
   }
   saveLabel(): string { return this.t(this.workspace.saving() ? 'saving' : this.workspace.error() ? 'saveFailed' : this.workspace.dirty() ? 'unsaved' : 'saved'); }
-  displayTime(value: string): string { return new Date(value).toLocaleString(this.locale(), { dateStyle: 'short', timeStyle: 'short' }); }
+  displayTime(value: string): string { return new Date(value).toLocaleString(regionalLocale(this.locale()), { dateStyle: 'short', timeStyle: 'short' }); }
   roundtrip(): void {
     this.loadSource();
     if (this.format() === 'text' || this.warning()) { this.roundtripResult.set(this.source()); this.roundtripStatus.set(this.t('formatPreserved')); return; }
@@ -254,8 +308,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   activeLibraryName(): string { return this.workspace.registry().entries.find(item => item.current)?.name ?? this.t('library'); }
   hide(): void { void window.notebookAid.hide(); }
   quit(): void { void window.notebookAid.quit(); }
+  private localizeEditor(): void {
+    if (!this.editor) return;
+    const label = (value: string | null) => value ? this.t('heading') + ' ' + value : this.t('normalText');
+    this.toolbar.nativeElement.querySelectorAll<HTMLOptionElement>('select.ql-header option').forEach(option => { option.textContent = label(option.value); });
+    this.toolbar.nativeElement.querySelectorAll<HTMLElement>('.ql-header .ql-picker-item, .ql-header .ql-picker-label').forEach(item => { item.dataset['label'] = label(item.getAttribute('data-value')); });
+    for (const key of ['visitLink', 'enterLink', 'editLink', 'removeLink', 'save'] as const) document.documentElement.style.setProperty('--quill-' + key, JSON.stringify(this.t(key)));
+  }
   private applyTheme(): void {
     document.documentElement.dataset['theme'] = this.theme() === 'system' ? (this.media.matches ? 'dark' : 'light') : this.theme();
-    document.documentElement.lang = this.locale();
+    document.documentElement.lang = regionalLocale(this.locale());
+    this.localizeEditor();
   }
 }

@@ -17,7 +17,7 @@ export async function smokeRegistry(window: BrowserWindow, directory: string): P
   const first = (await state()).entries[0];
   if (!await run(`document.querySelector(${JSON.stringify(row(first.id, 'remove'))}).disabled`)) throw Error('Current entry can be removed');
   choose(null); await click('[data-testid=library-add]'); await idle(); if ((await state()).entries.length !== 1) throw Error('Cancel mutated list');
-  const secondPath = join(directory, '第二个笔记库'); choose(secondPath); await click('[data-testid=library-create]'); await idle();
+  const secondPath = join(directory, '第二个笔记本'); choose(secondPath); await click('[data-testid=library-create]'); await idle();
   const second = (await state()).entries[1]; if (!second) throw Error('New library not registered');
   await click(row(second.id, 'rename')); await input('[data-testid=library-name]', '项目资料'); await click('[data-testid=library-rename-save]'); await idle();
   await until("document.querySelector('[data-testid=libraries-page]').textContent.includes('项目资料')");
@@ -48,7 +48,7 @@ export async function smokeRegistry(window: BrowserWindow, directory: string): P
   await until("document.querySelector('[data-testid=note-title]').value === '切库保存测试'");
   const target = new NoteLibrary(secondPath, undefined, 'existing');
   try { if (target.list().length !== 1 || target.list()[0].title !== '第二库独立笔记') throw Error('Cross-library save mismatch'); } finally { target.close(); }
-  const moved = join(directory, '移动后的笔记库'); renameSync(secondPath, moved);
+  const moved = join(directory, '移动后的笔记本'); renameSync(secondPath, moved);
   await click(row(second.id, 'open')); await idle();
   await until("document.querySelector('[data-testid=library-error]')?.textContent.includes('NOT_FOUND_OR_UNAVAILABLE')");
   if (existsSync(secondPath) || (await state()).activeId !== first.id) throw Error('Missing library recreated or switched');

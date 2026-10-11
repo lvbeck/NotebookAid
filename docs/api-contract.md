@@ -1,10 +1,14 @@
 # 核心接口草案
 
+T05-A 桌面 IPC 新增 `previewLibraryImport()`（受控目录选择，返回预览或取消）与 `confirmLibraryImport(token)`。预览 token 绑定当前渲染进程、来源快照及目标库；确认时重验两个快照，变化返回 VERSION_CONFLICT。确认只允许当前目标，核心统一执行备份、原生导入和升级。成功返回 imported、skipped、backupPath、targetVersion。来源只读；失效 token 需重新预览；中断后依据目标事务日志恢复。发生未完成回滚时关闭当前核心，后续打开必须先完成恢复。此接口不开放给 Thunderbird。
+
 状态：T01 操作与语义草案，不是已经实现或冻结的 API。最终 TypeScript 类型、schema 验证器和协议版本在 T02／T03 确定。
 
 T03 实施补充：当前桌面 IPC 类型见 shared/library.ts，通过 `{ok,value}` 或 `{ok:false,code}` 返回。已开放 status、choose、list、create、begin、end、save、rebuild；会话绑定主进程确认的 webContents，崩溃或页面重载后回收。save 使用 operationId 幂等记录、expectedVersion、token 和 generation；返回 saved 与 indexed。核心提供不携带标题／正文的 onChange，以及仅用于核心校验的 trash；二者尚未接入插件。Native Messaging 仍只开放 T02 的启动／查询／打开，完整协议握手、事件重连与笔记权限过滤在 T10 实现，不能把下表理解为全部已开放。
 
 ## 通用约定
+
+T05 实施补充：桌面受限 IPC 新增 organization、editOrganization、place、query，类型见 shared/organization.ts 和 shared/library.ts。editOrganization 按 expectedVersion 原子修改单个文件夹／标签定义；place 复用笔记会话、expectedVersion 和 operationId，正文保持原样。query 支持 text、folderId（省略为全库，null 为未分类，指定 ID 含后代）、tagIds（AND）、view（all/pinned/recent）、offset、limit（1–100），返回 notes 摘要与 total。Native Messaging 未扩大权限，T10 再接入共享核心搜索。未知提交的 place 在 renderer 保留原请求并复用 operationId 重试，后续正文写入或切库必须先确认其结果。
 
 - 握手交换 `protocolVersion`、应用版本、支持能力与 `libraryId`；不兼容时返回明确提示，不尝试危险的写入降级。
 - 请求包含 `requestId`、操作名和参数；写入带 `expectedVersion`，编辑保存还需有效会话与代次。
@@ -82,3 +86,7 @@ library:settings(legacy)、updateSettings(patch)、librarySettings(entryId,autos
 `importFile()` 在主进程打开单文件选择器，由 core/note-files 校验并返回 NoteInput 或取消 null。renderer 保存当前草稿后新建导入笔记；不接受 renderer 任意路径。`exportFile(input)` 在主进程选择保存路径，由核心校验格式、2 MiB 限制及路径，再以排他创建写入副本；返回 true 成功、false 取消。转换在无网络 renderer 中进行，用户必须先检查快照预览。同格式 HTML 副本是原始源码，界面明确提示在其他应用中的活动内容风险。
 
 文件对话框期间拒绝另一个选择操作及库激活。IPC 仍限定可信主 frame；测试文件路径夹具只在 self-test 模式生效，限制到当前测试目录／专用临时导出目录。没有扩展 Thunderbird Native Messaging 权限或协议。
+
+editOrganization 新增 kind=folder-order，参数 ids 为全库文件夹 ID 的无重复完整排列，expectedVersion 防止覆盖过期组织版本。通过原子组织写入保存，拒绝缺失/额外/重复 ID；不改变父子关系。
+
+Global settings may include optional boolean `sidebarCollapsed`. Missing means expanded. Renderer updates use the existing validated settings IPC; write errors retain the previous value. Fullscreen editor state is transient.

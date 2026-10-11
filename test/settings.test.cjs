@@ -56,3 +56,15 @@ test('corrupt or unsupported configuration and malformed legacy settings are nev
   assert.throws(() => new SettingsStore(root, legacy), code('INVALID_INPUT')); assert.equal(fs.existsSync(path.join(root, 'settings.json')), false);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, 'settings-legacy.t03c-backup.json'), 'utf8')), legacy);
 });
+
+test('sidebar preference accepts booleans, preserves old settings, and survives reopen', () => {
+  const root = fixture(); const store = new SettingsStore(root, empty);
+  assert.equal(store.get().global.sidebarCollapsed, undefined);
+  store.update({ sidebarCollapsed: true });
+  store.update({ theme: 'dark' });
+  assert.equal(new SettingsStore(root, empty).get().global.sidebarCollapsed, true);
+  for (const value of [null, 1, 'true', {}]) assert.throws(() => store.update({ sidebarCollapsed: value }), code('INVALID_INPUT'));
+  assert.equal(store.get().global.sidebarCollapsed, true);
+  store.update({ sidebarCollapsed: false });
+  assert.equal(new SettingsStore(root, empty).get().global.sidebarCollapsed, false);
+});

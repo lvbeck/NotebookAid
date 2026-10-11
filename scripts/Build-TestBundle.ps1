@@ -18,6 +18,8 @@ Copy-Item -LiteralPath (Join-Path $workspace 'docs/t03b-testing.md') -Destinatio
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t03c-testing.md') -Destination (Join-Path $packageRoot 'T03C-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t04-testing.md') -Destination (Join-Path $packageRoot 'T04-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/html-import-policy.md') -Destination (Join-Path $packageRoot 'html-import-policy.md') -Force
+Copy-Item -LiteralPath (Join-Path $workspace 'docs/t05-testing.md') -Destination (Join-Path $packageRoot 'T05-TESTING.md') -Force
+Copy-Item -LiteralPath (Join-Path $workspace 'docs/t05a-testing.md') -Destination (Join-Path $packageRoot 'T05A-TESTING.md') -Force
 Compress-Archive -Path @((Join-Path $workspace 'thunderbird/*'), (Join-Path $workspace 'LICENSE')) -DestinationPath $addonArchive -Force
 Copy-Item -LiteralPath $addonArchive -Destination $addonPath -Force
 Copy-Item -LiteralPath $addonPath -Destination (Join-Path $packageRoot 'NotebookAid-T02.xpi') -Force

@@ -18,6 +18,7 @@
         <div class="actions"><input data-testid="library-name" [attr.aria-label]="t('libRename')" [(ngModel)]="name" maxlength="100" [disabled]="workspace.switching()"><button class="primary" data-testid="library-rename-save" (click)="rename(entry.id)" [disabled]="workspace.switching() || !name.trim()"><app-icon name="Check" />{{ t('save') }}</button><button class="secondary" (click)="editing.set('')"><app-icon name="X" />{{ t('noticeCancel') }}</button></div>
       } @else {
         <div class="actions">
+          <button class="secondary" data-testid="library-import" (click)="previewImport(entry.id)" [disabled]="workspace.switching() || importing() || entry.availability !== 'available'"><app-icon name="FileInput" />{{ t('libraryImport') }}</button>
           <button class="primary" data-testid="library-open" (click)="workspace.activate(entry.id)" [disabled]="workspace.switching() || entry.current"><app-icon name="FolderOpen" />{{ t('libOpen') }}</button>
           <button class="secondary" data-testid="library-rename" (click)="edit(entry.id, entry.name)" [disabled]="workspace.switching()"><app-icon name="NotebookPen" />{{ t('libRename') }}</button>
           <button class="secondary" data-testid="library-relocate" (click)="workspace.manage('relocate', entry.id)" [disabled]="workspace.switching() || entry.current || !entry.libraryId"><app-icon name="FileInput" />{{ t('libRelocate') }}</button>
@@ -28,4 +29,21 @@
     </article>
   }
   </div>
+  @if (importPreview(); as preview) {
+    <section class="panel import-preview" data-testid="library-import-preview" aria-live="polite">
+      <h2>{{ t('libraryImport') }}</h2>
+      <p>{{ t('importSource') }}: <span class="path">{{ preview.sourcePath }}</span> · v{{ preview.sourceVersion }}</p>
+      <p>{{ t('importTarget') }}: <span class="path">{{ preview.targetPath }}</span> · v{{ preview.targetVersion }}</p>
+      <p>{{ t('importCounts') }}: {{ preview.notes }} / {{ preview.revisions }} / {{ preview.folders }} / {{ preview.tags }}</p>
+      <p>{{ t('importSkipped') }}: {{ preview.skipped }} · {{ t('importConflicts') }}: {{ preview.conflicts }} · {{ t('importDeleted') }}: {{ preview.deleted }}</p>
+      @if (preview.sourceVersion < 3 || preview.targetVersion < 3) { <p class="warning" data-testid="library-upgrade-hint">{{ t('importUpgrade') }}</p> }
+      <p class="muted">{{ t('importNativeHint') }}</p>
+      <button class="primary" data-testid="library-import-confirm" (click)="confirmImport()" [disabled]="importing() || workspace.switching()"><app-icon name="FileInput" />{{ t('importConfirm') }}</button>
+      <button class="secondary" (click)="importPreview.set(null)" [disabled]="importing()"><app-icon name="X" />{{ t('noticeCancel') }}</button>
+    </section>
+  }
+  @if (importResult(); as result) {
+    <section class="panel" role="status" data-testid="library-import-result"><h2>{{ t('importComplete') }}</h2><p>{{ t('importImported') }}: {{ result.imported }} · {{ t('importSkipped') }}: {{ result.skipped }}</p>@if (result.backupPath) { <p>{{ t('importBackup') }}: <span class="path">{{ result.backupPath }}</span></p> }</section>
+  }
+  @if (importError()) { <p role="alert" class="warning" data-testid="library-import-error">{{ t('importFailure') }} {{ error(importError()) }} · {{ importError() }}</p> }
 </section>

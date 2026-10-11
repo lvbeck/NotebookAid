@@ -29,12 +29,16 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   await run(`document.querySelector('[data-library-id="${added.id}"] [data-testid=library-open]').click()`);
   await until("!document.querySelector('[data-testid=library-add]').disabled");
   await click('create-note'); await click('create-markdown'); await until("document.querySelector('[data-testid=note-title]').disabled === false");
+  if (!await run("!!document.querySelector('.editor-actions [data-testid=prepare-export]') && !!document.querySelector('.segmented-radio input[type=radio]') && !document.querySelector('.editor-footer').textContent.includes('Quill')")) throw Error('Compact editor controls missing');
+  await capture('segmented-editor-light.png');
   const basic = '# 中文标题\n\n一段 **粗体** 与 *斜体* 和 `代码`。\n\n- 第一项\n- 第二项\n\n> 引用\n\n[链接](https://example.com)\n\n```\nconst n = 1;\n```';
   await source(basic); await click('load-source');
   if (await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Supported Markdown unexpectedly source-only');
   await click('source-mode'); await until("!!document.querySelector('[data-testid=body-source]')");
   await input('body-source', basic + '\n\n源码修改'); await click('rich-mode');
   if (!(await body()).includes('源码修改')) throw Error('Mode switch lost source');
+  if (!await run("document.querySelector('[data-testid=rich-mode]').checked && !document.querySelector('[data-testid=source-mode]').checked")) throw Error('Rich radio selection mismatch');
+
   await click('undo-body'); if (await body() !== basic) throw Error('Undo did not preserve exact Markdown');
   await click('redo-body'); if (!(await body()).includes('源码修改')) throw Error('Redo failed');
   await click('source-mode');
@@ -79,16 +83,29 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
     if (kind === 'table' && (!result.includes('---:') || !result.includes('**B**'))) throw Error('Table alignment or formatting lost');
     if (kind === 'table') {
       await run("(() => { const cell=document.querySelector('.ql-editor td'); const r=document.createRange(); r.selectNodeContents(cell);r.collapse(true);getSelection().removeAllRanges();getSelection().addRange(r);document.querySelector('.ql-editor').focus(); })()"); await wait();
-      await click('table-row');
+      await click('table-menu'); await click('table-row');
       if (await run("document.querySelectorAll('.ql-editor tr').length") !== 3) throw Error('Table add row failed');
       await save(); await click('load-source');
       if (await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Table row insertion not preserved');
     }
     if (kind === 'language' && (!result.includes('```python') || !result.includes('```javascript'))) throw Error('Code language lost');
     if (kind === 'language' && !result.includes('```python\n\nprint("Hello")\n\n```')) throw Error('Code whitespace lost');
+    if (kind === 'language') {
+      await run("(() => {const line=document.querySelector('.ql-code-block');const range=document.createRange();range.selectNodeContents(line);range.collapse(true);getSelection().removeAllRanges();getSelection().addRange(range);document.querySelector('.ql-editor').focus();})()");
+      await until("!!document.querySelector('[data-testid=code-language]')");
+      await run("document.querySelector('[data-select-trigger=code-language]').click()"); await wait();
+      await run("document.querySelector('.select-option[data-value=typescript]').click()"); await wait(1200);
+      if (!(await body()).includes('```typescript')) throw Error('Contextual code language did not update: ' + JSON.stringify(await run("({source:document.querySelector('[data-testid=markdown-source]').value,html:document.querySelector('.ql-editor').innerHTML})")));
+    }
     await capture('editor-' + kind + '.png');
   }
-  await source(''); await click('load-source'); await click('insert-table');
+  await source(''); await click('load-source');
+  if (await run("!!document.querySelector('.table-actions') || !!document.querySelector('[data-testid=code-language]')")) throw Error('Context controls visible in empty editor');
+  if (!await run("document.querySelector('[data-testid=undo-body]').closest('.ql-toolbar') && document.querySelector('[data-testid=table-menu]').closest('.ql-toolbar')")) throw Error('Actions outside toolbar');
+  await capture('compact-toolbar-dark.png'); await click('table-menu');
+  await capture('table-menu-dark.png');
+  if (!await run("document.querySelector('[data-testid=table-row]').getAttribute('aria-disabled')==='true'")) throw Error('Table actions enabled outside a table');
+  await click('insert-table');
   if (await run("document.querySelectorAll('.ql-editor td').length") !== 9) throw Error('Table creation failed');
   await save(); await click('load-source');
   if (await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Created table not preserved');

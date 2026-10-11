@@ -10,7 +10,7 @@ const args = packaged ? ['--self-test'] : ['.', '--self-test'];
 const child = spawn(executable, args, { windowsHide: true, env: { ...process.env, NOTEBOOKAID_TEST_HOME: dataPath }, stdio: 'pipe' });
 child.stderr.on('data', value => process.stderr.write(value));
 child.on('error', error => { console.error(error); process.exitCode = 1; });
-const timer = setTimeout(() => { child.kill(); console.error('Smoke test timed out'); process.exitCode = 1; }, 90000);
+const timer = setTimeout(() => { child.kill(); console.error('Smoke test timed out'); process.exitCode = 1; }, 150000);
 child.on('exit', code => {
   clearTimeout(timer);
   const reportPath = join(dataPath, 'smoke-report.json');

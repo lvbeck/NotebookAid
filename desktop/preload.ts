@@ -11,6 +11,12 @@ const api: PrototypeApi = {
     position: value => ipcRenderer.invoke('notifications:position', value)
   },
   library: {
+    previewLibraryImport: () => ipcRenderer.invoke('library:previewImport'),
+    confirmLibraryImport: token => ipcRenderer.invoke('library:confirmImport', token),
+    organization: () => ipcRenderer.invoke('library:organization'),
+    editOrganization: input => ipcRenderer.invoke('library:editOrganization', input),
+    place: request => ipcRenderer.invoke('library:place', request),
+    query: input => ipcRenderer.invoke('library:query', input),
     settings: legacy => ipcRenderer.invoke('library:settings', legacy),
     updateSettings: patch => ipcRenderer.invoke('library:updateSettings', patch),
     librarySettings: (id, value) => ipcRenderer.invoke('library:librarySettings', id, value),

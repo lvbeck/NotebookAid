@@ -1,4 +1,5 @@
 export const notificationTypes = {
+  importComplete: 'success',
   htmlCleaned: 'warning',
   saveSuccess: 'success', savedIndexPending: 'warning', settingsSaved: 'success', settingsFailed: 'error',
   rebuildSuccess: 'success', rebuildPartial: 'warning', rebuildFailed: 'error', operationFailed: 'error',

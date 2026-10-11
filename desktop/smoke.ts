@@ -1,8 +1,12 @@
+import { smokeI18n } from './i18n-smoke';
+import { smokeLayout } from './layout-smoke';
+import { smokeOrganization } from './organization-smoke';
 import { type BrowserWindow } from 'electron';
 import { writeFileSync, unlinkSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { smokeSettings } from './settings-smoke';
 import { smokeRegistry } from './registry-smoke';
+import { smokeLibraryImport } from './library-import-smoke';
 import { smokeNotifications } from './notification-smoke';
 import { smokeEditor } from './editor-smoke';
 import { smokeSelect } from './select-smoke';
@@ -25,6 +29,7 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
     const preferences = await evaluate("window.notebookAid.library.settings({locale:null,theme:null,autosave:null})");
     const expectedSettings = JSON.parse(readFileSync(join(directory, 'settings-expected.json'), 'utf8'));
     if (!preferences.ok || JSON.stringify(preferences.value) !== JSON.stringify(expectedSettings)) throw new Error('Scoped settings did not survive restart');
+    if (!await evaluate("document.querySelector('.app-shell').classList.contains('sidebar-collapsed')")) throw Error('Sidebar collapsed state not restored');
     const notifications = await evaluate('window.notebookAid.notifications.state()');
     if (!notifications.ok || JSON.stringify(notifications.value) !== readFileSync(join(directory, 'notification-expected.json'), 'utf8')) throw new Error('Notification history/position/read state did not survive restart');
     if (!await evaluate("document.querySelector('[data-testid=autosave-minutes]').value === '10' && !document.querySelector('[data-testid=autosave-enabled]').checked")) throw new Error('Settings did not persist');
@@ -119,6 +124,10 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
   await smokeSettings(window, directory);
   await smokeEditor(window, directory);
   await smokeSelect(window, directory);
+  await smokeOrganization(window, directory);
+  await smokeLibraryImport(window, directory);
+  await smokeLayout(window, directory);
+  await smokeI18n(window, directory);
   await smokeNotifications(window, directory);
   writeFileSync(join(directory, 'settings-expected.json'), JSON.stringify((await evaluate("window.notebookAid.library.settings({locale:null,theme:null,autosave:null})")).value));
   writeFileSync(join(directory, 'expected-exit-version.json'), JSON.stringify((await evaluate('window.notebookAid.library.list()')).value[0].version + 1));

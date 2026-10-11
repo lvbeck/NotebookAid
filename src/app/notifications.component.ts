@@ -7,7 +7,7 @@ import { A11yModule } from '@angular/cdk/a11y';
 import { NoteWorkspace } from './note-workspace';
 import { NotificationService } from './notification-service';
 import { IconComponent } from './icon.component';
-import { type Locale, type MessageKey, translate } from './i18n';
+import { type Locale, type MessageKey, regionalLocale, translate } from './i18n';
 import type { NotificationRecord, NotificationType } from '../../shared/notifications';
 
 @Component({ selector: 'app-notifications', standalone: true, imports: [SelectDirective, FormsModule, IconComponent, A11yModule], templateUrl: './notifications.component.html' })
@@ -58,7 +58,7 @@ export class NotificationsComponent implements AfterViewInit, OnDestroy {
   t(key: MessageKey): string { return translate(this.locale, key); }
   icon(type: NotificationType): 'CircleCheck' | 'Info' | 'TriangleAlert' | 'CircleX' { return { success: 'CircleCheck', info: 'Info', warning: 'TriangleAlert', error: 'CircleX' }[type] as ReturnType<NotificationsComponent['icon']>; }
   label(type: NotificationType): string { return this.t(({ success: 'noticeSuccess', info: 'noticeInfo', warning: 'noticeWarning', error: 'noticeError' } as const)[type]); }
-  time(item: NotificationRecord): string { return new Date(item.updatedAt).toLocaleString(this.locale, { dateStyle: 'short', timeStyle: 'medium' }); }
+  time(item: NotificationRecord): string { return new Date(item.updatedAt).toLocaleString(regionalLocale(this.locale), { dateStyle: 'short', timeStyle: 'medium' }); }
   library(id: string | null | undefined): string { return id ? (this.workspace.registry().entries.find(item => item.libraryId === id)?.name ?? `${this.t('noticeLibrary')} · ${id.slice(0, 8)}`) : this.t('noticeGlobal'); }
   close(): void { this.confirmClear.set(false); this.notifications.closeHistory(); }
   async clear(): Promise<void> { await this.notifications.clear(); this.confirmClear.set(false); }

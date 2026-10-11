@@ -22,7 +22,7 @@ const { execFileSync } = require('node:child_process');
   const project = JSON.parse(readFileSync('package.json', 'utf8'));
   writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license }));
   const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: 'win32', arch: 'x64', electronVersion: project.devDependencies.electron, overwrite: true, asar: true,
-    icon: resolve('assets/notebookaid.ico'), appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid T04 editor and formats preview', ProductName: 'NotebookAid' },
+    icon: resolve('assets/notebookaid.ico'), appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid T05-A library import preview', ProductName: 'NotebookAid' },
     download: { cacheRoot: resolve('.cache/electron') }
   });
   const packageRoot = packages[0];
@@ -37,6 +37,8 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/t03c-testing.md', join(packageRoot, 'T03C-TESTING.md'));
   cpSync('docs/html-import-policy.md', join(packageRoot, 'html-import-policy.md'));
   cpSync('docs/t04-testing.md', join(packageRoot, 'T04-TESTING.md'));
+  cpSync('docs/t05-testing.md', join(packageRoot, 'T05-TESTING.md'));
+  cpSync('docs/t05a-testing.md', join(packageRoot, 'T05A-TESTING.md'));
   cpSync('node_modules/@angular/cdk/LICENSE', join(packageRoot, 'CDK-LICENSE.txt'));
   cpSync('dist/renderer/3rdpartylicenses.txt', join(packageRoot, 'renderer-THIRD-PARTY-LICENSES.txt'));
   console.log('Packaged:', packageRoot);

@@ -5,9 +5,98 @@ import { effectiveAutosave } from '../../shared/settings';
 import { NotificationService } from './notification-service';
 import { notificationErrorCodes, type NotificationCode, type NotificationOperation } from '../../shared/notifications';
 import type { RegistryState } from '../../shared/registry';
+import type { Organization, OrganizationEditInput, NotePlacement, NoteQuery, PlacementRequest } from '../../shared/organization';
 
 @Injectable({ providedIn: 'root' })
 export class NoteWorkspace {
+  readonly organization = signal<Organization>({ schemaVersion: 1, version: 0, folders: [], tags: [] });
+  readonly query = signal<NoteQuery>({ view: 'all', offset: 0, limit: 30 });
+  readonly results = signal<NoteSummary[]>([]);
+  readonly total = signal(0);
+  readonly searching = signal(false);
+  readonly organizationBusy = signal(false);
+  readonly organizationError = signal('');
+  readonly sortedTags = computed(() => [...this.organization().tags].sort((a, b) => a.name.localeCompare(b.name, this.preferences.locale(), { sensitivity: 'base', numeric: true }) || a.id.localeCompare(b.id)));
+  private queryEpoch = 0;
+  private searchTimer?: ReturnType<typeof setTimeout>;
+  private pendingPlacement: PlacementRequest | null = null;
+  private placementInflight: Promise<boolean> | null = null;
+  readonly folderRows = computed(() => {
+    const rows: { id: string; name: string; depth: number; path: string }[] = [];
+    const visit = (parent: string | null, depth: number, path: string) => {
+      for (const folder of this.organization().folders.filter(item => item.parentId === parent).sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) || a.name.localeCompare(b.name))) {
+        const full = path ? `${path} / ${folder.name}` : folder.name;
+        rows.push({ ...folder, depth, path: full }); visit(folder.id, depth + 1, full);
+      }
+    };
+    visit(null, 0, ''); return rows;
+  });
+  folderPath(id: string | null): string { return this.folderRows().find(item => item.id === id)?.path ?? ''; }
+  filter(patch: NoteQuery, debounce = false): void {
+    this.query.update(value => ({ ...value, ...patch, offset: patch.offset ?? 0 }));
+    this.queryEpoch++; clearTimeout(this.searchTimer);
+    if (debounce) this.searchTimer = setTimeout(() => void this.search(), 200); else void this.search();
+  }
+  async search(): Promise<void> {
+    const epoch = ++this.queryEpoch; this.searching.set(true);
+    try {
+      const result = await this.api.query(this.query());
+      if (epoch !== this.queryEpoch) return;
+      if (result.ok) {
+        if ((this.query().offset ?? 0) >= result.value.total && this.query().offset) { this.query.update(value => ({ ...value, offset: 0 })); await this.search(); return; }
+        this.results.set(result.value.notes); this.total.set(result.value.total);
+      }
+      else { this.results.set([]); this.total.set(0); this.reportError(result.code, 'open'); }
+    } catch { if (epoch === this.queryEpoch) this.reportError('NOT_FOUND_OR_UNAVAILABLE', 'open'); }
+    finally { if (epoch === this.queryEpoch) this.searching.set(false); }
+  }
+  async editOrganization(input: OrganizationEditInput): Promise<boolean> {
+    if (this.organizationBusy() || this.switching()) return false;
+    this.organizationBusy.set(true); this.organizationError.set('');
+    try {
+      const result = await this.api.editOrganization({ ...input, expectedVersion: this.organization().version });
+      if (!result.ok) { this.organizationError.set(result.code); return false; }
+      this.organization.set(result.value); this.notify('saveSuccess', 'save'); await this.search(); return true;
+    } catch { this.organizationError.set('WRITE_FAILED'); return false; }
+    finally { this.organizationBusy.set(false); }
+  }
+  cancelOrganizationError(): void {
+    if (this.organizationBusy()) return;
+    this.organizationError.set('');
+  }
+  async place(patch: Partial<NotePlacement>): Promise<void> {
+    if (this.switching() || this.organizationBusy() || !this.session()) return;
+    this.switching.set(true);
+    try {
+      if (!await this.flush()) return;
+      const session = this.session()!;
+      this.pendingPlacement = { noteId: session.note.id, token: session.token, generation: session.generation, expectedVersion: session.note.version, operationId: crypto.randomUUID(), folderId: session.note.folderId, tagIds: session.note.tagIds, pinned: session.note.pinned, ...patch };
+      await this.savePlacement();
+    } catch { this.reportError('COMMIT_STATUS_UNKNOWN'); }
+    finally { this.switching.set(false); }
+  }
+  private async savePlacement(): Promise<boolean> {
+    if (this.placementInflight) return this.placementInflight;
+    const request = this.pendingPlacement, session = this.session();
+    if (!request || !session) return !request;
+    this.placementInflight = (async () => {
+      let result: Result<import('../../shared/library').SaveResult>;
+      try { result = await this.api.place(request); }
+      catch { this.reportError('COMMIT_STATUS_UNKNOWN'); return false; }
+      if (!result.ok) {
+        if (result.code !== 'COMMIT_STATUS_UNKNOWN') this.pendingPlacement = null;
+        this.reportError(result.code); return false;
+      }
+      this.pendingPlacement = null; this.error.set(''); this.session.set({ ...session, note: result.value.note });
+      const status = this.status(); if (status) this.status.set({ ...status, indexed: result.value.indexed });
+      this.notify(result.value.indexed ? 'saveSuccess' : 'savedIndexPending', 'save'); await this.refresh(); return true;
+    })();
+    try { return await this.placementInflight; } finally { this.placementInflight = null; }
+  }
+  toggleTag(id: string): void {
+    const tags = this.session()?.note.tagIds ?? [];
+    void this.place({ tagIds: tags.includes(id) ? tags.filter(tag => tag !== id) : [...tags, id] });
+  }
   readonly notes = signal<NoteSummary[]>([]);
   readonly title = signal('');
   readonly body = signal('');
@@ -74,6 +163,9 @@ export class NoteWorkspace {
   async refresh(): Promise<void> {
     const result = await this.api.list();
     if (result.ok) this.notes.set(result.value); else this.reportError(result.code, 'open');
+    const organization = await this.api.organization();
+    if (organization.ok) this.organization.set(organization.value); else this.reportError(organization.code, 'open');
+    await this.search();
   }
   updateTitle(value: string): void { this.title.set(value); this.change(); }
   updateBody(value: string): void { this.body.set(value); this.change(); }
@@ -93,6 +185,7 @@ export class NoteWorkspace {
   async flush(): Promise<boolean> {
     this.cancelTimer();
     if (this.composing) return false;
+    if (this.pendingPlacement && !await this.savePlacement()) return false;
     if (this.inflight) { await this.inflight; if (this.error()) return false; return this.flush(); }
     if (!this.dirty()) return true;
     const session = this.session(); if (!session) return false;
@@ -132,6 +225,7 @@ export class NoteWorkspace {
       if (previous) await this.api.end(previous.token, previous.generation);
       this.session.set(result.value); this.title.set(result.value.note.title); this.body.set(result.value.note.body);
       this.dirty.set(false); this.pending = null; this.error.set(''); this.opened.update(value => value + 1);
+      await this.search();
     } finally { this.switching.set(false); }
   }
   async importFile(): Promise<void> {
@@ -149,7 +243,7 @@ export class NoteWorkspace {
       }
     } catch { this.reportError('WRITE_FAILED', 'open'); }
     finally { this.switching.set(false); }
-    if (input) await this.create(input);
+    if (input) await this.create({ ...input, folderId: this.query().folderId ?? null });
   }
   async create(input?: NoteInput): Promise<void> {
     if (this.switching()) return;
@@ -179,7 +273,7 @@ export class NoteWorkspace {
     finally { this.switching.set(false); }
   }
   async activate(id: string): Promise<void> {
-    if (this.switching() || this.rebuilding() || id === this.registry().activeId) return;
+    if (this.switching() || this.rebuilding() || this.organizationBusy() || id === this.registry().activeId) return;
     this.switching.set(true);
     this.registryError.set('');
     try {
@@ -187,6 +281,7 @@ export class NoteWorkspace {
       const result = await this.api.activate(id);
       if (!result.ok) { this.registryError.set(result.code); void this.notifications.publish('operationFailed', 'open', this.registry().entries.find(item => item.id === id)?.libraryId ?? null, this.noticeError(result.code)); await this.refreshRegistry(); return; }
       this.status.set(result.value); this.notify('libraryOpened', 'open'); this.session.set(null); this.title.set(''); this.body.set('');
+      clearTimeout(this.searchTimer); this.queryEpoch++; this.query.set({ view: 'all', offset: 0, limit: 30 }); this.results.set([]); this.total.set(0); this.organizationError.set('');
       this.pending = null; this.createId = null; this.error.set(''); this.dirty.set(false); this.libraryUnavailable.set(false); this.opened.update(value => value + 1);
       await this.refreshRegistry();
       await this.refresh();
@@ -201,6 +296,7 @@ export class NoteWorkspace {
       const result = await this.api.rebuild();
       if (result.ok) {
         this.status.set(result.value); this.error.set('');
+        await this.refresh();
         this.notify(result.value.indexed && !result.value.issues.length && !result.value.pendingRecovery ? 'rebuildSuccess' : 'rebuildPartial', 'rebuild');
       } else { this.error.set(result.code); void this.notifications.publish('rebuildFailed', 'rebuild', this.status()?.libraryId ?? null, this.noticeError(result.code)); }
     } catch { this.notify('rebuildFailed', 'rebuild'); }

@@ -1,3 +1,5 @@
+import { translate, type Locale } from '../src/app/i18n';
+import { defaultSettings } from '../shared/settings';
 import { app, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
@@ -8,11 +10,20 @@ import { SettingsStore } from '../core/settings';
 import { formatExtensions, type NoteInput, type Result, type SaveRequest } from '../shared/library';
 import { importNote, exportNote } from '../core/note-files';
 import { cleanHtmlImport } from './html-import';
+import { planImport, executeImport } from '../core/library-import';
 
-export function registerLibrary(dataPath: string, window: () => BrowserWindow | null, authorize: (event: IpcMainInvokeEvent) => void, selfTest = false) {
+export function registerLibrary(dataPath: string, window: () => BrowserWindow | null, authorize: (event: IpcMainInvokeEvent) => void, selfTest = false, localeChanged: (locale: Locale) => void = () => {}) {
   let registry: LibraryRegistry | null = null;
   let settings: SettingsStore | null = null;
+  const currentLocale = (): Locale => {
+    if (settings) return settings.get().global.locale;
+    if (existsSync(join(dataPath, 'settings.json'))) {
+      try { return new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }).get().global.locale; } catch { /* Keep startup available for settings recovery. */ }
+    }
+    return defaultSettings.global.locale;
+  };
   let choosing = false;
+  let pendingImport: { owner: string; plan: ReturnType<typeof planImport> } | null = null;
   const manager = () => registry ??= new LibraryRegistry(dataPath, process.env['NOTEBOOKAID_TEST_HOME'] ? join(dataPath, 'library') : join(app.getPath('appData'), 'NotebookAid', 'library'), selfTest ? stage => {
     if ((stage === 'journal' && existsSync(join(dataPath, 'simulate-write-failure'))) || (stage === 'registry' && existsSync(join(dataPath, 'simulate-registry-failure')))) throw new Error('Simulated write failure');
   } : undefined);
@@ -43,12 +54,36 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     });
   };
   handle('status', () => get().status());
+  handle('previewImport', async (owner) => {
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE');
+    choosing = true; pendingImport = null;
+    try {
+      const source = await choosePath(); if (!source) return null;
+      const plan = planImport(source, get().path); pendingImport = { owner, plan }; return plan.preview;
+    } finally { choosing = false; }
+  });
+  handle('confirmImport', (owner, token: string) => {
+    if (choosing || !pendingImport || pendingImport.owner !== owner || pendingImport.plan.preview.token !== token || pendingImport.plan.target.path !== get().path) throw new LibraryError('INVALID_INPUT');
+    const plan = pendingImport.plan; pendingImport = null; choosing = true;
+    try { const result = executeImport(plan); get().reloadImported(); return result; }
+    catch (error) { if (existsSync(join(plan.target.path, 'import-transaction.json'))) manager().close(); throw error; }
+    finally { choosing = false; }
+  });
   handle('settings', (_owner, legacy: unknown) => {
     settings ??= new SettingsStore(dataPath, legacy, selfTest ? () => { if (existsSync(join(dataPath, 'simulate-settings-failure'))) throw new Error('Simulated settings failure'); } : undefined);
+    localeChanged(settings.get().global.locale);
     return settings.get();
   });
-  handle('updateSettings', (_owner, patch: unknown) => { if (!settings) throw new LibraryError('REGISTRY_INVALID'); return settings.update(patch); });
+  handle('updateSettings', (_owner, patch: unknown) => { if (!settings) throw new LibraryError('REGISTRY_INVALID'); const state = settings.update(patch); localeChanged(state.global.locale); return state; });
   handle('librarySettings', (_owner, id: string, value: unknown) => { if (!settings || !manager().has(id)) throw new LibraryError('INVALID_INPUT'); return settings.override(id, value); });
+  handle('organization', () => get().organization());
+  handle('editOrganization', (_owner, input) => get().editOrganization(input));
+  handle('place', (owner, request) => {
+    const result = get().place(request, owner);
+    if (selfTest && existsSync(join(dataPath, 'simulate-placement-response-loss'))) throw new LibraryError('COMMIT_STATUS_UNKNOWN');
+    return result;
+  });
+  handle('query', (_owner, input) => get().query(input));
   handle('list', () => get().list());
   handle('create', (_owner, id: string, input?: NoteInput) => get().create(id, input));
   const fileDialog = async (input?: NoteInput): Promise<string | null> => {
@@ -107,7 +142,8 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   handle('remove', (_owner, id: string) => manager().remove(id));
   handle('relocate', (_owner, id: string) => chooseFor(path => manager().relocate(id, path)));
   return {
-    release: (owner: string) => registry?.release(owner),
+    locale: currentLocale,
+    release: (owner: string) => { if (pendingImport?.owner === owner) pendingImport = null; registry?.release(owner); },
     close: () => { registry?.close(); registry = null; },
     flush: async (): Promise<boolean> => {
       const target = window(); if (!target || target.webContents.isDestroyed()) return true;
@@ -120,7 +156,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
         ipcMain.on('library:exit-result', listener); target.webContents.send('library:flush-exit');
       });
       if (saved) return true;
-      const result = await dialog.showMessageBox(target, { type: 'warning', title: 'NotebookAid', message: '笔记尚未保存。保留窗口以重试，或放弃未保存编辑并退出。\nUnsaved changes remain. Keep editing to retry, or discard and exit.', buttons: ['保留窗口 / Keep editing', '放弃并退出 / Discard and exit'], defaultId: 0, cancelId: 0, noLink: true });
+      const result = await dialog.showMessageBox(target, { type: 'warning', title: 'NotebookAid', message: translate(currentLocale(), 'unsavedExit'), buttons: [translate(currentLocale(), 'keepEditing'), translate(currentLocale(), 'discardExit')], defaultId: 0, cancelId: 0, noLink: true });
       return result.response === 1;
     }
   };

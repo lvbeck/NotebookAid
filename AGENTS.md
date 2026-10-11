@@ -20,6 +20,8 @@
 
 ## Implementation boundaries
 
+- Keep the UI minimal: integrate new actions into existing toolbars or menus, show contextual controls only when relevant, and avoid additional permanent button rows. Preserve the existing theme and visual consistency.
+
 - Use minimal scoped changes. Do not perform unrelated refactoring, upgrades, publishing, or remote Git operations without authorization.
 - Keep shared business logic independent of Angular and Thunderbird. All writes go through one local core.
 - Treat the Electron renderer and addon requests as untrusted inputs. Validate permissions and data in the core.
@@ -34,3 +36,5 @@
 - Static checks do not establish Windows installation, Electron GUI, Thunderbird integration, real AI access, or recovery behavior.
 - Use simulated providers for automated AI tests; distinguish user-run real account tests in the acceptance record.
 - Keep documentation links relative inside the repository. Keep task status and requirement traceability consistent.
+
+- Use theme-consistent segmented radio controls for mutually exclusive view modes; keep related export actions in the same row and wrap gracefully on narrow windows.

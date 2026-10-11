@@ -6,16 +6,17 @@ NotebookAid 是面向本地个人使用的开源笔记应用，由独立桌面�
 
 ## 项目状态
 
-- T01、T02、T03（含 A／B／C）已获用户批准；当前交付 T04 编辑与格式，等待用户验收。
-- 提供 Markdown／HTML 安全子集富文本、TXT 纯文本、原文保护、导入／导出预览、正文撤销重做，以及本地保存、多笔记库、分层设置和消息中心。
-- 未启动 T05；删除／回收站与历史版本界面仍在 T07，图片附件在 T06。
+- T01–T04 已获用户批准；当前交付 T05 组织与搜索及 T05-A 原生跨库导入，等待用户验收。
+- 提供 Markdown／HTML 安全子集富文本、TXT 纯文本、原文保护、导入／导出预览、正文撤销重做，以及本地保存、多笔记本、分层设置和消息中心。
+- T05 提供多层文件夹、笔记移动、标签、组合搜索与分页、置顶及最近使用。删除／回收站与历史版本界面仍在 T07，图片附件在 T06，可选 Delta 在 T06-A。
 - 计划与验收状态以 [实施计划](docs/implementation-plan.md) 为准。
 
 ## 当前测试入口
 
-- [NotebookAid 0.4.0-t04.8 EXE](release/0.4.0-t04.8/NotebookAid-win32-x64/NotebookAid.exe)
-- [Windows x64 便携 ZIP](release/NotebookAid-0.4.0-t04.8-win-x64.zip)
-- [T04 操作、支持边界与回退指南](docs/t04-testing.md)
+- [NotebookAid 0.5.0-t05a.6 EXE](release/0.5.0-t05a.6/NotebookAid-win32-x64/NotebookAid.exe)
+- [Windows x64 便携 ZIP](release/NotebookAid-0.5.0-t05a.6-win-x64.zip)
+- [T05-A 导入、兼容与回退指南](docs/t05a-testing.md)
+- [T05 组织与搜索测试](docs/t05-testing.md)
 
 ## 已确认基础
 
@@ -98,3 +99,5 @@ T03-B 已获用户批准；当前等待 T03-C 用户验收。
 - [T03-C 测试与回退指南](docs/t03c-testing.md)
 
 等待 T03-C 用户验收，尚未开始 T04。
+
+T05 组织与搜索验收说明：[docs/t05-testing.md](docs/t05-testing.md)。组织功能启用后的库不支持旧版程序写入，测试前请使用完整副本。

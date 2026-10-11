@@ -1,3 +1,5 @@
+import { recoverImport } from './library-import';
+import type { Organization, OrganizationEdit, NotePlacement, PlacementRequest, NoteQuery } from '../shared/organization';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomUUID } from 'node:crypto';
 import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
@@ -10,15 +12,19 @@ const maxBody = 2 * 1024 * 1024;
 const digest = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
 export class LibraryError extends Error { constructor(readonly code: LibraryErrorCode) { super(code); } }
 type Head = { formatVersion: 1; id: string; revisionId: string; version: number; metadataHash: string };
-type Metadata = Omit<NoteDocument, 'body'> & { schemaVersion: 1; parentRevisionId: string | null; bodyHash: string; operationId: string; requestHash: string; folderId: null; tagIds: string[]; pinned: false; visibleInThunderbird: true };
+type Metadata = Omit<NoteDocument, 'body'> & { schemaVersion: 1; parentRevisionId: string | null; bodyHash: string; operationId: string; requestHash: string; visibleInThunderbird: true };
 type Journal = { schemaVersion: 1; operationId: string; requestHash: string; head: Head };
 type Session = { noteId: string; owner: string; token: string; generation: string };
-export type CommitStage = 'journal' | 'revision' | 'head' | 'index';
+export type CommitStage = 'journal' | 'revision' | 'head' | 'index' | 'organization';
 
 export class NoteLibrary {
   readonly path: string;
   readonly libraryId: string;
   private lock!: DatabaseSync;
+  private structure: Organization = { schemaVersion: 1, version: 0, folders: [], tags: [] };
+  private recent: Record<string, string> = {};
+  private manifest!: { schemaVersion: number; libraryId: string; createdAt?: string };
+  private readonly catalog = new Map<string, NoteDocument>();
   private index: DatabaseSync | null = null;
   private indexed = false;
   private readonly sessions = new Map<string, Session>();
@@ -42,10 +48,26 @@ export class NoteLibrary {
       catch { throw new LibraryError('LIBRARY_IN_USE'); }
       for (const name of ['notes', 'index', 'recovery']) mkdirSync(this.safe(name), { recursive: true });
       if (!existsSync(manifestPath)) this.atomic(manifestPath, JSON.stringify({ schemaVersion: 1, libraryId: randomUUID(), createdAt: new Date().toISOString() }));
+      recoverImport(this.path);
       const manifest = this.json(manifestPath) as { schemaVersion: number; libraryId: string };
-      if (manifest.schemaVersion !== 1 || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      if (![1, 2, 3].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       this.libraryId = manifest.libraryId;
+      this.manifest = manifest;
+      const organizationPath = this.safe('organization.json');
+      if (existsSync(organizationPath)) {
+        try { this.structure = this.json(organizationPath) as Organization; this.validateStructure(this.structure); } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
+      }
+      const recentPath = this.safe('recent.json');
+      if (existsSync(recentPath)) {
+        try {
+          const records = this.json(recentPath) as Record<string, string>;
+          if (!records || Array.isArray(records) || typeof records !== 'object' || Object.keys(records).length > 100) throw Error();
+          for (const [id, at] of Object.entries(records)) if (!uuid.test(id) || typeof at !== 'string' || !Number.isFinite(Date.parse(at))) throw Error();
+          this.recent = records;
+        } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
+      }
       this.rebuild();
+      try { for (const note of this.catalog.values()) this.validatePlacement(note); } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
       this.scanRecovery();
     } catch (error) { this.index?.close(); this.lock?.close(); throw error; }
   }
@@ -94,14 +116,14 @@ export class NoteLibrary {
       const text = readFileSync(metaPath, 'utf8');
       const meta = JSON.parse(text) as Metadata;
       if (digest(text) !== head.metadataHash || meta.schemaVersion !== 1 || meta.id !== head.id || meta.revisionId !== head.revisionId || meta.version !== head.version || !Object.hasOwn(formatExtensions, meta.primaryFormat)) throw new Error();
-      this.validateContent(meta.title, '');
+      this.validateContent(meta.title, ''); this.validatePlacement(meta, false);
       if (!Number.isSafeInteger(meta.contentVersion) || meta.contentVersion < 1 || !uuid.test(meta.operationId) || (meta.parentRevisionId !== null && !uuid.test(meta.parentRevisionId))) throw new Error();
       if (meta.contentVersion > meta.version || !Number.isFinite(Date.parse(meta.createdAt)) || !Number.isFinite(Date.parse(meta.updatedAt)) || (meta.deletedAt !== null && !Number.isFinite(Date.parse(meta.deletedAt))) || (meta.version === 1) !== (meta.parentRevisionId === null)) throw new Error();
       const bodyPath = this.safe('notes', head.id, 'revisions', head.revisionId, `content.${formatExtensions[meta.primaryFormat]}`);
       if (statSync(bodyPath).size > maxBody) throw new Error();
       const body = readFileSync(bodyPath, 'utf8');
       if (digest(body) !== meta.bodyHash) throw new Error();
-      return { id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body };
+      return { id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body, folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned };
     } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
   }
   private documents(): NoteDocument[] {
@@ -113,6 +135,108 @@ export class NoteLibrary {
     }
     return notes;
   }
+  reloadImported(): void {
+    this.manifest = this.json(this.safe('library.json')) as typeof this.manifest;
+    this.structure = existsSync(this.safe('organization.json')) ? this.json(this.safe('organization.json')) as Organization : { schemaVersion: 1, version: 0, folders: [], tags: [] };
+    this.validateStructure(this.structure); this.rebuild(); this.scanRecovery();
+  }
+  organization(): Organization { return structuredClone(this.structure); }
+  private enableOrganization(): void {
+    if (this.manifest.schemaVersion >= 2) return;
+    const next = { ...this.manifest, schemaVersion: 2 };
+    const previous = this.safe('library-v1.json');
+    if (!existsSync(previous)) this.durable(previous, JSON.stringify(this.manifest));
+    this.atomic(this.safe('library.json'), JSON.stringify(next)); this.manifest = next;
+  }
+  private validateStructure(value: Organization): void {
+    if (!value || value.schemaVersion !== 1 || !Number.isSafeInteger(value.version) || value.version < 0 || !Array.isArray(value.folders) || !Array.isArray(value.tags) || value.folders.length > 500 || value.tags.length > 500 || Buffer.byteLength(JSON.stringify(value)) > 128 * 1024) throw new LibraryError('INVALID_INPUT');
+    const ids = new Set<string>(), names = new Set<string>();
+    for (const item of [...value.folders, ...value.tags]) {
+      if (!item || typeof item !== 'object') throw new LibraryError('INVALID_INPUT');
+      this.id(item.id);
+      if (ids.has(item.id) || typeof item.name !== 'string' || !item.name.trim() || item.name !== item.name.trim() || item.name.length > 80 || /[\x00-\x1f]/.test(item.name)) throw new LibraryError('INVALID_INPUT');
+      ids.add(item.id);
+    }
+    for (const folder of value.folders) {
+      if (folder.order !== undefined && (!Number.isSafeInteger(folder.order) || folder.order < 0)) throw new LibraryError('INVALID_INPUT');
+      const key = `${folder.parentId}/${folder.name.normalize('NFKC').toLowerCase()}`;
+      if (names.has(key)) throw new LibraryError('INVALID_INPUT'); names.add(key);
+      const visited = new Set([folder.id]); let parent = folder.parentId;
+      while (parent !== null) {
+        this.id(parent);
+        const found = value.folders.find(item => item.id === parent);
+        if (!found || visited.has(parent) || visited.size >= 16) throw new LibraryError('INVALID_INPUT');
+        visited.add(parent); parent = found.parentId;
+      }
+    }
+    names.clear();
+    for (const tag of value.tags) {
+      const key = tag.name.normalize('NFKC').toLowerCase();
+      if (names.has(key) || typeof tag.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(tag.color)) throw new LibraryError('INVALID_INPUT'); names.add(key);
+    }
+  }
+  editOrganization(input: OrganizationEdit): Organization {
+    if (!input || !['folder', 'tag', 'folder-order'].includes(input.kind)) throw new LibraryError('INVALID_INPUT');
+    if (input.kind !== 'folder-order') { this.id(input.id); if (typeof input.name !== 'string') throw new LibraryError('INVALID_INPUT'); }
+    if (input.expectedVersion !== this.structure.version) throw new LibraryError('VERSION_CONFLICT');
+    const next = this.organization();
+    if (input.kind === 'folder-order') {
+      if (!Array.isArray(input.ids) || input.ids.length !== next.folders.length || new Set(input.ids).size !== input.ids.length || input.ids.some(id => !next.folders.some(folder => folder.id === id))) throw new LibraryError('INVALID_INPUT');
+      next.folders = next.folders.map(folder => ({ ...folder, order: input.ids.indexOf(folder.id) }));
+    } else if (input.kind === 'folder') {
+      const row = { ...next.folders.find(item => item.id === input.id), id: input.id, name: input.name.trim(), parentId: input.parentId ?? null };
+      const index = next.folders.findIndex(item => item.id === input.id);
+      if (index < 0) next.folders.push(row); else next.folders[index] = row;
+    } else {
+      const row = { id: input.id, name: input.name.trim(), color: input.color ?? '#7460c9' };
+      const index = next.tags.findIndex(item => item.id === input.id);
+      if (index < 0) next.tags.push(row); else next.tags[index] = row;
+    }
+    next.version++; this.validateStructure(next);
+    this.enableOrganization(); this.fault?.('organization');
+    this.atomic(this.safe('organization.json'), JSON.stringify(next)); this.structure = next;
+    return this.organization();
+  }
+  private validatePlacement(value: NotePlacement, references = true): void {
+    if (value.folderId !== null) this.id(value.folderId);
+    if (!Array.isArray(value.tagIds) || value.tagIds.length > 100 || new Set(value.tagIds).size !== value.tagIds.length || typeof value.pinned !== 'boolean') throw new LibraryError('INVALID_INPUT');
+    for (const id of value.tagIds) this.id(id);
+    if (references && ((value.folderId !== null && !this.structure.folders.some(item => item.id === value.folderId)) || value.tagIds.some(id => !this.structure.tags.some(item => item.id === id)))) throw new LibraryError('INVALID_INPUT');
+  }
+  place(request: PlacementRequest, owner: string): SaveResult {
+    if (!request || typeof request !== 'object') throw new LibraryError('INVALID_INPUT');
+    this.id(request.noteId); this.id(request.operationId); this.validatePlacement(request);
+    const session = this.sessions.get(request.noteId);
+    if (!session || session.owner !== owner || session.token !== request.token || session.generation !== request.generation) throw new LibraryError('SESSION_EXPIRED');
+    const placement = { folderId: request.folderId, tagIds: [...request.tagIds].sort(), pinned: request.pinned };
+    const hash = digest(JSON.stringify(['place', request.noteId, request.expectedVersion, placement]));
+    const replay = this.operation(request.operationId, hash); if (replay) return replay;
+    const current = this.read(request.noteId);
+    if (current.version !== request.expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+    if (current.folderId === placement.folderId && current.pinned === placement.pinned && JSON.stringify([...current.tagIds].sort()) === JSON.stringify(placement.tagIds)) return { note: current, saved: true, indexed: this.indexed };
+    this.enableOrganization();
+    return this.commit({ ...current, ...placement }, current, request.operationId, hash);
+  }
+  query(input: NoteQuery = {}): { notes: NoteSummary[]; total: number } {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new LibraryError('INVALID_INPUT');
+    const { text = '', tagIds = [], view = 'all', offset = 0, limit = 50 } = input;
+    if (typeof text !== 'string' || text.length > 300 || !Array.isArray(tagIds) || tagIds.length > 100 || !['all', 'pinned', 'recent'].includes(view) || !Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new LibraryError('INVALID_INPUT');
+    for (const id of tagIds) this.id(id);
+    const folders = new Set<string | null>();
+    if (input.folderId !== undefined) {
+      if (input.folderId !== null) this.id(input.folderId);
+      folders.add(input.folderId);
+      if (input.folderId !== null) for (let i = 0; i < 16; i++) for (const folder of this.structure.folders) if (folders.has(folder.parentId)) folders.add(folder.id);
+    }
+    const terms = text.normalize('NFKC').toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const rows = [...this.catalog.values()].filter(note => {
+      if (note.deletedAt || (folders.size && !folders.has(note.folderId)) || !tagIds.every(id => note.tagIds.includes(id)) || (view === 'pinned' && !note.pinned) || (view === 'recent' && !this.recent[note.id])) return false;
+      const content = `${note.title}\n${note.body}`.normalize('NFKC').toLowerCase();
+      return terms.every(term => content.includes(term));
+    });
+    rows.sort((a, b) => view === 'recent' ? this.recent[b.id].localeCompare(this.recent[a.id]) || a.id.localeCompare(b.id) : Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
+    return { total: rows.length, notes: rows.slice(offset, offset + limit).map(({ body: _body, revisionId: _revision, ...summary }) => ({ ...summary, tagIds: [...summary.tagIds] })) };
+  }
   list(): NoteSummary[] {
     return this.documents().filter(note => !note.deletedAt).map(({ body: _body, revisionId: _revision, ...summary }) => summary)
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
@@ -120,6 +244,7 @@ export class NoteLibrary {
   rebuild(): LibraryStatus {
     this.index?.close(); this.index = null; this.indexed = false; this.issues.clear();
     const notes = this.documents();
+    this.catalog.clear(); for (const note of notes) this.catalog.set(note.id, note);
     const path = this.safe('index', 'catalog.sqlite');
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
@@ -148,6 +273,9 @@ export class NoteLibrary {
     const existing = this.sessions.get(id);
     if (existing && existing.owner !== owner) throw new LibraryError('NOTE_IN_USE');
     const session = existing ?? { noteId: id, owner, token: randomUUID(), generation: randomUUID() };
+    const timestamp = Math.max(Date.now(), ...Object.values(this.recent).map(value => Date.parse(value) + 1));
+    const nextRecent = Object.fromEntries([[id, new Date(timestamp).toISOString()], ...Object.entries(this.recent).filter(([key]) => key !== id)].slice(0, 100));
+    this.atomic(this.safe('recent.json'), JSON.stringify(nextRecent)); this.recent = nextRecent;
     this.sessions.set(id, session);
     return { token: session.token, generation: session.generation, note };
   }
@@ -183,10 +311,12 @@ export class NoteLibrary {
     if (input !== undefined && (!input || typeof input !== 'object' || !Object.hasOwn(formatExtensions, input.primaryFormat))) throw new LibraryError('INVALID_INPUT');
     const initial = input ?? { title: 'Untitled', body: '', primaryFormat: 'markdown' as const };
     this.validateContent(initial.title, initial.body);
-    const hash = digest(input === undefined ? 'create' : JSON.stringify(['create', initial.primaryFormat, initial.title, initial.body]));
+    const placement: NotePlacement = { folderId: initial.folderId ?? null, tagIds: [], pinned: false }; this.validatePlacement(placement);
+    if (placement.folderId) this.enableOrganization();
+    const hash = digest(input === undefined ? 'create' : JSON.stringify(['create', initial.primaryFormat, initial.title, initial.body, ...(placement.folderId ? [placement.folderId] : [])]));
     const replay = this.operation(operationId, hash); if (replay) return replay;
     const now = new Date().toISOString();
-    return this.commit({ id: randomUUID(), revisionId: '', title: initial.title, body: initial.body, primaryFormat: initial.primaryFormat, version: 0, contentVersion: 0, createdAt: now, updatedAt: now, deletedAt: null }, null, operationId, hash);
+    return this.commit({ id: randomUUID(), revisionId: '', title: initial.title, body: initial.body, primaryFormat: initial.primaryFormat, version: 0, contentVersion: 0, createdAt: now, updatedAt: now, deletedAt: null, ...placement }, null, operationId, hash);
   }
   save(request: SaveRequest, owner: string): SaveResult {
     if (!request || typeof request !== 'object') throw new LibraryError('INVALID_INPUT');
@@ -211,7 +341,7 @@ export class NoteLibrary {
   private commit(input: NoteDocument, previous: NoteDocument | null, operationId: string, requestHash: string): SaveResult {
     const note: NoteDocument = { ...input, revisionId: randomUUID(), version: input.version + 1, contentVersion: previous ? previous.contentVersion + Number(previous.body !== input.body) : 1, updatedAt: new Date().toISOString() };
     const { body, ...fields } = note;
-    const meta: Metadata = { ...fields, schemaVersion: 1, parentRevisionId: previous?.revisionId ?? null, bodyHash: digest(body), operationId, requestHash, folderId: null, tagIds: [], pinned: false, visibleInThunderbird: true };
+    const meta: Metadata = { ...fields, schemaVersion: 1, parentRevisionId: previous?.revisionId ?? null, bodyHash: digest(body), operationId, requestHash, visibleInThunderbird: true };
     const text = JSON.stringify(meta);
     const head: Head = { formatVersion: 1, id: note.id, revisionId: note.revisionId, version: note.version, metadataHash: digest(text) };
     let committed = false;
@@ -234,6 +364,7 @@ export class NoteLibrary {
       if (!committed) throw error instanceof LibraryError ? error : new LibraryError('WRITE_FAILED');
       this.indexed = false; this.issues.add('INDEX_REBUILD_REQUIRED');
     }
+    this.catalog.set(note.id, note);
     // Observers cannot roll back a committed revision by throwing.
     for (const listener of this.events.listeners('change')) {
       try { listener({ noteId: note.id, version: note.version, indexed: this.indexed }); } catch { /* The durable commit remains authoritative. */ }
