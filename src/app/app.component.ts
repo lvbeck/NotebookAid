@@ -1,3 +1,4 @@
+import { emptyDelta, parseDelta, deltaSnapshot, type DeltaOp } from '../../shared/delta-document';
 import { AttachmentsComponent } from './attachments.component';
 import { TooltipDirective } from './tooltip.directive';
 import { OrganizationComponent } from './organization.component';
@@ -132,7 +133,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     return true;
   }
   toggleFolder(id: string): void { this.collapsedFolders.update(value => { const next = new Set(value); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
-  readonly noteFormats: NoteFormat[] = ['markdown', 'html', 'text'];
+  readonly noteFormats: NoteFormat[] = ['markdown', 'html', 'text', 'delta'];
   readonly exportFormat = signal<NoteFormat>('markdown');
   readonly exportPreview = signal<NoteInput | null>(null);
   readonly fileMessage = signal('');
@@ -140,7 +141,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private composing = false;
   filterTag(id: string): void { const tags = this.workspace.query().tagIds ?? []; this.workspace.filter({ tagIds: tags.includes(id) ? tags.filter(tag => tag !== id) : [...tags, id] }); }
   format(): NoteFormat { return this.workspace.session()?.note.primaryFormat ?? 'markdown'; }
-  createNote(format: NoteFormat): void { this.newNoteMenuOpen.set(false); this.tab.set('editor'); void this.workspace.create({ primaryFormat: format, title: this.t('untitled'), body: '', folderId: this.workspace.query().folderId ?? null }); }
+  createNote(format: NoteFormat): void { this.newNoteMenuOpen.set(false); this.tab.set('editor'); void this.workspace.create({ primaryFormat: format, title: this.t('untitled'), body: format === 'delta' ? emptyDelta : '', folderId: this.workspace.query().folderId ?? null }); }
   importNote(): void { this.newNoteMenuOpen.set(false); this.tab.set('editor'); void this.workspace.importFile(); }
   canUndo(): boolean { this.historyVersion(); return this.history.canUndo; }
   canRedo(): boolean { this.historyVersion(); return this.history.canRedo; }
@@ -164,7 +165,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   toggleSource(value: boolean): void { if (this.composing) return; this.sourceMode.set(value); if (!value) this.loadSource(); }
   prepareExport(): void {
     if (!this.workspace.session() || this.composing) return;
-    this.exportPreview.set({ primaryFormat: this.exportFormat(), title: this.title, body: convertBody(this.source(), this.format(), this.exportFormat()) });
+    if (this.format() === 'delta') {
+      this.loadSource(); if (this.warning()) return;
+      const body = this.exportFormat() === 'delta' ? this.source() : convertBody(semanticHtml(this.editor.getSemanticHTML()), 'html', this.exportFormat());
+      this.exportPreview.set({ primaryFormat: this.exportFormat(), title: this.title, body, attachmentNoteId: this.workspace.session()!.note.id });
+    } else this.exportPreview.set({ primaryFormat: this.exportFormat() === 'delta' ? 'markdown' : this.exportFormat(), title: this.title, body: convertBody(this.source(), this.format(), this.exportFormat() === 'delta' ? 'markdown' : this.exportFormat()) });
     this.fileMessage.set('');
   }
   async saveExport(): Promise<void> {
@@ -184,7 +189,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private readonly onEditorChange = (_delta: unknown, _previous: unknown, origin: string) => {
     if (origin !== 'user') return;
     if (this.warning() || this.sourcePending() || this.format() === 'text') return;
-    this.workspace.updateBody(this.format() === 'html' ? cleanHtml(semanticHtml(this.editor.getSemanticHTML())) : this.toMarkdown());
+    this.workspace.updateBody(this.format() === 'delta' ? deltaSnapshot(this.editor.getContents().ops as DeltaOp[]) : this.format() === 'html' ? cleanHtml(semanticHtml(this.editor.getSemanticHTML())) : this.toMarkdown());
     this.record();
     this.roundtripResult.set('');
     this.roundtripStatus.set('');
@@ -295,6 +300,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.loadedSource.set(this.source());
     this.issues.set(sourceIssues(this.source(), this.format()));
     this.warning.set(this.issues().length > 0);
+    if (this.format() === 'delta') {
+      if (!this.warning()) {
+        const input = new Delta(parseDelta(this.source()).ops);
+        this.editor.setContents(input, 'api');
+        if (this.normalizedDelta(input) !== this.normalizedDelta(this.editor.getContents())) { this.issues.set([{ kind: 'issueRoundtrip', detail: 'Delta', count: 1 }]); this.warning.set(true); }
+      }
+      this.editor.enable(!!this.workspace.session() && !this.warning());
+      (this.editor.getModule('history') as { clear(): void }).clear();
+      void this.hydrateImages(); return;
+    }
     const delta = this.editor.clipboard.convert({ html: previewHtml(this.source(), this.format()) });
     this.editor.setContents(delta, 'api');
     if (this.format() !== 'text' && !this.warning()) {
@@ -314,6 +329,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   insertAttachmentImage(id: string): void {
     if (this.workspace.switching() || !this.workspace.session()?.note.attachments?.some(item => item.id === id)) return;
     const reference = 'attachments/' + id;
+    if (this.format() === 'delta' && (this.sourceMode() || this.warning())) {
+      try { const document = parseDelta(this.source()); document.ops.splice(document.ops.length - 1, 0, { insert: { image: reference } }, { insert: '\n' }); this.editSource(deltaSnapshot(document.ops)); } catch { this.loadSource(); }
+      return;
+    }
     if (this.sourceMode() || this.warning() || this.format() === 'text') {
       this.editSource(this.source() + '\n' + (this.format() === 'html' ? '<img src="' + reference + '">' : this.format() === 'markdown' ? '![](' + reference + ')' : reference));
     } else {
@@ -344,7 +363,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
   private normalizedDelta(delta: Delta): string {
     const rows = new Map<unknown, number>();
-    return JSON.stringify(delta.ops.map(op => {
+    return JSON.stringify(delta.ops.reduce((result, op) => result.insert(op.insert!, op.attributes), new Delta()).ops.map(op => {
       const attributes = { ...op.attributes }; delete attributes['code-token'];
       if (attributes['table'] != null) { const row = attributes['table']; if (!rows.has(row)) rows.set(row, rows.size + 1); attributes['table'] = rows.get(row); }
       return { ...op, attributes: Object.fromEntries(Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b))) };
@@ -392,6 +411,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   saveLabel(): string { return this.t(this.workspace.saving() ? 'saving' : this.workspace.error() ? 'saveFailed' : this.workspace.dirty() ? 'unsaved' : 'saved'); }
   displayTime(value: string): string { return new Date(value).toLocaleString(regionalLocale(this.locale()), { dateStyle: 'short', timeStyle: 'short' }); }
   roundtrip(): void {
+    if (this.format() === 'delta') { this.loadSource(); this.roundtripResult.set(this.source()); this.roundtripStatus.set(this.t(this.warning() ? 'changed' : 'passed')); return; }
     this.loadSource();
     if (this.format() === 'text' || this.warning()) { this.roundtripResult.set(this.source()); this.roundtripStatus.set(this.t('formatPreserved')); return; }
     const output = this.format() === 'html' ? cleanHtml(semanticHtml(this.editor.getSemanticHTML())) : this.toMarkdown();

@@ -1,3 +1,4 @@
+import { parseDelta } from '../../shared/delta-document';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import type { NoteFormat } from '../../shared/library';
@@ -9,6 +10,7 @@ export type SourceIssueKind = 'issueTask' | 'issueNested' | 'issueImage' | 'issu
 export interface SourceIssue { kind: SourceIssueKind; detail: string; line?: number; element?: number; count: number; }
 
 export function sourceIssues(body: string, format: NoteFormat): SourceIssue[] {
+  if (format === 'delta') { try { parseDelta(body); return []; } catch (error) { return [{ kind: 'issueRoundtrip', detail: error instanceof Error ? error.message : 'Delta', count: 1 }]; } }
   const groups = new Map<string, SourceIssue>();
   const add = (kind: SourceIssueKind, detail = '', line?: number, element?: number) => {
     const key = kind + ':' + detail;

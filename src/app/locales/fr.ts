@@ -1,6 +1,10 @@
 import type { MessageKey } from '../i18n';
 
 export const french: Record<MessageKey, string> = {
+  deltaFormat: "Texte enrichi Delta",
+  deltaUpgrade: "Delta nécessite le schéma 5. Une sauvegarde complète sera créée à côté dans .delta-backups. Les anciennes versions ne peuvent pas ouvrir ce schéma. Continuer ?",
+  deltaInvalid: "Document Delta invalide ou non pris en charge. Corrigez le JSON et les attributs selon les détails avant de sauvegarder.",
+  deltaExportHint: "Delta exporte le document et ses pièces jointes (50 pièces jointes maximum, 20 Mo chacune, 200 Mo au total). Les autres formats peuvent perdre la mise en forme et ne regroupent pas les fichiers joints. La note reste inchangée.",
   attachments: "Pièces jointes",
   addAttachment: "Ajouter une pièce jointe",
   attachmentHint: "20 Mo maximum par fichier, 50 fichiers / 200 Mo par note. Les doublons sont numérotés.",
@@ -250,8 +254,8 @@ export const french: Record<MessageKey, string> = {
   "welcome": "Premiers pas",
   "sample": "Bienvenue dans NotebookAid",
   "sampleHint": "Un espace pour votre prochaine idée",
-  "preview": "T06 · Pièces jointes",
-  "previewHint": "Enregistrement local automatique · Markdown / HTML / TXT · chiffrement et sauvegardes à venir",
+  "preview": "T06-A texte enrichi natif",
+  "previewHint": "Enregistrement local automatique · Markdown / HTML / TXT / Delta · chiffrement et sauvegardes à venir",
   "save": "Enregistrer",
   "saving": "Enregistrement…",
   "saved": "Enregistré localement",

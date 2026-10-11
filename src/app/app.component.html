@@ -9,7 +9,7 @@
         <div id="new-note-formats" class="new-note-formats" role="group" [attr.aria-label]="t('newFormat')">
           <span>{{ t('newFormat') }}</span>
           @for (format of noteFormats; track format) {
-            <button [attr.data-testid]="'create-' + format" (click)="createNote(format)" [disabled]="workspace.switching() || !workspace.status()"><app-icon name="FileText" />{{ format === 'markdown' ? 'Markdown' : format === 'html' ? 'HTML' : 'TXT' }}</button>
+            <button [attr.data-testid]="'create-' + format" (click)="createNote(format)" [disabled]="workspace.switching() || !workspace.status()"><app-icon name="FileText" />{{ format === 'markdown' ? 'Markdown' : format === 'html' ? 'HTML' : format === 'delta' ? t('deltaFormat') : 'TXT' }}</button>
           }
         </div>
       </ng-template>
@@ -69,7 +69,7 @@
       </div>
     </header>
     <div class="preview-banner"><span>{{ t('preview') }}</span>{{ t('previewHint') }}</div>
-    @if (workspace.error()) { <div class="library-warning" role="alert">{{ t('saveFailed') }} · {{ workspace.error() }} · {{ t('draftRetained') }} <button class="secondary" (click)="workspace.manualSave()" [disabled]="workspace.saving()"><app-icon name="RefreshCw" />{{ t('retry') }}</button></div> }
+    @if (workspace.error()) { <div class="library-warning" role="alert">{{ t('saveFailed') }} · {{ workspace.error() }} · {{ t(workspace.error() === 'INVALID_DELTA' || workspace.error() === 'UNSUPPORTED_DELTA' ? 'deltaInvalid' : 'draftRetained') }} <button class="secondary" (click)="workspace.manualSave()" [disabled]="workspace.saving()"><app-icon name="RefreshCw" />{{ t('retry') }}</button></div> }
     @if (workspace.status() && (!workspace.status()!.indexed || workspace.status()!.issues.length || workspace.status()!.pendingRecovery)) { <div class="library-warning">{{ t('recoveryNotice') }} {{ workspace.status()!.issues.join(', ') }} · {{ workspace.status()!.pendingRecovery }} <button class="secondary rebuild-button" data-testid="rebuild-index" (click)="workspace.rebuild()" [disabled]="workspace.rebuilding()"><app-icon name="RefreshCw" [class.spinning]="workspace.rebuilding()" />{{ t(workspace.rebuilding() ? 'rebuilding' : 'rebuild') }}</button></div> }
     @if (notifications.storageFailed()) { <div class="library-warning" role="status">{{ t('noticeStorageFailed') }} <button class="secondary" (click)="notifications.reload()" [disabled]="notifications.busy()"><app-icon name="RefreshCw" />{{ t('noticeReload') }}</button></div> }
     @if (!prefs.ready() && prefs.error()) { <div class="library-warning" role="alert">{{ t('preferencesFailed') }} · {{ prefs.error() }}</div> }
@@ -86,7 +86,7 @@
         </div>
         @if (workspace.query().view === 'recent') { <p class="muted">{{ t('recentHint') }}</p> }
         @for (note of workspace.results(); track note.id) {
-          <button class="note-card" [attr.data-note-id]="note.id" [class.selected]="workspace.session()?.note?.id === note.id" (click)="workspace.select(note.id)" [disabled]="workspace.switching()"><div class="note-meta"><app-icon name="FileText" />v{{ note.version }}<span>{{ note.primaryFormat === 'markdown' ? 'MD' : note.primaryFormat === 'html' ? 'HTML' : 'TXT' }}</span></div><strong>@if (note.pinned) { <app-icon name="Pin" /> }{{ note.title }}</strong><p class="note-folder">{{ workspace.folderPath(note.folderId) || t('rootFolder') }}</p><div class="note-tags">@for (tag of workspace.sortedTags(); track tag.id) { @if (note.tagIds.includes(tag.id)) { <span><i class="tag-dot" [style.background]="tag.color"></i>{{ tag.name }}</span> } }</div><p>{{ displayTime(note.updatedAt) }}</p></button>
+          <button class="note-card" [attr.data-note-id]="note.id" [class.selected]="workspace.session()?.note?.id === note.id" (click)="workspace.select(note.id)" [disabled]="workspace.switching()"><div class="note-meta"><app-icon name="FileText" />v{{ note.version }}<span>{{ note.primaryFormat === 'markdown' ? 'MD' : note.primaryFormat === 'html' ? 'HTML' : note.primaryFormat === 'delta' ? 'DELTA' : 'TXT' }}</span></div><strong>@if (note.pinned) { <app-icon name="Pin" /> }{{ note.title }}</strong><p class="note-folder">{{ workspace.folderPath(note.folderId) || t('rootFolder') }}</p><div class="note-tags">@for (tag of workspace.sortedTags(); track tag.id) { @if (note.tagIds.includes(tag.id)) { <span><i class="tag-dot" [style.background]="tag.color"></i>{{ tag.name }}</span> } }</div><p>{{ displayTime(note.updatedAt) }}</p></button>
         }
         @if (!workspace.results().length) { <p class="muted" data-testid="empty-results">{{ t(workspace.notes().length ? 'noResults' : 'emptyLibrary') }}</p> }
         <div class="pagination"><button class="icon-button" data-testid="previous-page" [attr.aria-label]="t('previousPage')" [disabled]="!workspace.query().offset || workspace.searching()" (click)="workspace.filter({offset: (workspace.query().offset || 0) - 30})"><app-icon name="ChevronLeft" /></button><span>{{ (workspace.query().offset || 0) + (workspace.total() ? 1 : 0) }}–{{ (workspace.query().offset || 0) + workspace.results().length }} / {{ workspace.total() }}</span><button class="icon-button" data-testid="next-page" [attr.aria-label]="t('nextPage')" [disabled]="(workspace.query().offset || 0) + 30 >= workspace.total() || workspace.searching()" (click)="workspace.filter({offset: (workspace.query().offset || 0) + 30})"><app-icon name="ChevronRight" /></button></div>
@@ -120,7 +120,7 @@
           }
         <app-attachments [locale]="locale()" (insertImage)="insertAttachmentImage($event)" (unlinked)="loadSource()" />
         <div class="export-actions">
-          <select appSelect data-testid="export-format" [attr.aria-label]="t('exportFormat')" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set($event); exportPreview.set(null)"><option value="markdown">Markdown</option><option value="html">HTML</option><option value="text">TXT</option></select>
+          <select appSelect data-testid="export-format" [attr.aria-label]="t('exportFormat')" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set($event); exportPreview.set(null)"><option value="markdown">Markdown</option><option value="html">HTML</option><option value="text">TXT</option>@if (format() === 'delta') { <option value="delta">Delta (.nadelta)</option> }</select>
           <button class="secondary" data-testid="prepare-export" (click)="prepareExport()" [disabled]="!workspace.session() || workspace.switching() || fileBusy()"><app-icon name="FileOutput" />{{ t('exportCopy') }}</button>
         </div>
         </div>
@@ -162,7 +162,7 @@
         }
         @if (warning()) {
           <section class="source-diagnostics" data-testid="format-warning">
-            <p>{{ format() === 'markdown' ? 'Markdown' : 'HTML' }} · {{ t('sourceProtected') }}</p>
+            <p>{{ format() === 'delta' ? 'Delta' : format() === 'markdown' ? 'Markdown' : 'HTML' }} · {{ t(format() === 'delta' ? 'deltaInvalid' : 'sourceProtected') }}</p>
             <p class="muted">{{ t('sourceIssuesHint') }}</p>
             @if (sourcePending()) { <p class="muted">{{ t('sourceIssuesStale') }}</p> }
             <ul>
@@ -182,7 +182,7 @@
         @if (format() === 'html' && warning()) { <details class="html-preview"><summary>{{ t('htmlPreview') }}</summary><iframe sandbox="" [srcdoc]="htmlPreview()" [title]="t('htmlPreview')" referrerpolicy="no-referrer"></iframe></details> }
         <div class="editor-area" [hidden]="sourceMode() || format() === 'text' || warning()" [attr.inert]="workspace.switching() ? '' : null"><div #editorHost></div></div>
         @if (exportPreview(); as preview) {
-          <section class="export-preview panel"><h3>{{ t('exportPreviewTitle') }}</h3><p class="muted">{{ t('exportHint') }}</p>
+          <section class="export-preview panel"><h3>{{ t('exportPreviewTitle') }}</h3><p class="muted">{{ t(format() === 'delta' ? 'deltaExportHint' : 'exportHint') }}</p>
             <textarea data-testid="export-preview" [value]="preview.body" readonly [attr.aria-label]="t('exportPreviewTitle')"></textarea>
             <div class="actions"><button class="primary" data-testid="confirm-export" (click)="saveExport()" [disabled]="fileBusy()"><app-icon name="Save" />{{ t('exportConfirm') }}</button><button class="secondary" (click)="exportPreview.set(null)" [disabled]="fileBusy()"><app-icon name="X" />{{ t('noticeClose') }}</button></div>
             <p role="status" data-testid="file-message">{{ fileMessage() }}</p>

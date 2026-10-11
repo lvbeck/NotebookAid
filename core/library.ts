@@ -1,3 +1,5 @@
+import { parseDelta, deltaText } from '../shared/delta-document';
+import { validateNative } from './delta-files';
 import { isSvg, attachmentHash, attachmentName, imageType, readAttachmentFile, validateAttachments } from './attachments';
 import type { AttachmentRequest, AttachmentView } from '../shared/attachments';
 import { basename, extname } from 'node:path';
@@ -53,7 +55,7 @@ export class NoteLibrary {
       if (!existsSync(manifestPath)) this.atomic(manifestPath, JSON.stringify({ schemaVersion: 1, libraryId: randomUUID(), createdAt: new Date().toISOString() }));
       recoverImport(this.path);
       const manifest = this.json(manifestPath) as { schemaVersion: number; libraryId: string };
-      if (![1, 2, 3, 4].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      if (![1, 2, 3, 4, 5].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       this.libraryId = manifest.libraryId;
       this.manifest = manifest;
       const organizationPath = this.safe('organization.json');
@@ -127,6 +129,7 @@ export class NoteLibrary {
       if (statSync(bodyPath).size > maxBody) throw new Error();
       const body = readFileSync(bodyPath, 'utf8');
       if (digest(body) !== meta.bodyHash) throw new Error();
+      if (meta.primaryFormat === 'delta') { if (this.manifest.schemaVersion < 5) throw new Error(); parseDelta(body); }
       return { id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body, folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned, ...(meta.attachments ? { attachments: meta.attachments } : {}) };
     } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
   }
@@ -235,7 +238,7 @@ export class NoteLibrary {
     const terms = text.normalize('NFKC').toLowerCase().trim().split(/\s+/).filter(Boolean);
     const rows = [...this.catalog.values()].filter(note => {
       if (note.deletedAt || (folders.size && !folders.has(note.folderId)) || !tagIds.every(id => note.tagIds.includes(id)) || (view === 'pinned' && !note.pinned) || (view === 'recent' && !this.recent[note.id])) return false;
-      const content = `${note.title}\n${note.body}`.normalize('NFKC').toLowerCase();
+      const content = `${note.title}\n${note.primaryFormat === 'delta' ? deltaText(note.body) : note.body}`.normalize('NFKC').toLowerCase();
       return terms.every(term => content.includes(term));
     });
     rows.sort((a, b) => view === 'recent' ? this.recent[b.id].localeCompare(this.recent[a.id]) || a.id.localeCompare(b.id) : Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
@@ -315,12 +318,23 @@ export class NoteLibrary {
     if (input !== undefined && (!input || typeof input !== 'object' || !Object.hasOwn(formatExtensions, input.primaryFormat))) throw new LibraryError('INVALID_INPUT');
     const initial = input ?? { title: 'Untitled', body: '', primaryFormat: 'markdown' as const };
     this.validateContent(initial.title, initial.body);
+    if (initial.primaryFormat === 'delta') validateNative(initial.body, initial.nativeAttachments);
+    else if (initial.nativeAttachments) throw new LibraryError('INVALID_INPUT');
     const placement: NotePlacement = { folderId: initial.folderId ?? null, tagIds: [], pinned: false }; this.validatePlacement(placement);
     if (placement.folderId) this.enableOrganization();
-    const hash = digest(input === undefined ? 'create' : JSON.stringify(['create', initial.primaryFormat, initial.title, initial.body, ...(placement.folderId ? [placement.folderId] : [])]));
+    const hash = digest(input === undefined ? 'create' : JSON.stringify(['create', initial.primaryFormat, initial.title, initial.body, ...(initial.nativeAttachments ? [initial.nativeAttachments.map(({data,...item}) => item)] : []), ...(placement.folderId ? [placement.folderId] : [])]));
     const replay = this.operation(operationId, hash); if (replay) return replay;
-    const now = new Date().toISOString();
-    return this.commit({ id: randomUUID(), revisionId: '', title: initial.title, body: initial.body, primaryFormat: initial.primaryFormat, version: 0, contentVersion: 0, createdAt: now, updatedAt: now, deletedAt: null, ...placement }, null, operationId, hash);
+    const now = new Date().toISOString(), id = randomUUID();
+    let attachments;
+    if (initial.primaryFormat === 'delta') {
+      this.enableDelta();
+      attachments = (initial.nativeAttachments ?? []).map(({ data, ...item }) => item);
+      if (attachments.length) {
+        const directory = this.safe('notes', id, 'attachments'); mkdirSync(directory, { recursive: true });
+        for (const item of initial.nativeAttachments!) { const fd = openSync(this.safe('notes', id, 'attachments', item.id), 'wx'); try { writeFileSync(fd, Buffer.from(item.data, 'base64')); fsyncSync(fd); } finally { closeSync(fd); } }
+      }
+    }
+    return this.commit({ ...(attachments ? { attachments } : {}), id, revisionId: '', title: initial.title, body: initial.body, primaryFormat: initial.primaryFormat, version: 0, contentVersion: 0, createdAt: now, updatedAt: now, deletedAt: null, ...placement }, null, operationId, hash);
   }
   save(request: SaveRequest, owner: string): SaveResult {
     if (!request || typeof request !== 'object') throw new LibraryError('INVALID_INPUT');
@@ -331,7 +345,15 @@ export class NoteLibrary {
     const replay = this.operation(request.operationId, hash); if (replay) return replay;
     const current = this.read(request.noteId);
     if (current.version !== request.expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+    if (current.primaryFormat === 'delta') parseDelta(request.body);
     return this.commit({ ...current, title: request.title, body: request.body }, current, request.operationId, hash);
+  }
+  private enableDelta(): void {
+    if (this.manifest.schemaVersion >= 5) return;
+    const backup = join(dirname(this.path), basename(this.path) + '.delta-backups', randomUUID());
+    copyTree(this.path, backup);
+    this.atomic(this.safe('library.json'), JSON.stringify({ ...this.manifest, schemaVersion: 5 }));
+    this.manifest.schemaVersion = 5;
   }
   attachmentList(id: string): AttachmentView[] {
     return (this.read(id).attachments ?? []).map(item => {

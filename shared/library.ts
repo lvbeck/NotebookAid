@@ -3,11 +3,11 @@ import type { Attachment, AttachmentRequest, AttachmentView, AttachmentPreview }
 import type { Organization, OrganizationEdit, NotePlacement, PlacementRequest, NoteQuery } from './organization';
 import type { LibraryImportPreview, LibraryImportResult } from './library-import';
 import type { RegistryApi } from './registry';
-export type LibraryErrorCode = 'INVALID_INPUT' | 'WRITE_FAILED' | 'INTEGRITY_CHECK_FAILED' | 'VERSION_CONFLICT' | 'SESSION_EXPIRED' | 'NOTE_IN_USE' | 'LIBRARY_IN_USE' | 'NOT_FOUND_OR_UNAVAILABLE' | 'COMMIT_STATUS_UNKNOWN' | 'DUPLICATE_LIBRARY' | 'LIBRARY_ID_MISMATCH' | 'REGISTRY_INVALID' | 'UNSUPPORTED_LIBRARY' | 'CURRENT_LIBRARY';
+export type LibraryErrorCode = 'INVALID_INPUT' | 'WRITE_FAILED' | 'INTEGRITY_CHECK_FAILED' | 'VERSION_CONFLICT' | 'SESSION_EXPIRED' | 'NOTE_IN_USE' | 'LIBRARY_IN_USE' | 'NOT_FOUND_OR_UNAVAILABLE' | 'COMMIT_STATUS_UNKNOWN' | 'DUPLICATE_LIBRARY' | 'LIBRARY_ID_MISMATCH' | 'REGISTRY_INVALID' | 'UNSUPPORTED_LIBRARY' | 'CURRENT_LIBRARY' | 'INVALID_DELTA' | 'UNSUPPORTED_DELTA' | 'CANCELLED';
 export type Result<T> = { ok: true; value: T } | { ok: false; code: LibraryErrorCode };
-export type NoteFormat = 'markdown' | 'html' | 'text';
-export const formatExtensions: Record<NoteFormat, string> = { markdown: 'md', html: 'html', text: 'txt' };
-export interface NoteInput { primaryFormat: NoteFormat; title: string; body: string; folderId?: string | null; }
+export type NoteFormat = 'markdown' | 'html' | 'text' | 'delta';
+export const formatExtensions: Record<NoteFormat, string> = { markdown: 'md', html: 'html', text: 'txt', delta: 'nadelta' };
+export interface NoteInput { primaryFormat: NoteFormat; title: string; body: string; folderId?: string | null; nativeAttachments?: import('./delta-document').NativeAttachment[]; attachmentNoteId?: string; nativeImportToken?: string; }
 export interface NoteSummary extends NotePlacement { id: string; title: string; primaryFormat: NoteFormat; version: number; contentVersion: number; createdAt: string; updatedAt: string; deletedAt: string | null; }
 export interface NoteDocument extends NoteSummary { body: string; revisionId: string; attachments?: Attachment[]; }
 export interface EditSession { token: string; generation: string; note: NoteDocument; }

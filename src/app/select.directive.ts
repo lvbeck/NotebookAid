@@ -76,7 +76,8 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
     this.search = ''; this.active = this.select.selectedIndex;
     if (!this.enabled(this.active)) this.active = this.options().findIndex((_option, index) => this.enabled(index));
     const menu = this.menu = document.createElement('div');
-    menu.id = this.id + '-list'; menu.className = 'select-menu'; menu.setAttribute('role', 'listbox');
+    menu.id = this.id + '-list'; menu.className = 'select-menu';
+    if (this.select.dataset['testid'] === 'export-format') menu.classList.add('select-menu-export-format'); menu.setAttribute('role', 'listbox');
     menu.setAttribute('aria-label', this.button.getAttribute('aria-label') || 'Select');
     const style = getComputedStyle(this.button);
     menu.style.borderRadius = style.borderRadius; menu.style.fontSize = style.fontSize;

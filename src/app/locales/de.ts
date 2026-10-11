@@ -1,6 +1,10 @@
 import type { MessageKey } from '../i18n';
 
 export const german: Record<MessageKey, string> = {
+  deltaFormat: "Delta-Rich-Text",
+  deltaUpgrade: "Delta erfordert Schema 5. Eine vollständige Sicherung wird daneben in .delta-backups gespeichert. Ältere Programme können Schema 5 nicht öffnen. Fortfahren?",
+  deltaInvalid: "Ungültiges oder nicht unterstütztes Delta-Dokument. JSON und Attribute anhand der Details vor dem Speichern korrigieren.",
+  deltaExportHint: "Delta exportiert Dokument und aktuelle Anhänge (bis zu 50 Anhänge, je 20 MB, insgesamt 200 MB). Andere Formate können Formatierungen verlieren und enthalten keine Anhangdateien. Die Notiz bleibt unverändert.",
   attachments: "Anhänge",
   addAttachment: "Anhang hinzufügen",
   attachmentHint: "Maximal 20 MB pro Datei, 50 Dateien / 200 MB pro Notiz. Gleiche Namen werden nummeriert.",
@@ -250,8 +254,8 @@ export const german: Record<MessageKey, string> = {
   "welcome": "Erste Schritte",
   "sample": "Willkommen bei NotebookAid",
   "sampleHint": "Raum für Ihre nächste Idee",
-  "preview": "T06 · Anhänge",
-  "previewHint": "Automatisches lokales Speichern · Markdown / HTML / TXT · Verschlüsselung und Sicherung folgen später.",
+  "preview": "T06-A natives Rich-Text",
+  "previewHint": "Automatisches lokales Speichern · Markdown / HTML / TXT / Delta · Verschlüsselung und Sicherung folgen später.",
   "save": "Speichern",
   "saving": "Wird gespeichert…",
   "saved": "Lokal gespeichert",

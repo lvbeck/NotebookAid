@@ -1,6 +1,10 @@
 import type { MessageKey } from '../i18n';
 
 export const hongKong: Record<MessageKey, string> = {
+  deltaFormat: "Delta 原生格式文字",
+  deltaUpgrade: "建立或匯入 Delta 將此筆記本升級至架構版本 5，並在旁邊的 .delta-backups 儲存完整備份。舊版程式無法開啟版本 5。是否繼續？",
+  deltaInvalid: "Delta 文件無效或包含不支援的結構。請按下方詳情修正 JSON 及屬性後再儲存。",
+  deltaExportHint: "Delta 匯出包含文件及目前附件（最多 50 個，每個 20 MB，合共 200 MB）。其他格式可能失去樣式，且不包含附件檔案。匯出不會更改目前筆記。",
   attachments: "附件",
   addAttachment: "加入附件",
   attachmentHint: "每個檔案最多 20 MB，每篇筆記最多 50 個／200 MB。同名檔案會自動編號。",
@@ -250,8 +254,8 @@ export const hongKong: Record<MessageKey, string> = {
   "welcome": "開始使用",
   "sample": "歡迎使用 NotebookAid",
   "sampleHint": "為下一個想法留一處空間",
-  "preview": "T06 · 圖片與附件",
-  "previewHint": "本機自動儲存 · Markdown / HTML / TXT · 尚未實作加密與備份",
+  "preview": "T06-A 原生格式文字",
+  "previewHint": "本機自動儲存 · Markdown / HTML / TXT / Delta · 尚未實作加密與備份",
   "save": "儲存",
   "saving": "正在儲存…",
   "saved": "已儲存至本機",

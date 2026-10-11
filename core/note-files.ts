@@ -1,28 +1,31 @@
-import { closeSync, fsyncSync, fstatSync, openSync, readSync, realpathSync, writeFileSync } from 'node:fs';
+import { parseNative, writeNative, nativeLimit, type NativeAttachmentSource } from './delta-files';
+import { closeSync, fsyncSync, fstatSync, openSync, readSync, realpathSync, writeFileSync, unlinkSync } from 'node:fs';
 import { basename, dirname, extname, relative, resolve, sep } from 'node:path';
 import { formatExtensions, type NoteInput, type NoteFormat } from '../shared/library';
 import { LibraryError } from './library';
 
 const limit = 2 * 1024 * 1024;
 export function importNote(path: string): NoteInput {
-  const format = ({ '.md': 'markdown', '.markdown': 'markdown', '.html': 'html', '.htm': 'html', '.txt': 'text' } as Record<string, NoteFormat>)[extname(path).toLowerCase()];
+  const format = ({ '.md': 'markdown', '.markdown': 'markdown', '.html': 'html', '.htm': 'html', '.txt': 'text', '.nadelta': 'delta' } as Record<string, NoteFormat>)[extname(path).toLowerCase()];
   if (!format) throw new LibraryError('INVALID_INPUT');
+  const limit = format === 'delta' ? nativeLimit : 2 * 1024 * 1024;
   let body: string;
   const fd = openSync(path, 'r');
   try {
     const info = fstatSync(fd);
     if (!info.isFile() || info.size > limit + 3) throw new LibraryError('INVALID_INPUT');
-    const buffer = Buffer.alloc(limit + 4); let size = 0;
+    const buffer = Buffer.alloc(Math.min(info.size + 1, limit + 4)); let size = 0;
     while (size < buffer.length) { const count = readSync(fd, buffer, size, buffer.length - size, null); if (!count) break; size += count; }
-    if (size > limit + 3) throw new LibraryError('INVALID_INPUT');
+    if (size !== info.size || size > limit + 3) throw new LibraryError('INVALID_INPUT');
     body = new TextDecoder('utf-8', { fatal: true }).decode(buffer.subarray(0, size));
   } catch { throw new LibraryError('INVALID_INPUT'); }
   finally { closeSync(fd); }
   if (body.includes('\0') || Buffer.byteLength(body) > limit) throw new LibraryError('INVALID_INPUT');
+  if (format === 'delta') return parseNative(body);
   return { title: basename(path, extname(path)).slice(0, 300).trim() || 'Untitled', body, primaryFormat: format };
 }
 
-export function exportNote(path: string, input: NoteInput, protectedRoots: string[]): void {
+export function exportNote(path: string, input: NoteInput, protectedRoots: string[], source?: NativeAttachmentSource): void {
   if (!input || !Object.hasOwn(formatExtensions, input.primaryFormat) || typeof input.body !== 'string' || input.body.includes('\0') || Buffer.byteLength(input.body) > limit) throw new LibraryError('INVALID_INPUT');
   // Resolve junctions in the parent before comparing protected application/library paths.
   const target = resolve(realpathSync(dirname(path)), basename(path));
@@ -38,5 +41,7 @@ export function exportNote(path: string, input: NoteInput, protectedRoots: strin
   const fd = openSync(target, 'wx');
   // A UTF-8 BOM makes standalone HTML fragments readable without a charset declaration.
   const text = input.primaryFormat === 'html' && !input.body.startsWith('\ufeff') ? '\ufeff' + input.body : input.body;
-  try { writeFileSync(fd, text, 'utf8'); fsyncSync(fd); } finally { closeSync(fd); }
+  let complete = false;
+  try { if (input.primaryFormat === 'delta') writeNative(fd, input, source); else writeFileSync(fd, text, 'utf8'); fsyncSync(fd); complete = true; }
+  finally { closeSync(fd); if (!complete) unlinkSync(target); }
 }

@@ -323,3 +323,6 @@ app-attachments { position: relative; }
 .image-size-controls input[type=range] { width: 110px; accent-color: var(--accent); }
 .image-size-controls input[type=checkbox] { accent-color: var(--accent); }
 .ql-editor img[width][height] { max-width: none; }
+
+.select-trigger[data-select-trigger="export-format"] { min-width:220px; }
+.select-menu-export-format .select-option > span { white-space:nowrap; overflow-wrap:normal; }

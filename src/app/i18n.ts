@@ -5,6 +5,10 @@ import { spanish } from './locales/es';
 import { portuguese } from './locales/pt';
 import { german } from './locales/de';
 export const english = {
+  deltaFormat: "Delta rich text",
+  deltaUpgrade: "Creating or importing Delta upgrades this notebook to schema 5. A full backup is saved beside it in .delta-backups. Older applications cannot open schema 5. Continue?",
+  deltaInvalid: "Invalid or unsupported Delta document. Correct the JSON and supported attributes below before saving.",
+  deltaExportHint: "Delta export includes the document and current attachments (up to 50 attachments, 20 MB each, 200 MB total). Other formats may lose formatting; attachment references are not bundled. Export never changes this note.",
   attachments: "Attachments",
   addAttachment: "Add attachment",
   attachmentHint: "Up to 20 MB per file, 50 files / 200 MB per note. Duplicate names are numbered automatically.",
@@ -71,7 +75,7 @@ globalSettings: "Global settings", librarySettings: "Notebook settings", globalS
   settings: 'Settings', autosave: 'Autosave', autosaveEnabled: 'Enable autosave', autosaveInterval: 'Interval (minutes)', intervalInvalid: 'Enter a whole number from 1 to 60.', autosaveHint: 'Applies to all notebooks. Default: on, every 5 minutes after the first edit. Further typing does not reset the timer. Unchanged notes create no revision. Manual save, switching notes and normal exit still save when autosave is off. Changes apply immediately.', settingsSaved: 'Settings saved', settingsFailed: 'Could not save settings. Previous settings retained.', saveSuccess: 'Saved successfully', savedIndexPending: 'Note saved; index needs rebuilding.', rebuilding: 'Rebuilding…', rebuildSuccess: 'Index rebuilt successfully', rebuildPartial: 'Index rebuild completed; some notebook items still need attention.', rebuildFailed: 'Index rebuild failed. Please retry.',
   tagline: 'Local notes. Clear thinking.', library: 'My notebook', all: 'All notes', pinned: 'Pinned', recent: 'Recent', trash: 'Trash',
   folders: 'Folders', welcome: 'Getting started', sample: 'Welcome to NotebookAid', sampleHint: 'A space for your next idea',
-  preview: 'T06 attachments', previewHint: 'Local autosave · Markdown / HTML / TXT · encryption and backups are not implemented yet.',
+  preview: "T06-A native rich text", previewHint: 'Local autosave · Markdown / HTML / TXT / Delta · encryption and backups are not implemented yet.',
   save: 'Save', saving: 'Saving…', saved: 'Saved locally', unsaved: 'Unsaved changes', saveFailed: 'Operation failed', draftRetained: 'Current edits retained. Check the error before retrying.', retry: 'Retry save', chooseLibrary: 'Choose notebook', rebuild: 'Rebuild index', recoveryNotice: 'Notebook needs attention; original files retained.', emptyLibrary: 'Create your first note.', sourceEditing: 'Edit Markdown in Technical checks. Load it to refresh the editor; unsupported syntax stays read-only in rich text.',
   local: 'Local workspace', theme: 'Theme', language: 'Language', light: 'Light', dark: 'Dark', system: 'System',
   editor: 'Editor', diagnostics: 'Technical checks', title: 'Title', inMemory: 'Not saved · preview only',
@@ -92,6 +96,10 @@ export const languages: { code: Locale; label: string }[] = [
   { code: 'zh-CN', label: '简体中文' }, { code: 'zh-TW', label: '繁體中文（香港）' }
 ];
 const chinese: Record<MessageKey, string> = {
+  deltaFormat: "Delta 原生富文本",
+  deltaUpgrade: "创建或导入 Delta 将升级此笔记本至架构版本 5，并在旁边的 .delta-backups 中保存完整备份。旧程序无法打开版本 5。是否继续？",
+  deltaInvalid: "Delta 文档无效或含不支持的结构。请根据下方详情修正 JSON 和属性后再保存。",
+  deltaExportHint: "Delta 导出包含文档与当前附件（最多 50 个，单个 20 MB，合计 200 MB）。其他格式可能损失样式，且不打包附件引用。导出不改变当前笔记。",
   attachments: "附件",
   addAttachment: "添加附件",
   attachmentHint: "单个文件最多 20 MB，每篇笔记最多 50 个／200 MB。同名文件自动编号。",
@@ -155,7 +163,7 @@ globalSettings: "全局设置", librarySettings: "笔记本设置", globalSettin
   settings: '设置', autosave: '自动保存', autosaveEnabled: '开启自动保存', autosaveInterval: '保存间隔（分钟）', intervalInvalid: '请输入 1–60 之间的整数。', autosaveHint: '适用于所有笔记本，默认开启、5 分钟。首次修改后开始计时，继续输入不会推迟保存；无修改不生成修订。关闭后仍可手动保存，切换笔记和正常退出时也会保存。设置即时生效。', settingsSaved: '设置已保存', settingsFailed: '设置保存失败，已保留原设置。', saveSuccess: '保存成功', savedIndexPending: '笔记已保存，索引需要重建。', rebuilding: '正在重建…', rebuildSuccess: '索引重建成功', rebuildPartial: '索引重建完成，笔记本仍有项目需要检查。', rebuildFailed: '索引重建失败，请重试。',
   tagline: '本地记录，从容思考。', library: '我的笔记本', all: '全部笔记', pinned: '置顶', recent: '最近使用', trash: '回收站',
   folders: '文件夹', welcome: '开始使用', sample: '欢迎使用 NotebookAid', sampleHint: '为下一个想法留一处空间',
-  preview: 'T06 图片与附件', previewHint: '本地自动保存 · Markdown / HTML / TXT · 尚未实现加密与备份',
+  preview: "T06-A 原生富文本", previewHint: '本地自动保存 · Markdown / HTML / TXT / Delta · 尚未实现加密与备份',
   save: '保存', saving: '保存中…', saved: '已保存到本地', unsaved: '尚未保存', saveFailed: '操作失败', draftRetained: '当前编辑已保留，请核对错误后重试。', retry: '重试保存', chooseLibrary: '选择笔记本', rebuild: '重建索引', recoveryNotice: '笔记本需要检查，原文件已保留。', emptyLibrary: '新建第一篇笔记。', sourceEditing: '请在“技术验证”中编辑 Markdown 源码，载入后刷新编辑器；未支持的语法在富文本中只读。',
   local: '本地工作区', theme: '主题', language: '语言', light: '浅色', dark: '深色', system: '跟随系统',
   editor: '编辑器', diagnostics: '技术验证', title: '标题', inMemory: '未保存 · 仅供预览', source: 'Markdown 源码',

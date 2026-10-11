@@ -1,3 +1,4 @@
+import { parseDelta } from '../shared/delta-document';
 import { readAttachmentFile, validateAttachments } from './attachments';
 import type { Attachment } from '../shared/attachments';
 import { DatabaseSync } from 'node:sqlite';
@@ -10,7 +11,7 @@ import type { LibraryImportPreview, LibraryImportResult } from '../shared/librar
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
-const extensions: Record<string, string> = { markdown: 'md', html: 'html', text: 'txt' };
+const extensions: Record<string, string> = { markdown: 'md', html: 'html', text: 'txt', delta: 'nadelta' };
 const fail = (code: 'INVALID_INPUT' | 'INTEGRITY_CHECK_FAILED' | 'UNSUPPORTED_LIBRARY' | 'LIBRARY_IN_USE' | 'VERSION_CONFLICT' | 'DUPLICATE_LIBRARY' = 'INTEGRITY_CHECK_FAILED'): never => { throw new LibraryError(code); };
 type Revision = { metadata: any; body: string };
 type SnapshotNote = { id: string; head: any; revisions: Revision[]; fingerprint: string; blobs: { item: Attachment; path: string }[] };
@@ -56,7 +57,7 @@ function snapshot(path: string): Snapshot {
   plainPath(path); path = realpathSync(path);
   if (existsSync(join(path, 'import-transaction.json'))) fail('LIBRARY_IN_USE');
   const manifest = json(join(path, 'library.json'));
-  if (![1, 2, 3, 4].includes(manifest?.schemaVersion)) fail('UNSUPPORTED_LIBRARY');
+  if (![1, 2, 3, 4, 5].includes(manifest?.schemaVersion)) fail('UNSUPPORTED_LIBRARY');
   if (!uuid.test(manifest.libraryId)) fail();
   // Future storage structures require an explicit importer, never silent omission.
   for (const name of ['attachments', 'security', 'keyring.json']) if (existsSync(join(path, name))) fail('UNSUPPORTED_LIBRARY');
@@ -81,6 +82,7 @@ function snapshot(path: string): Snapshot {
       if ((meta.folderId !== null && !organization.folders.some(item => item.id === meta.folderId)) || !Array.isArray(meta.tagIds) || meta.tagIds.length > 100 || new Set(meta.tagIds).size !== meta.tagIds.length || meta.tagIds.some((tag: string) => !organization.tags.some(item => item.id === tag)) || typeof meta.pinned !== 'boolean' || meta.visibleInThunderbird !== true) fail('UNSUPPORTED_LIBRARY');
       const body = read(join(directory, `content.${extensions[meta.primaryFormat]}`), 2 * 1024 * 1024);
       if (hash(body) !== meta.bodyHash || body.includes('\0')) fail();
+      if (meta.primaryFormat === 'delta') { if (manifest.schemaVersion < 5) fail(); parseDelta(body); }
       bytes += Buffer.byteLength(raw) + Buffer.byteLength(body); if (bytes > 256 * 1024 * 1024) fail('INVALID_INPUT');
       if (meta.attachments !== undefined) {
         validateAttachments(meta.attachments);
@@ -166,7 +168,7 @@ export function recoverImport(path: string): boolean {
   if (!transaction || !uuid.test(transaction.id) || !Array.isArray(transaction.notes) || transaction.notes.length > 10000 || transaction.notes.some(id => !uuid.test(id)) || !transaction.originals || Object.keys(transaction.originals).sort().join() !== [...changedFiles].sort().join()) fail();
   if (Object.values(transaction.originals).some(value => value !== null && typeof value !== 'string') || typeof transaction.originals['library.json'] !== 'string') fail();
   const originalManifest = JSON.parse(transaction.originals['library.json']!);
-  if (![1, 2, 3, 4].includes(originalManifest?.schemaVersion) || !uuid.test(originalManifest.libraryId)) fail();
+  if (![1, 2, 3, 4, 5].includes(originalManifest?.schemaVersion) || !uuid.test(originalManifest.libraryId)) fail();
   if (transaction.rolledBack === true) { unlinkSync(file); return true; }
   for (const id of transaction.notes) {
     for (const target of [join(path, 'notes', id), join(path, 'recovery', `stage-import-${transaction.id}-${id}`)]) {

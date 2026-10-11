@@ -253,7 +253,7 @@ export class NoteWorkspace {
       if (!await this.flush()) return;
       if (!this.createId || JSON.stringify(input) !== JSON.stringify(this.createInput)) { this.createId = crypto.randomUUID(); this.createInput = input; }
       const result = await this.api.create(this.createId, this.createInput);
-      if (!result.ok) { this.reportError(result.code, 'create'); return; }
+      if (!result.ok) { if (result.code !== 'CANCELLED') this.reportError(result.code, 'create'); return; }
       this.createId = null; id = result.value.note.id; await this.refresh(); this.notify('noteCreated', 'create');
     } finally { this.switching.set(false); }
     if (id) await this.select(id);

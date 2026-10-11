@@ -1,3 +1,5 @@
+import { smokeNativeCapacity } from './native-capacity-smoke';
+import { smokeDelta } from './delta-smoke';
 import { smokeI18n } from './i18n-smoke';
 import { smokeAttachments } from './attachment-smoke';
 import { smokeLayout } from './layout-smoke';
@@ -20,6 +22,8 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
     throw new Error('UI condition timed out: ' + expression);
   };
   await until("document.querySelector('app-root')?.dataset.ready === 'true'");
+  if (process.env['NOTEBOOKAID_NATIVE_CAPACITY_TEST']) { await smokeNativeCapacity(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }
+  if (process.env['NOTEBOOKAID_DELTA_TEST'] === '1') { await smokeDelta(window, directory); if (errors.length) throw Error('Delta renderer errors: ' + errors.join('; ')); return; }
   if (process.argv.includes('--self-test-reopen')) {
     await until("document.querySelector('[data-testid=note-title]')?.value === '退出前保存'");
     await until("document.querySelector('.ql-editor')?.textContent.includes('自动保存')");

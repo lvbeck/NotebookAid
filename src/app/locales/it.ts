@@ -1,6 +1,10 @@
 import type { MessageKey } from '../i18n';
 
 export const italian: Record<MessageKey, string> = {
+  deltaFormat: "Testo formattato Delta",
+  deltaUpgrade: "Delta richiede lo schema 5. Una copia completa verrà salvata accanto in .delta-backups. Le versioni precedenti non possono aprirlo. Continuare?",
+  deltaInvalid: "Documento Delta non valido o non supportato. Correggere JSON e attributi secondo i dettagli prima di salvare.",
+  deltaExportHint: "Delta esporta documento e allegati attuali (fino a 50 allegati, 20 MB ciascuno, 200 MB totali). Gli altri formati possono perdere la formattazione e non includono i file allegati. La nota rimane invariata.",
   attachments: "Allegati",
   addAttachment: "Aggiungi allegato",
   attachmentHint: "Massimo 20 MB per file, 50 file / 200 MB per nota. I nomi duplicati vengono numerati.",
@@ -250,8 +254,8 @@ export const italian: Record<MessageKey, string> = {
   "welcome": "Per iniziare",
   "sample": "Benvenuto in NotebookAid",
   "sampleHint": "Uno spazio per la prossima idea",
-  "preview": "T06 · Allegati",
-  "previewHint": "Salvataggio locale automatico · Markdown / HTML / TXT · crittografia e backup non ancora implementati",
+  "preview": "T06-A testo formattato nativo",
+  "previewHint": "Salvataggio locale automatico · Markdown / HTML / TXT / Delta · crittografia e backup non ancora implementati",
   "save": "Salva",
   "saving": "Salvataggio…",
   "saved": "Salvato localmente",

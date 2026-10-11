@@ -224,3 +224,7 @@ Attachment association removal retains the payload and revision history and does
 Quill's image action accepts local SVG, with isolated sanitization and no external resource loading. Only sanitized new SVG bytes are stored; existing attachments are sanitized before display without rewriting old history. Removed content is reported. Selected images expose width, height, original aspect ratio lock and scale controls; dimensions survive saving, source/rich switching and restart. Markdown uses an inline img element where dimensions cannot be represented by standard image syntax.
 
 T06 图片尺寸工具栏补充：选中图片时在图片下方或可见区域中间显示浮层，随滚动和尺寸变化定位，不要求返回编辑器顶部。保持现有宽高、原始比例和缩放操作。
+
+R40 实施约定（T06-A）：选择性使用架构版本 5；完整 Delta 文档使用 NotebookAidDelta version 1，单篇原生交换使用 .nadelta / NotebookAidNative version 1，包含当前附件及完整性校验，不包含历史或组织设置。使用前确认升级并保留完整笔记本备份，普通三格式笔记本不自动迁移。
+
+R40 容量修正（2026-10-11，用户明确要求）：原生交换与笔记附件统一，每篇最多 50 个附件、单个 20 MiB、合计 200 MiB；不再使用 20 MiB 附件总量／32 MiB 容器限制。交换文件上限覆盖 Base64 与文档元数据开销，超限或损坏必须拒绝，不可静默省略附件。

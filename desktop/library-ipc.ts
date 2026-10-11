@@ -1,3 +1,7 @@
+import { NativeImportCache } from './native-import';
+import { DeltaError } from '../shared/delta-document';
+import { validateNative } from '../core/delta-files';
+import { attachmentHash } from '../core/attachments';
 import { translate, type Locale } from '../src/app/i18n';
 import { defaultSettings } from '../shared/settings';
 import { app, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
@@ -26,6 +30,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     }
     return defaultSettings.global.locale;
   };
+  const nativeImports = new NativeImportCache();
   let choosing = false;
   let pendingImport: { owner: string; plan: ReturnType<typeof planImport> } | null = null;
   const manager = () => registry ??= new LibraryRegistry(dataPath, process.env['NOTEBOOKAID_TEST_HOME'] ? join(dataPath, 'library') : join(app.getPath('appData'), 'NotebookAid', 'library'), selfTest ? stage => {
@@ -54,7 +59,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     ipcMain.handle(`library:${name}`, async (event, ...args): Promise<Result<unknown>> => {
       authorize(event);
       try { return { ok: true, value: await callback(String(event.sender.id), ...args) }; }
-      catch (error) { return { ok: false, code: error instanceof LibraryError ? error.code : 'WRITE_FAILED' }; }
+      catch (error) { return { ok: false, code: (error instanceof LibraryError || error instanceof DeltaError) ? error.code : 'WRITE_FAILED' }; }
     });
   };
   handle('status', () => get().status());
@@ -138,7 +143,29 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       return true;
     } finally { choosing = false; }
   });
-  handle('create', (_owner, id: string, input?: NoteInput) => get().create(id, input));
+  handle('create', async (owner, id: string, input?: NoteInput) => {
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE');
+    choosing = true;
+    try {
+      const original = input;
+      if (input?.nativeImportToken !== undefined) {
+        const resolved = nativeImports.resolve(owner, get().libraryId, id, input);
+        if (resolved.result) return resolved.result;
+        input = resolved.input;
+      }
+      if (input?.primaryFormat === 'delta') {
+        if (!original?.nativeImportToken) validateNative(input.body, input.nativeAttachments);
+        if (!selfTest && JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 5) {
+          const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
+          const answer = await dialog.showMessageBox(target, { type: 'info', title: 'NotebookAid', message: translate(currentLocale(), 'deltaUpgrade'), buttons: [translate(currentLocale(), 'cancelOperation'), translate(currentLocale(), 'newNote')], defaultId: 0, cancelId: 0 });
+          if (answer.response !== 1) { nativeImports.clear(owner); throw new LibraryError('CANCELLED'); }
+        }
+      }
+      const result = get().create(id, input);
+      if (original?.nativeImportToken) nativeImports.complete(id, original, result);
+      return result;
+    } finally { choosing = false; }
+  });
   const fileDialog = async (input?: NoteInput): Promise<string | null> => {
     const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
     if (selfTest && existsSync(join(dataPath, 'note-file-dialog.json'))) {
@@ -156,15 +183,27 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       const selected = await dialog.showSaveDialog(target, { defaultPath: `${name}-copy.${extension}`, filters: [{ name: extension.toUpperCase(), extensions: [extension] }] });
       return selected.canceled ? null : selected.filePath ?? null;
     }
-    const selected = await dialog.showOpenDialog(target, { properties: ['openFile'], filters: [{ name: 'UTF-8 notes', extensions: ['md', 'markdown', 'html', 'htm', 'txt'] }] });
+    const selected = await dialog.showOpenDialog(target, { properties: ['openFile'], filters: [{ name: 'UTF-8 notes', extensions: ['md', 'markdown', 'html', 'htm', 'txt', 'nadelta'] }] });
     return selected.canceled ? null : selected.filePaths[0] ?? null;
   };
-  handle('importFile', async () => {
+  handle('importFile', async (owner) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
     choosing = true;
     try {
       const path = await fileDialog(); if (!path) return null;
+      nativeImports.clear();
       const input = importNote(path);
+      if (input.primaryFormat === 'delta') {
+        let removed = 0;
+        for (const item of input.nativeAttachments ?? []) {
+          const bytes = Buffer.from(item.data, 'base64');
+          if (isSvg(bytes) || /\.svg$/i.test(item.name)) {
+            const clean = await cleanSvg(bytes), safe = Buffer.from(clean.body);
+            item.data = safe.toString('base64'); item.size = safe.length; item.sha256 = attachmentHash(safe); item.mediaType = 'application/octet-stream'; removed += clean.removed;
+          }
+        }
+        return { ...nativeImports.put(owner, get().libraryId, input), removed };
+      }
       if (input.primaryFormat !== 'html') return input;
       const cleaned = await cleanHtmlImport(input.body);
       return { ...input, body: cleaned.body, removed: cleaned.removed };
@@ -177,7 +216,10 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     choosing = true;
     try {
       const path = await fileDialog(input); if (!path) return false;
-      exportNote(path, input, [dataPath, app.isPackaged ? dirname(process.execPath) : app.getAppPath(), ...manager().state().entries.map(entry => entry.path)]);
+      const library = get();
+      const note = input.primaryFormat === 'delta' ? library.read(input.attachmentNoteId ?? '') : undefined;
+      const source = note ? { items: note.attachments ?? [], read: (item: import('../shared/attachments').Attachment) => library.attachmentBytes(note.id, item.id) } : undefined;
+      exportNote(path, input, [dataPath, app.isPackaged ? dirname(process.execPath) : app.getAppPath(), ...manager().state().entries.map(entry => entry.path)], source);
       return true;
     } finally { choosing = false; }
   });
@@ -196,8 +238,8 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   handle('relocate', (_owner, id: string) => chooseFor(path => manager().relocate(id, path)));
   return {
     locale: currentLocale,
-    release: (owner: string) => { if (pendingImport?.owner === owner) pendingImport = null; registry?.release(owner); },
-    close: () => { registry?.close(); registry = null; },
+    release: (owner: string) => { nativeImports.clear(owner); if (pendingImport?.owner === owner) pendingImport = null; registry?.release(owner); },
+    close: () => { nativeImports.clear(); registry?.close(); registry = null; },
     flush: async (): Promise<boolean> => {
       const target = window(); if (!target || target.webContents.isDestroyed()) return true;
       const saved = await new Promise<boolean>(resolveSaved => {

@@ -127,3 +127,8 @@ Folder.order 为可选非负安全整数；缺省文件夹保留名称排序。�
 ## T06 附件格式 4
 
 附件载荷位于 `notes/<note-id>/attachments/<attachment-id>`，不按显示名称寻址。修订 metadata 可选 `attachments` 数组保存 `id/name/size/sha256/mediaType`；旧修订缺省为空，其他正文与 head 契约不变。文件先落盘，清单与修订一起原子发布；重命名创建元数据修订，历史名称与载荷保留。读取校验字节数和摘要；缺失附件不阻止正文读取。核心仅接受 1/2/3/4，旧客户端拒绝 4。跨库导入复制可达历史所有附件并验证摘要，ID 冲突的新笔记保持笔记内相对引用。
+
+## T06-A native Delta
+
+Notebook schema 5 opts into primaryFormat=delta. Revision content.nadelta stores a NotebookAidDelta version 1 full insert-only document. Existing metadata, revision hashes, sessions, operation replay, attachments and atomic head commits remain authoritative. No derived HTML is stored as a second authority. NotebookAidNative version 1 .nadelta exchange files contain title/document checksum and current attachment payloads; they are not full history backups.
+Native exchange capacity uses the same 50 / 20 MiB / 200 MiB attachment limits as note storage. Container version 1 and notebook schema 5 remain unchanged. Export writes attachment records sequentially and escapes non-ASCII JSON characters, preserving decoded content and hashes. Import still parses the complete JSON container in the main process; it is not a streaming parser.

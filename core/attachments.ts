@@ -4,7 +4,7 @@ import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path
 import { realpathSync } from 'node:fs';
 import { LibraryError } from './library';
 import { plainPath } from './library-import';
-import { attachmentLimit, type Attachment } from '../shared/attachments';
+import { attachmentLimit, attachmentCountLimit, attachmentTotalLimit, type Attachment } from '../shared/attachments';
 
 export const attachmentHash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
 export function attachmentName(value: unknown): string {
@@ -12,14 +12,14 @@ export function attachmentName(value: unknown): string {
   return value.trim();
 }
 export function validateAttachments(value: unknown): asserts value is Attachment[] {
-  if (!Array.isArray(value) || value.length > 50) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+  if (!Array.isArray(value) || value.length > attachmentCountLimit) throw new LibraryError('INTEGRITY_CHECK_FAILED');
   const ids = new Set(), names = new Set(); let total = 0;
   for (const row of value) {
     if (!row || typeof row.id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(row.id) || !/^[a-f0-9]{64}$/.test(row.sha256) || !Number.isSafeInteger(row.size) || row.size < 0 || row.size > attachmentLimit || !['application/octet-stream','image/png','image/jpeg','image/gif','image/webp'].includes(row.mediaType)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
     attachmentName(row.name); const name = row.name.normalize('NFKC').toLowerCase();
     if (ids.has(row.id) || names.has(name)) throw new LibraryError('INTEGRITY_CHECK_FAILED'); ids.add(row.id); names.add(name); total += row.size;
   }
-  if (total > 200 * 1024 * 1024) throw new LibraryError('INVALID_INPUT');
+  if (total > attachmentTotalLimit) throw new LibraryError('INVALID_INPUT');
 }
 export function readAttachmentFile(path: string, expected?: Attachment): Buffer {
   plainPath(path); const fd = openSync(path, 'r');
