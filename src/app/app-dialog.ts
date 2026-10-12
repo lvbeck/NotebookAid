@@ -40,5 +40,6 @@ export class AppDialogs implements OnDestroy {
   private readonly stopDismiss = window.notebookAid.dialogs.onDismiss(id => {
     if (this.active?.id === id) this.active.ref.close(false);
   });
-  ngOnDestroy(): void { this.stopRequest(); this.stopDismiss(); this.active?.ref.close(false); }
+  private readonly stopLock = window.notebookAid.library.onSecurityLocked(() => this.dialog.closeAll());
+  ngOnDestroy(): void { this.stopRequest(); this.stopDismiss(); this.stopLock(); this.active?.ref.close(false); }
 }

@@ -2,6 +2,8 @@ import { lifecycleText } from '../lifecycle-i18n';
 import type { MessageKey } from '../i18n';
 
 export const french: Record<MessageKey, string> = {
+  upgradeSchema: 'Mettre à niveau', schemaLatest: 'Schéma à jour', schemaUpgradePrompt: 'Mettre ce carnet à niveau vers le schéma {version} ? Une sauvegarde complète sera créée avant la mise à niveau. Les anciennes versions peuvent ne pas ouvrir ce carnet.', schemaUpgradeSuccess: 'Schéma mis à niveau. Sauvegarde enregistrée : {path}',
+  noNoteSelected: 'Aucune note sélectionnée', selectNoteHint: 'Sélectionnez une note dans la liste ou créez une nouvelle note.',
   exitApp: "Quitter l’application",
   saveAndExit: "Enregistrer et quitter",
   discardAndExit: "Abandonner et quitter",
@@ -272,8 +274,8 @@ export const french: Record<MessageKey, string> = {
   "welcome": "Premiers pas",
   "sample": "Bienvenue dans NotebookAid",
   "sampleHint": "Un espace pour votre prochaine idée",
-  "preview": "T07 historique et corbeille",
-  "previewHint": "Enregistrement local automatique · Markdown / HTML / TXT / Delta · chiffrement et sauvegardes à venir",
+  "preview": "T08 sécurité",
+  "previewHint": "Enregistrement local automatique · chiffrement facultatif · sauvegardes planifiées à venir",
   "save": "Enregistrer",
   "saving": "Enregistrement…",
   "saved": "Enregistré localement",

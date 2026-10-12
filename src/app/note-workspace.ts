@@ -161,8 +161,31 @@ export class NoteWorkspace {
   private createInput?: NoteInput;
   private composing = false;
   private exitFocus: HTMLElement | null = null;
+  private viewEpoch = 0;
   private readonly api = window.notebookAid.library;
+  clearSensitiveView(): void {
+    this.viewEpoch++;
+    this.cancelTimer(); this.queryEpoch++; clearTimeout(this.searchTimer);
+    this.session.set(null); this.title.set(''); this.body.set(''); this.notes.set([]); this.results.set([]); this.total.set(0);
+    this.query.set({ view: 'all', offset: 0, limit: 30 }); this.pending = null; this.pendingPlacement = null;
+    this.createInput = undefined; this.createId = null; this.dirty.set(false); this.opened.update(value => value + 1);
+  }
+  async securityChange<T>(action: () => Promise<Result<T>>, reopen = true): Promise<Result<T> | null> {
+    if (this.switching() || this.organizationBusy() || !await this.flush()) return null;
+    this.switching.set(true); const session = this.session();
+    let result: Result<T>;
+    try {
+      if (session) { const end = await this.api.end(session.token, session.generation); if (!end.ok) { this.reportError(end.code); return null; } }
+      result = await action();
+      this.clearSensitiveView();
+      const status = await this.api.status(); if (status.ok) this.status.set(status.value);
+      await this.refresh(); await this.refreshRegistry();
+    } finally { this.switching.set(false); }
+    if (reopen && session && this.notes().some(note => note.id === session.note.id)) await this.select(session.note.id);
+    return result;
+  }
   constructor() {
+    this.api.onSecurityLocked(() => { this.clearSensitiveView(); void (async () => { const result = await this.api.status(); if (result.ok) this.status.set(result.value); await this.refresh(); })(); });
     effect(() => {
       this.autosaveContext();
       untracked(() => { this.cancelTimer(); this.schedule(); });
@@ -209,9 +232,12 @@ export class NoteWorkspace {
     const first = this.notes()[0]; if (first) await this.select(first.id);
   }
   async refresh(): Promise<void> {
+    const epoch = this.viewEpoch;
     const result = await this.api.list();
+    if (epoch !== this.viewEpoch) return;
     if (result.ok) this.notes.set(result.value); else this.reportError(result.code, 'open');
     const organization = await this.api.organization();
+    if (epoch !== this.viewEpoch) return;
     if (organization.ok) this.organization.set(organization.value); else this.reportError(organization.code, 'open');
     await this.search();
   }
@@ -265,12 +291,15 @@ export class NoteWorkspace {
   async select(id: string): Promise<void> {
     if (this.switching() || id === this.session()?.note.id) return;
     this.switching.set(true);
+    const epoch = this.viewEpoch;
     try {
       if (!await this.flush()) return;
       const result = await this.api.begin(id);
+      if (epoch !== this.viewEpoch) return;
       if (!result.ok) { this.reportError(result.code, 'open'); return; }
       const previous = this.session();
       if (previous) await this.api.end(previous.token, previous.generation);
+      if (epoch !== this.viewEpoch) return;
       this.session.set(result.value); this.title.set(result.value.note.title); this.body.set(result.value.note.body);
       this.dirty.set(false); this.pending = null; this.error.set(''); this.opened.update(value => value + 1);
       await this.search();

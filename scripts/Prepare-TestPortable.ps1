@@ -17,7 +17,7 @@ function Assert-TargetReady {
     foreach ($ancestor in @('C:\Softwares', $target)) {
         if ((Test-Path -LiteralPath $ancestor) -and ((Get-Item -LiteralPath $ancestor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Linked target rejected' }
     }
-    if (Get-Process -Name NotebookAid,NotebookAid.Bridge -ErrorAction SilentlyContinue) { throw 'Exit NotebookAid and its bridge before preparing the portable folder.' }
+    if (Get-Process -Name NotebookAid,NotebookAid.Bridge,NotebookAid.Passkey -ErrorAction SilentlyContinue) { throw 'Exit NotebookAid and its native helpers before preparing the portable folder.' }
     if (Test-Path -LiteralPath $target) {
         Assert-PlainTree $target
         $data = Get-ChildItem -LiteralPath $target -Recurse -Force | Where-Object {
@@ -48,7 +48,7 @@ try {
         finally { $stream.Dispose(); $algorithm.Dispose() }
         $files[$resolved] = @{ Entry=$entry; Hash=$hash }
     }
-    foreach ($required in @('NotebookAid.exe','resources/app.asar')) {
+    foreach ($required in @('NotebookAid.exe','NotebookAid.Passkey.exe','resources/app.asar')) {
         if (-not $files.ContainsKey([IO.Path]::GetFullPath((Join-Path $target $required)))) { throw "Missing package file: $required" }
     }
     # No folder backup: retained release ZIPs are the rollback source.

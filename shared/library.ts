@@ -3,18 +3,27 @@ import type { Attachment, AttachmentRequest, AttachmentView, AttachmentPreview }
 import type { Organization, OrganizationEdit, NotePlacement, PlacementRequest, NoteQuery } from './organization';
 import type { LibraryImportPreview, LibraryImportResult } from './library-import';
 import type { RegistryApi } from './registry';
-export type LibraryErrorCode = 'INVALID_INPUT' | 'WRITE_FAILED' | 'INTEGRITY_CHECK_FAILED' | 'VERSION_CONFLICT' | 'SESSION_EXPIRED' | 'NOTE_IN_USE' | 'LIBRARY_IN_USE' | 'NOT_FOUND_OR_UNAVAILABLE' | 'COMMIT_STATUS_UNKNOWN' | 'DUPLICATE_LIBRARY' | 'LIBRARY_ID_MISMATCH' | 'REGISTRY_INVALID' | 'UNSUPPORTED_LIBRARY' | 'CURRENT_LIBRARY' | 'INVALID_DELTA' | 'UNSUPPORTED_DELTA' | 'CANCELLED';
+export type LibraryErrorCode = 'PASSWORD_POLICY' | 'BAD_CREDENTIAL' | 'NOTEBOOK_LOCKED' | 'ENCRYPTED_NOTES_REMAIN' | 'INVALID_INPUT' | 'WRITE_FAILED' | 'INTEGRITY_CHECK_FAILED' | 'VERSION_CONFLICT' | 'SESSION_EXPIRED' | 'NOTE_IN_USE' | 'LIBRARY_IN_USE' | 'NOT_FOUND_OR_UNAVAILABLE' | 'COMMIT_STATUS_UNKNOWN' | 'DUPLICATE_LIBRARY' | 'LIBRARY_ID_MISMATCH' | 'REGISTRY_INVALID' | 'UNSUPPORTED_LIBRARY' | 'CURRENT_LIBRARY' | 'INVALID_DELTA' | 'UNSUPPORTED_DELTA' | 'CANCELLED';
 export type Result<T> = { ok: true; value: T } | { ok: false; code: LibraryErrorCode };
 export type NoteFormat = 'markdown' | 'html' | 'text' | 'delta';
 export const formatExtensions: Record<NoteFormat, string> = { markdown: 'md', html: 'html', text: 'txt', delta: 'nadelta' };
+export const latestNotebookSchemaVersion = 7;
+export interface LibraryUpgradeResult { schemaVersion: number; backupPath: string | null; }
 export interface NoteInput { primaryFormat: NoteFormat; title: string; body: string; folderId?: string | null; nativeAttachments?: import('./delta-document').NativeAttachment[]; attachmentNoteId?: string; nativeImportToken?: string; }
-export interface NoteSummary extends NotePlacement { id: string; title: string; primaryFormat: NoteFormat; version: number; contentVersion: number; createdAt: string; updatedAt: string; deletedAt: string | null; }
+export interface NoteSummary extends NotePlacement { encrypted?: boolean; visibleInThunderbird?: boolean; id: string; title: string; primaryFormat: NoteFormat; version: number; contentVersion: number; createdAt: string; updatedAt: string; deletedAt: string | null; }
 export interface NoteDocument extends NoteSummary { body: string; revisionId: string; attachments?: Attachment[]; }
 export interface EditSession { token: string; generation: string; note: NoteDocument; }
 export interface SaveRequest { noteId: string; token: string; generation: string; expectedVersion: number; operationId: string; title: string; body: string; }
 export interface SaveResult { removedUnsafeSvg?: number; note: NoteDocument; saved: true; indexed: boolean; }
-export interface LibraryStatus { path: string; libraryId: string; indexed: boolean; issues: string[]; pendingRecovery: number; }
+export interface LibraryStatus { security?: import('./security').SecurityState; path: string; libraryId: string; indexed: boolean; issues: string[]; pendingRecovery: number; }
 export interface LibraryApi extends RegistryApi, SettingsApi {
+  printRecovery(mode: 'print' | 'pdf', key: string): Promise<Result<boolean>>;
+  upgradeLibrary(id: string, expectedSchemaVersion: number): Promise<Result<LibraryUpgradeResult | null>>;
+  security(request: import('./security').SecurityRequest): Promise<Result<{ state: import('./security').SecurityState; recoveryKey?: string }>>;
+  securityPreference(value: boolean | null): Promise<Result<void>>;
+  protectNote(id: string, version: number, encrypted: boolean): Promise<Result<void>>;
+  noteVisibility(id: string, version: number, visible: boolean): Promise<Result<SaveResult>>;
+  onSecurityLocked(callback: () => void): () => void;
   cleanHistory(id: string, version: number, retain: number, operationId: string): Promise<Result<number | null>>;
   trashNote(id: string, version: number, operationId: string): Promise<Result<SaveResult | null>>;
   restoreNote(id: string, version: number, operationId: string): Promise<Result<SaveResult>>;
@@ -29,7 +38,8 @@ export interface LibraryApi extends RegistryApi, SettingsApi {
   renameAttachment(request: AttachmentRequest, id: string, name: string): Promise<Result<SaveResult>>;
   previewAttachment(noteId: string, id: string): Promise<Result<AttachmentPreview>>;
   exportAttachment(noteId: string, id: string): Promise<Result<boolean>>;
-  previewLibraryImport(): Promise<Result<LibraryImportPreview | null>>;
+  previewLibraryImport(credential?: string): Promise<Result<LibraryImportPreview | null>>;
+  cancelLibraryImport(): Promise<Result<void>>;
   confirmLibraryImport(token: string): Promise<Result<LibraryImportResult>>;
   organization(): Promise<Result<Organization>>;
   editOrganization(input: OrganizationEdit): Promise<Result<Organization>>;

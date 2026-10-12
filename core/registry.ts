@@ -20,7 +20,7 @@ export function inspectLibrary(directory: string): { path: string; libraryId: st
     const manifest = join(path, 'library.json');
     valid(!lstatSync(manifest).isSymbolicLink());
     const value = readJson(manifest);
-    valid(value && [1, 2, 3, 4, 5, 6].includes(value.schemaVersion), 'UNSUPPORTED_LIBRARY');
+    valid(value && [1, 2, 3, 4, 5, 6, 7].includes(value.schemaVersion), 'UNSUPPORTED_LIBRARY');
     valid(typeof value.libraryId === 'string' && uuid.test(value.libraryId), 'INTEGRITY_CHECK_FAILED');
     return { path, libraryId: value.libraryId, schemaVersion: value.schemaVersion };
   } catch (error) {
@@ -84,6 +84,13 @@ export class LibraryRegistry {
   get(): NoteLibrary {
     if (!this.library) { valid(this.config.activeId, 'NOT_FOUND_OR_UNAVAILABLE'); this.activate(this.config.activeId); }
     return this.library!;
+  }
+  upgrade(id: string, expected: number): import('../shared/library').LibraryUpgradeResult {
+    const entry = this.entry(id), inspected = inspectLibrary(entry.path);
+    valid(!entry.libraryId || entry.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
+    if (id === this.currentId) return this.get().upgradeSchema(expected);
+    const library = new NoteLibrary(entry.path, this.fault, 'existing');
+    try { return library.upgradeSchema(expected); } finally { library.close(); }
   }
   state(): RegistryState {
     return { activeId: this.currentId, entries: this.config.entries.map(entry => {

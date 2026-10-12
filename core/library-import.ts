@@ -1,3 +1,4 @@
+import type { NotebookSecurity } from './security';
 import { parseDelta } from '../shared/delta-document';
 import { readAttachmentFile, validateAttachments } from './attachments';
 import type { Attachment } from '../shared/attachments';
@@ -14,10 +15,10 @@ const hash = (value: string | Buffer) => createHash('sha256').update(value).dige
 const extensions: Record<string, string> = { markdown: 'md', html: 'html', text: 'txt', delta: 'nadelta' };
 const fail = (code: 'INVALID_INPUT' | 'INTEGRITY_CHECK_FAILED' | 'UNSUPPORTED_LIBRARY' | 'LIBRARY_IN_USE' | 'VERSION_CONFLICT' | 'DUPLICATE_LIBRARY' = 'INTEGRITY_CHECK_FAILED'): never => { throw new LibraryError(code); };
 type Revision = { metadata: any; body: string };
-type SnapshotNote = { historyFloor?: { schemaVersion: 1; firstVersion: number; firstRevisionId: string; pending: false }; id: string; head: any; revisions: Revision[]; fingerprint: string; blobs: { item: Attachment; path: string }[] };
+type SnapshotNote = { encrypted?: boolean; historyFloor?: { schemaVersion: 1; firstVersion: number; firstRevisionId: string; pending: false }; id: string; head: any; revisions: Revision[]; fingerprint: string; blobs: { item: Attachment; path: string }[] };
 interface Snapshot { path: string; manifest: any; organization: Organization; notes: SnapshotNote[]; fingerprint: string; }
 interface Receipt { source: string; note: string; fingerprint: string; target: string; }
-interface Plan { source: Snapshot; target: Snapshot; organization: Organization; notes: SnapshotNote[]; receipts: Receipt[]; preview: LibraryImportPreview; }
+interface Plan { security?: { source?: NotebookSecurity; target?: NotebookSecurity }; source: Snapshot; target: Snapshot; organization: Organization; notes: SnapshotNote[]; receipts: Receipt[]; preview: LibraryImportPreview; }
 const key = (name: string) => name.normalize('NFKC').trim().toLowerCase();
 export function plainPath(path: string): void {
   const absolute = resolve(path); let current = absolute;
@@ -53,14 +54,17 @@ function structure(value: Organization): void {
   names.clear();
   for (const tag of value.tags) { if (names.has(key(tag.name)) || typeof tag.color !== 'string' || !/^#[a-f0-9]{6}$/i.test(tag.color)) fail(); names.add(key(tag.name)); }
 }
-function snapshot(path: string): Snapshot {
+function snapshot(path: string, security?: NotebookSecurity): Snapshot {
+  if (security && resolve(security.root) !== resolve(path)) fail('INVALID_INPUT');
+  const readPayload = (file: string, max = 128 * 1024) => { if (!security) return read(file, max); const bytes = security.read(file, max); try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } finally { bytes.fill(0); } };
   plainPath(path); path = realpathSync(path);
   if (existsSync(join(path, 'import-transaction.json'))) fail('LIBRARY_IN_USE');
   const manifest = json(join(path, 'library.json'));
-  if (![1, 2, 3, 4, 5, 6].includes(manifest?.schemaVersion)) fail('UNSUPPORTED_LIBRARY');
+  if (![1, 2, 3, 4, 5, 6, 7].includes(manifest?.schemaVersion)) fail('UNSUPPORTED_LIBRARY');
   if (!uuid.test(manifest.libraryId)) fail();
   // Future storage structures require an explicit importer, never silent omission.
-  for (const name of ['attachments', 'security', 'keyring.json']) if (existsSync(join(path, name))) fail('UNSUPPORTED_LIBRARY');
+  for (const name of ['attachments', 'security']) if (existsSync(join(path, name))) fail('UNSUPPORTED_LIBRARY');
+  if (existsSync(join(path, 'keyring.json')) && !security?.unlocked) throw new LibraryError('NOTEBOOK_LOCKED');
   const organization: Organization = existsSync(join(path, 'organization.json')) ? json(join(path, 'organization.json')) : { schemaVersion: 1, version: 0, folders: [], tags: [] };
   structure(organization);
   const notes: SnapshotNote[] = []; let bytes = 0, revisions = 0;
@@ -77,12 +81,12 @@ function snapshot(path: string): Snapshot {
     const chain: Revision[] = []; let revision = head.revisionId, version = head.version; const seen = new Set<string>();
     while (revision !== null) {
       if (!uuid.test(revision) || seen.has(revision) || ++revisions > 10000) fail(); seen.add(revision);
-      const directory = join(root, 'revisions', revision); const raw = read(join(directory, 'metadata.json')); const meta = JSON.parse(raw);
+      const directory = join(root, 'revisions', revision); const raw = readPayload(join(directory, 'metadata.json')); const meta = JSON.parse(raw);
       if (version === head.version && hash(raw) !== head.metadataHash) fail();
       if (meta.schemaVersion !== 1 || meta.id !== id || meta.revisionId !== revision || meta.version !== version || !Object.hasOwn(extensions, meta.primaryFormat) || !uuid.test(meta.operationId) || !/^[a-f0-9]{64}$/.test(meta.requestHash)) fail();
       if (typeof meta.title !== 'string' || !meta.title.trim() || meta.title.length > 300 || meta.title.includes('\0') || !Number.isSafeInteger(meta.contentVersion) || meta.contentVersion < 1 || meta.contentVersion > meta.version || !Number.isFinite(Date.parse(meta.createdAt)) || !Number.isFinite(Date.parse(meta.updatedAt)) || (meta.deletedAt !== null && !Number.isFinite(Date.parse(meta.deletedAt)))) fail();
-      if ((meta.folderId !== null && (!uuid.test(meta.folderId) || ((manifest.schemaVersion < 6 || version === head.version) && !organization.folders.some(item => item.id === meta.folderId)))) || !Array.isArray(meta.tagIds) || meta.tagIds.length > 100 || new Set(meta.tagIds).size !== meta.tagIds.length || meta.tagIds.some((tag: string) => !uuid.test(tag) || ((manifest.schemaVersion < 6 || version === head.version) && !organization.tags.some(item => item.id === tag))) || typeof meta.pinned !== 'boolean' || meta.visibleInThunderbird !== true) fail('UNSUPPORTED_LIBRARY');
-      const body = read(join(directory, `content.${extensions[meta.primaryFormat]}`), 2 * 1024 * 1024);
+      if ((meta.folderId !== null && (!uuid.test(meta.folderId) || ((manifest.schemaVersion < 6 || version === head.version) && !organization.folders.some(item => item.id === meta.folderId)))) || !Array.isArray(meta.tagIds) || meta.tagIds.length > 100 || new Set(meta.tagIds).size !== meta.tagIds.length || meta.tagIds.some((tag: string) => !uuid.test(tag) || ((manifest.schemaVersion < 6 || version === head.version) && !organization.tags.some(item => item.id === tag))) || typeof meta.pinned !== 'boolean' || typeof meta.visibleInThunderbird !== 'boolean') fail('UNSUPPORTED_LIBRARY');
+      const body = readPayload(join(directory, `content.${extensions[meta.primaryFormat]}`), 2 * 1024 * 1024);
       if (hash(body) !== meta.bodyHash || body.includes('\0')) fail();
       if (meta.primaryFormat === 'delta') { if (manifest.schemaVersion < 5) fail(); parseDelta(body); }
       bytes += Buffer.byteLength(raw) + Buffer.byteLength(body); if (bytes > 256 * 1024 * 1024) fail('INVALID_INPUT');
@@ -93,7 +97,7 @@ function snapshot(path: string): Snapshot {
           const existing = blobs.get(item.id);
           if (existing && (existing.item.sha256 !== item.sha256 || existing.item.size !== item.size)) fail();
           const path = join(root, 'attachments', item.id);
-          if (!existing) { bytes += item.size; if (bytes > 256 * 1024 * 1024) fail('INVALID_INPUT'); readAttachmentFile(path, item); blobs.set(item.id, { item, path }); }
+          if (!existing) { bytes += item.size; if (bytes > 256 * 1024 * 1024) fail('INVALID_INPUT'); readBlob(path, item, security).fill(0); blobs.set(item.id, { item, path }); }
         }
       }
       chain.push({ metadata: meta, body });
@@ -101,7 +105,7 @@ function snapshot(path: string): Snapshot {
       revision = meta.parentRevisionId; version--;
     }
     if (version !== (historyFloor ? historyFloor.firstVersion - 1 : 0)) fail();
-    notes.push({ ...(historyFloor ? { historyFloor: { schemaVersion: 1 as const, firstVersion: historyFloor.firstVersion, firstRevisionId: historyFloor.firstRevisionId, pending: false as const } } : {}), id, head, revisions: chain, fingerprint: hash(JSON.stringify(chain)), blobs: [...blobs.values()] });
+    notes.push({ encrypted: security?.encrypted(id) ?? false, ...(historyFloor ? { historyFloor: { schemaVersion: 1 as const, firstVersion: historyFloor.firstVersion, firstRevisionId: historyFloor.firstRevisionId, pending: false as const } } : {}), id, head, revisions: chain, fingerprint: hash(JSON.stringify(chain)), blobs: [...blobs.values()] });
   }
   return { path, manifest, organization, notes, fingerprint: hash(JSON.stringify({ manifest, organization, notes })) };
 }
@@ -119,13 +123,14 @@ function receiptFile(path: string): Receipt[] {
   return value;
 }
 function overlaps(a: string, b: string): boolean { const r = relative(a.toLowerCase(), b.toLowerCase()); return !r || (!r.startsWith(`..${sep}`) && r !== '..' && !isAbsolute(r)); }
-export function planImport(sourcePath: string, targetPath: string): Plan {
+export function planImport(sourcePath: string, targetPath: string, security?: { source?: NotebookSecurity; target?: NotebookSecurity }): Plan {
   plainPath(sourcePath); plainPath(targetPath);
   sourcePath = realpathSync(sourcePath); targetPath = realpathSync(targetPath);
   if (overlaps(sourcePath, targetPath) || overlaps(targetPath, sourcePath)) fail('INVALID_INPUT');
   const lock = sourceLock(sourcePath);
   try {
-    const source = snapshot(sourcePath), target = snapshot(targetPath);
+    const source = snapshot(sourcePath, security?.source), target = snapshot(targetPath, security?.target);
+    if (source.notes.some(note => note.encrypted) && !security?.target?.unlocked) throw new LibraryError('NOTEBOOK_LOCKED');
     if (source.manifest.libraryId === target.manifest.libraryId) fail('DUPLICATE_LIBRARY');
     const receipts = receiptFile(target.path); const organization = structuredClone(target.organization);
     const folderMap = new Map<string, string>(), tagMap = new Map<string, string>();
@@ -155,7 +160,7 @@ export function planImport(sourcePath: string, targetPath: string): Plan {
       notes.push({ ...note, id, head, revisions }); receipts.push({ source: source.manifest.libraryId, note: note.id, fingerprint: note.fingerprint, target: id });
     }
     if (receipts.length > 10000 || Buffer.byteLength(JSON.stringify(receipts)) > 4 * 1024 * 1024) fail('INVALID_INPUT');
-    return { source, target, organization, notes, receipts, preview: { token: randomUUID(), sourcePath, targetPath, sourceVersion: source.manifest.schemaVersion, targetVersion: target.manifest.schemaVersion, notes: notes.length, revisions: notes.reduce((sum, note) => sum + note.revisions.length, 0), folders: organization.folders.length - target.organization.folders.length, tags: organization.tags.length - target.organization.tags.length, skipped, conflicts, deleted: notes.filter(note => note.revisions[0].metadata.deletedAt !== null).length } };
+    return { security, source, target, organization, notes, receipts, preview: { token: randomUUID(), sourcePath, targetPath, sourceVersion: source.manifest.schemaVersion, targetVersion: target.manifest.schemaVersion, notes: notes.length, revisions: notes.reduce((sum, note) => sum + note.revisions.length, 0), folders: organization.folders.length - target.organization.folders.length, tags: organization.tags.length - target.organization.tags.length, skipped, conflicts, deleted: notes.filter(note => note.revisions[0].metadata.deletedAt !== null).length } };
   } finally { lock.close(); }
 }
 export function copyTree(source: string, target: string): void {
@@ -172,7 +177,7 @@ export function recoverImport(path: string): boolean {
   if (!transaction || !uuid.test(transaction.id) || !Array.isArray(transaction.notes) || transaction.notes.length > 10000 || transaction.notes.some(id => !uuid.test(id)) || !transaction.originals || Object.keys(transaction.originals).sort().join() !== [...changedFiles].sort().join()) fail();
   if (Object.values(transaction.originals).some(value => value !== null && typeof value !== 'string') || typeof transaction.originals['library.json'] !== 'string') fail();
   const originalManifest = JSON.parse(transaction.originals['library.json']!);
-  if (![1, 2, 3, 4, 5, 6].includes(originalManifest?.schemaVersion) || !uuid.test(originalManifest.libraryId)) fail();
+  if (![1, 2, 3, 4, 5, 6, 7].includes(originalManifest?.schemaVersion) || !uuid.test(originalManifest.libraryId)) fail();
   if (transaction.rolledBack === true) { unlinkSync(file); return true; }
   for (const id of transaction.notes) {
     for (const target of [join(path, 'notes', id), join(path, 'recovery', `stage-import-${transaction.id}-${id}`)]) {
@@ -199,7 +204,7 @@ export function recoverImport(path: string): boolean {
 export function executeImport(plan: Plan, fault?: (stage: string) => void): LibraryImportResult {
   const path = plan.target.path; const source = sourceLock(plan.source.path);
   try {
-    if (snapshot(plan.source.path).fingerprint !== plan.source.fingerprint || snapshot(path).fingerprint !== plan.target.fingerprint) fail('VERSION_CONFLICT');
+    if (snapshot(plan.source.path, plan.security?.source).fingerprint !== plan.source.fingerprint || snapshot(path, plan.security?.target).fingerprint !== plan.target.fingerprint) fail('VERSION_CONFLICT');
     if (!plan.notes.length && !plan.preview.folders && !plan.preview.tags && plan.target.manifest.schemaVersion >= 3) return { imported: 0, skipped: plan.preview.skipped, backupPath: null, targetVersion: plan.target.manifest.schemaVersion };
     const id = randomUUID(), backupPath = join(dirname(path), `${basename(path)}.import-backups`, id);
     if (overlaps(plan.source.path, backupPath) || overlaps(backupPath, plan.source.path)) fail('INVALID_INPUT');
@@ -215,8 +220,10 @@ export function executeImport(plan: Plan, fault?: (stage: string) => void): Libr
         const root = join(path, 'notes', note.id); plainPath(root); if (existsSync(root)) fail('VERSION_CONFLICT');
         const stage = join(path, 'recovery', `stage-import-${id}-${note.id}`);
         mkdirSync(stage); atomic(join(stage, 'import-owner'), id);
-        for (const row of note.revisions) { const revision = join(stage, 'revisions', row.metadata.revisionId); mkdirSync(revision, { recursive: true }); atomic(join(revision, 'metadata.json'), JSON.stringify(row.metadata)); atomic(join(revision, `content.${extensions[row.metadata.primaryFormat]}`), row.body); }
-        for (const blob of note.blobs) { const bytes = readAttachmentFile(blob.path, blob.item); const dir = join(stage, 'attachments'); mkdirSync(dir, { recursive: true }); const fd = openSync(join(dir, blob.item.id), 'wx'); try { writeFileSync(fd, bytes); fsyncSync(fd); } finally { closeSync(fd); } }
+        const writePayload = (local: string, bytes: Buffer) => { const file = join(stage, local); mkdirSync(dirname(file), { recursive: true }); const encoded = note.encrypted ? plan.security!.target!.encode(bytes, 'notes/' + note.id + '/' + local, true) : bytes; const fd = openSync(file, 'wx'); try { writeFileSync(fd, encoded); fsyncSync(fd); } finally { closeSync(fd); bytes.fill(0); } };
+        for (const row of note.revisions) { writePayload('revisions/' + row.metadata.revisionId + '/metadata.json', Buffer.from(JSON.stringify(row.metadata))); writePayload('revisions/' + row.metadata.revisionId + '/content.' + extensions[row.metadata.primaryFormat], Buffer.from(row.body)); }
+        if (note.encrypted) atomic(join(stage, 'security.json'), JSON.stringify({ version: 1 }));
+        for (const blob of note.blobs) writePayload('attachments/' + blob.item.id, readBlob(blob.path, blob.item, plan.security?.source));
         if (note.historyFloor) atomic(join(stage, 'history.json'), JSON.stringify(note.historyFloor));
         atomic(join(stage, 'head.json'), JSON.stringify(note.head)); renameSync(stage, root); fault?.('note');
       }
@@ -227,4 +234,11 @@ export function executeImport(plan: Plan, fault?: (stage: string) => void): Libr
       return { imported: plan.notes.length, skipped: plan.preview.skipped, backupPath, targetVersion: Math.max(3, plan.target.manifest.schemaVersion, plan.source.manifest.schemaVersion) };
     } catch (error) { recoverImport(path); throw error; }
   } finally { source.close(); }
+}
+
+function readBlob(path: string, item: Attachment, security?: NotebookSecurity): Buffer {
+  if (!security) return readAttachmentFile(path, item);
+  const bytes = security.read(path, 20 * 1024 * 1024);
+  if (bytes.length !== item.size || hash(bytes) !== item.sha256) { bytes.fill(0); fail(); }
+  return bytes;
 }

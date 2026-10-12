@@ -13,6 +13,8 @@ import { FrameDecoder, encodeFrame } from './framing';
 import type { RuntimeInfo } from '../shared/contracts';
 import { registerLibrary } from './library-ipc';
 import { registerNotifications } from './notifications-ipc';
+import { passkeyClient } from './passkeys';
+import { smokePasskey } from './passkey-smoke';
 
 const selfTest = process.argv.includes('--self-test') || process.argv.includes('--self-test-reopen');
 const background = process.argv.includes('--background');
@@ -37,6 +39,7 @@ let exitPending = false;
 let editorWindowBounds: Electron.Rectangle | null = null;
 let storage: ReturnType<typeof registerLibrary>;
 let notifications: ReturnType<typeof registerNotifications>;
+let passkeys: ReturnType<typeof passkeyClient>;
 const rendererErrors: string[] = [];
 const sessionToken = randomBytes(32).toString('hex');
 const runtimeFile = join(dataPath, 'bridge-runtime.json');
@@ -59,14 +62,17 @@ function runtime(): RuntimeInfo {
 async function createWindow(show = true): Promise<BrowserWindow> {
   if (mainWindow && !mainWindow.isDestroyed()) { if (show) mainWindow.show(); return mainWindow; }
   mainWindow = new BrowserWindow({ width: 1300, height: 860, minWidth: 960, minHeight: 640, show: false,
-    title: 'NotebookAid · T06', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
+    title: 'NotebookAid · T08', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
     webPreferences: { preload: join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false }
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('console-message', (_event, level, message) => { if (level === 3) rendererErrors.push(message); });
-  mainWindow.webContents.on('will-navigate', event => event.preventDefault());
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    // Allow the authenticated lock screen to reload the exact application entry point.
+    if (url !== rendererUrl || !passkeys.gate.unlocked) event.preventDefault();
+  });
   const owner = String(mainWindow.webContents.id);
-  mainWindow.webContents.on('render-process-gone', () => storage.release(owner));
+  mainWindow.webContents.on('render-process-gone', () => { passkeys.gate.lock(); storage.release(owner); });
   mainWindow.webContents.on('did-start-navigation', (_event, _url, _inPlace, isMainFrame) => { if (isMainFrame) storage.release(owner); });
   mainWindow.webContents.on('will-attach-webview', event => event.preventDefault());
   mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
@@ -94,14 +100,25 @@ function updateTray(locale: Locale): void {
 async function start(): Promise<void> {
   if (existsSync(stoppedFile)) unlinkSync(stoppedFile);
   Menu.setApplicationMenu(null);
-  storage = registerLibrary(dataPath, () => mainWindow, authorize, selfTest, updateTray);
-  notifications = registerNotifications(dataPath, authorize, selfTest);
+  passkeys = passkeyClient(dataPath);
+  const protectedCaller = (event: Electron.IpcMainInvokeEvent) => { authorize(event); if (!passkeys.gate.unlocked) throw Error('APP_LOCKED'); };
+  storage = registerLibrary(dataPath, () => mainWindow, protectedCaller, selfTest, updateTray, { enabled: () => passkeys.gate.enabled && passkeys.gate.unlocked, lock: () => { passkeys.gate.lock(); mainWindow?.webContents.reload(); } }, authorize);
+  notifications = registerNotifications(dataPath, protectedCaller, selfTest);
+  ipcMain.handle('prototype:passkeys', async (event, action: unknown) => {
+    authorize(event); let error: string | undefined;
+    try {
+      if (!['status', 'enable', 'unlock', 'disable', 'lock'].includes(String(action))) throw Error('INVALID_INPUT');
+      if (action === 'lock') { if (passkeys.gate.enabled && await storage.flush()) { storage.lock(); passkeys.gate.lock(); mainWindow?.webContents.reload(); } }
+      else if (action !== 'status') await passkeys.action(action as 'enable' | 'unlock' | 'disable', mainWindow!);
+    } catch (failure) { error = failure instanceof Error && /^[A-Z_]+$/.test(failure.message) ? failure.message : 'PASSKEY_FAILED'; }
+    return { enabled: passkeys.gate.enabled, locked: !passkeys.gate.unlocked, count: passkeys.gate.count, supported: await passkeys.supported(), locale: storage.locale(), theme: storage.theme(), ...(error ? { error } : {}) };
+  });
   tray = new Tray(nativeImage.createFromPath(join(app.getAppPath(), 'assets/notebookaid.ico')));
-  tray.setToolTip('NotebookAid · T06');
+  tray.setToolTip('NotebookAid · T08');
   updateTray(storage.locale());
   tray.on('double-click', () => { void createWindow(); });
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });
-  ipcMain.handle('prototype:sqlite', event => { authorize(event); return runSqliteProbe(dataPath); });
+  ipcMain.handle('prototype:sqlite', event => { protectedCaller(event); return runSqliteProbe(dataPath); });
   ipcMain.handle('prototype:hide', event => { authorize(event); mainWindow?.hide(); });
   ipcMain.handle('prototype:editor-fullscreen', (event, enabled: unknown) => {
     authorize(event);
@@ -177,6 +194,7 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if (process.env['NOTEBOOKAID_PASSKEY_TEST'] === '1') { await smokePasskey(window, dataPath, passkeys.gate); await quitByUser(true); return; }
     if (!process.argv.includes('--self-test-reopen')) await smokeHtmlImport(dataPath);
     await smokeLibrary(window, dataPath, rendererErrors);
     await quitByUser(true);

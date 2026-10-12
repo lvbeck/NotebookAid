@@ -2,6 +2,8 @@ import { lifecycleText } from '../lifecycle-i18n';
 import type { MessageKey } from '../i18n';
 
 export const hongKong: Record<MessageKey, string> = {
+  upgradeSchema: '升級', schemaLatest: '已是最新架構', schemaUpgradePrompt: '將此筆記本升級至架構版本 {version}？升級前會建立完整備份，舊版應用程式可能無法開啟升級後的筆記本。', schemaUpgradeSuccess: '架構已升級。備份儲存於：{path}',
+  noNoteSelected: '未選取任何筆記', selectNoteHint: '請從左側選取筆記，或新增一篇筆記。',
   exitApp: "結束應用程式",
   saveAndExit: "儲存並結束",
   discardAndExit: "放棄儲存並結束",
@@ -272,8 +274,8 @@ export const hongKong: Record<MessageKey, string> = {
   "welcome": "開始使用",
   "sample": "歡迎使用 NotebookAid",
   "sampleHint": "為下一個想法留一處空間",
-  "preview": "T07 歷史與資源回收筒",
-  "previewHint": "本機自動儲存 · Markdown / HTML / TXT / Delta · 尚未實作加密與備份",
+  "preview": "T08 保安與加密",
+  "previewHint": "本機自動儲存 · 支援選擇性加密 · 尚未實作定期備份",
   "save": "儲存",
   "saving": "正在儲存…",
   "saved": "已儲存至本機",

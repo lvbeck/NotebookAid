@@ -2,6 +2,8 @@ import { lifecycleText } from '../lifecycle-i18n';
 import type { MessageKey } from '../i18n';
 
 export const german: Record<MessageKey, string> = {
+  upgradeSchema: 'Aktualisieren', schemaLatest: 'Schema ist aktuell', schemaUpgradePrompt: 'Dieses Notizbuch auf Schema {version} aktualisieren? Zuvor wird eine vollständige Sicherung erstellt. Ältere Programmversionen können das aktualisierte Notizbuch möglicherweise nicht öffnen.', schemaUpgradeSuccess: 'Schema aktualisiert. Sicherung gespeichert unter: {path}',
+  noNoteSelected: 'Keine Notiz ausgewählt', selectNoteHint: 'Wählen Sie eine Notiz aus der Liste oder erstellen Sie eine neue Notiz.',
   exitApp: "Anwendung beenden",
   saveAndExit: "Speichern und beenden",
   discardAndExit: "Änderungen verwerfen und beenden",
@@ -272,8 +274,8 @@ export const german: Record<MessageKey, string> = {
   "welcome": "Erste Schritte",
   "sample": "Willkommen bei NotebookAid",
   "sampleHint": "Raum für Ihre nächste Idee",
-  "preview": "T07 Verlauf und Papierkorb",
-  "previewHint": "Automatisches lokales Speichern · Markdown / HTML / TXT / Delta · Verschlüsselung und Sicherung folgen später.",
+  "preview": "T08 Sicherheit",
+  "previewHint": "Automatisches lokales Speichern · optionale Verschlüsselung · geplante Sicherungen folgen später.",
   "save": "Speichern",
   "saving": "Wird gespeichert…",
   "saved": "Lokal gespeichert",

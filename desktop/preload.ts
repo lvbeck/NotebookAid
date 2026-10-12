@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { PrototypeApi } from '../shared/contracts';
 
 const api: PrototypeApi = {
+  appPasskeys: action => ipcRenderer.invoke('prototype:passkeys', action),
   dialogs: {
     onRequest: callback => {
       const listener = (_event: Electron.IpcRendererEvent, request: import('../shared/dialog').AppDialog) => callback(request);
@@ -24,6 +25,13 @@ const api: PrototypeApi = {
     position: value => ipcRenderer.invoke('notifications:position', value)
   },
   library: {
+    printRecovery: (mode, key) => ipcRenderer.invoke('library:printRecovery', mode, key),
+    upgradeLibrary: (id, expected) => ipcRenderer.invoke('library:upgradeLibrary', id, expected),
+    security: request => ipcRenderer.invoke('library:security', request),
+    securityPreference: value => ipcRenderer.invoke('library:securityPreference', value),
+    protectNote: (id, version, encrypted) => ipcRenderer.invoke('library:protectNote', id, version, encrypted),
+    noteVisibility: (id, version, visible) => ipcRenderer.invoke('library:noteVisibility', id, version, visible),
+    onSecurityLocked: callback => { const listener = () => callback(); ipcRenderer.on('library:locked', listener); return () => ipcRenderer.removeListener('library:locked', listener); },
     cleanHistory: (id, version, retain, op) => ipcRenderer.invoke('library:cleanHistory', id, version, retain, op),
     trashNote: (id, version, op) => ipcRenderer.invoke('library:trashNote', id, version, op),
     restoreNote: (id, version, op) => ipcRenderer.invoke('library:restoreNote', id, version, op),
@@ -38,7 +46,8 @@ const api: PrototypeApi = {
     renameAttachment: (request, id, name) => ipcRenderer.invoke('library:renameAttachment', request, id, name),
     previewAttachment: (noteId, id) => ipcRenderer.invoke('library:previewAttachment', noteId, id),
     exportAttachment: (noteId, id) => ipcRenderer.invoke('library:exportAttachment', noteId, id),
-    previewLibraryImport: () => ipcRenderer.invoke('library:previewImport'),
+    previewLibraryImport: credential => ipcRenderer.invoke('library:previewImport', credential),
+    cancelLibraryImport: () => ipcRenderer.invoke('library:cancelImport'),
     confirmLibraryImport: token => ipcRenderer.invoke('library:confirmImport', token),
     organization: () => ipcRenderer.invoke('library:organization'),
     editOrganization: input => ipcRenderer.invoke('library:editOrganization', input),
@@ -75,3 +84,8 @@ const api: PrototypeApi = {
   quit: () => ipcRenderer.invoke('prototype:quit')
 };
 contextBridge.exposeInMainWorld('notebookAid', api);
+
+let lastActivity = 0;
+for (const event of ['pointerdown', 'pointermove', 'keydown', 'wheel']) window.addEventListener(event, input => {
+  if (input.isTrusted && Date.now() - lastActivity > 1000) { lastActivity = Date.now(); ipcRenderer.send('library:activity'); }
+}, { passive: true });

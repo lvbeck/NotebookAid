@@ -7,7 +7,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function check(value: unknown): asserts value { if (!value) throw new LibraryError('INVALID_INPUT'); }
 function object(value: unknown, keys: string[]): asserts value is Record<string, any> { check(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every(key => keys.includes(key))); }
 function autosave(value: unknown): asserts value is AutosaveSettings { object(value, ['enabled', 'minutes']); check(typeof value.enabled === 'boolean' && Number.isInteger(value.minutes) && value.minutes >= 1 && value.minutes <= 60); }
-function global(value: unknown): void { object(value, ['locale', 'theme', 'autosave', 'sidebarCollapsed']); check(locales.includes(value.locale) && ['system', 'light', 'dark'].includes(value.theme)); check(value.sidebarCollapsed === undefined || typeof value.sidebarCollapsed === 'boolean'); autosave(value.autosave); }
+function global(value: unknown): void { object(value, ['locale', 'theme', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault']); check(locales.includes(value.locale) && ['system', 'light', 'dark'].includes(value.theme)); check(value.sidebarCollapsed === undefined || typeof value.sidebarCollapsed === 'boolean'); check(value.masterPasswordDefault === undefined || typeof value.masterPasswordDefault === 'boolean'); autosave(value.autosave); }
 export class SettingsStore {
   private state!: SettingsState;
   private readonly file: string;
@@ -50,7 +50,7 @@ export class SettingsStore {
   }
   get(): SettingsState { return structuredClone(this.state); }
   update(patch: unknown): SettingsState {
-    object(patch, ['locale', 'theme', 'autosave', 'sidebarCollapsed']); check(Object.keys(patch).length > 0);
+    object(patch, ['locale', 'theme', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault']); check(Object.keys(patch).length > 0);
     if (patch.autosave !== undefined) object(patch.autosave, ['enabled', 'minutes']);
     const next = this.get();
     next.global = { ...next.global, ...patch, autosave: { ...next.global.autosave, ...patch.autosave } };

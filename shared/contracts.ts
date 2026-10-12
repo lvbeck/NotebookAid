@@ -17,6 +17,7 @@ export interface RuntimeInfo {
 }
 
 export interface PrototypeApi {
+  appPasskeys(action: 'status' | 'enable' | 'unlock' | 'disable' | 'lock'): Promise<{ enabled: boolean; locked: boolean; count: number; supported: boolean; locale: string; theme: 'system' | 'light' | 'dark'; error?: string }>;
   dialogs: import('./dialog').DialogApi;
   notifications: import('./notifications').NotificationApi;
   library: import('./library').LibraryApi;

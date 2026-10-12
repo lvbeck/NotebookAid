@@ -24,6 +24,9 @@ export async function smokeOrganization(window: BrowserWindow, directory: string
   await input('folder-name', '笔记'); await input('folder-parent', parent, 'change'); await click('[data-testid=folder-save]');
   await until("document.querySelectorAll('[data-folder-edit]').length===2");
   const child = (await run('window.notebookAid.library.organization()')).value.folders.find((item: any) => item.parentId === parent).id;
+  if (await run(`!!document.querySelector('[data-folder="${child}"]')`)) throw Error('Child folder is expanded by default');
+  await click('.folder-toggle');
+  await until(`!!document.querySelector('[data-folder="${child}"]')`);
   await input('tag-color', '#18a56b');
   if (!await run("document.querySelector('[data-testid=tag-color-value]').textContent.includes('#18a56b') && getComputedStyle(document.querySelector('.tag-color-preview')).backgroundColor==='rgb(24, 165, 107)' && document.querySelector('[data-testid=tag-color]').getBoundingClientRect().height>=36")) throw Error('Tag color preview mismatch');
   await input('tag-name', '重要'); await click('[data-testid=tag-save]');

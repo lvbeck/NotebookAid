@@ -11,7 +11,7 @@ const code = expected => error => error.code === expected;
 test('legacy settings are backed up before import and imported only once', () => {
   const root = fixture(); const legacy = { locale: 'de', theme: 'dark', autosave: JSON.stringify({ enabled: false, minutes: 10 }) };
   const store = new SettingsStore(root, legacy);
-  assert.deepEqual(store.get().global, { locale: 'de', theme: 'dark', autosave: { enabled: false, minutes: 10 } });
+  assert.deepEqual(store.get().global, { locale: 'de', theme: 'dark', masterPasswordDefault: false, autosave: { enabled: false, minutes: 10 } });
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, 'settings-legacy.t03c-backup.json'), 'utf8')), legacy);
   store.update({ autosave: { enabled: true } });
   assert.equal(new SettingsStore(root, empty).get().global.autosave.enabled, true);
@@ -29,7 +29,7 @@ test('default inheritance, per-library isolation, restoration and restart preser
 test('partial writes preserve other settings and returned snapshots cannot mutate storage', () => {
   const store = new SettingsStore(fixture(), empty);
   store.update({ autosave: { minutes: 60 } }); store.update({ autosave: { enabled: false } }); store.update({ theme: 'light' }); store.update({ locale: 'en' });
-  assert.deepEqual(store.get().global, { locale: 'en', theme: 'light', autosave: { enabled: false, minutes: 60 } });
+  assert.deepEqual(store.get().global, { locale: 'en', theme: 'light', masterPasswordDefault: false, autosave: { enabled: false, minutes: 60 } });
   const state = store.get(); state.global.autosave.minutes = 1; assert.equal(store.get().global.autosave.minutes, 60);
 });
 test('invalid input and foreign fields never change stored settings', () => {

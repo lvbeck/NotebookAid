@@ -106,6 +106,10 @@
 
 ## 加密与恢复边界
 
+- 2026-10-12 用户最终确认分层解锁：“用 passkey 解锁应用，然后用密码解锁加密笔记本”。目标设备为 Windows 11 与 iPhone iCloud 钥匙串。应用锁可选；Passkey 不承担笔记本解密，笔记本继续使用独立主密码和恢复密钥。Windows 身份验证界面由系统提供，其他应用弹窗继续使用 CDK。
+
+- 主密码可在全局设置中开启或关闭，也可对每个笔记本分别开启或关闭（2026-10-12 用户确认）。全局默认关闭，只控制默认开关，每个笔记本使用独立主密码和恢复密钥；开关变化不得隐式解密已有笔记或移除其密钥保护。
+- 用户确认自动锁定策略：解锁后连续 15 分钟无操作自动锁定，应用退出或切换笔记本时锁定；锁定前若保存失败，保留编辑并提示，不丢弃未保存内容。
 - 对选定加密笔记，保护正文、标题、摘要、附件及相关历史；磁盘搜索索引不落盘这些内容的明文。
 - 文件夹名称可见。随机 ID、文件大小、时间等结构元信息可能可见；这一方案不承诺隐藏笔记存在或流量特征。
 - 锁定时不能读取正文或检索正文。解锁搜索使用可清除的内存索引；锁定后清除 UI 中的敏感内容和缓存。
@@ -218,6 +222,10 @@ T06 实施默认值：每个附件不超过 20 MB，每篇笔记最多 50 个／
 ### T06 attachment association and schema display
 
 Attachment association removal retains the payload and revision history and does not rewrite note content. Remaining inline image references become unavailable, explained before confirming the action. Notebook settings show the validated manifest schemaVersion; Simplified Chinese uses 架构版本.
+
+2026-10-12 用户追加：在笔记本设置页的架构版本右侧提供手动升级按钮；最新架构只显示信息而不显示按钮。升级前确认并创建完整备份，失败保留原版本，可升级设置页中选中的非当前笔记本而不切换活动笔记本。升级本身不设置主密码或自动加密笔记。
+
+2026-10-12 用户界面约定：密码输入框默认隐藏，右侧眼睛按钮切换可见性，重开恢复隐藏；未选中笔记时主区域只显示未选中提示，隐藏保存按钮和编辑区域。提示和按钮保持现有主题及八语言一致。
 
 ### SVG and editable image dimensions
 

@@ -26,8 +26,8 @@
 | T06 | 图片附件、重名与路径、生命周期和缺失处理 | 已批准 | 2026-10-11：用户明确“这个修改完成后，验收T05-A和T05完成，直接开始T06吧” |
 | T06-A | 可选 Delta 原生富文本笔记、版本化存储、受控导入导出与旧格式兼容（R40） | 已批准 | 2026-10-11：“T06-A验收通过，提交commit后开始T07。” |
 | T07 | 回收站、恢复、主动永久删除、历史版本及保留规则 | 已批准 | 2026-10-12：“验收T07，开始下一个任务” |
-| T08 | 主密码、逐笔记加密、恢复密钥、锁定、核心可见性过滤及残留边界 | 待开发 | 无 |
-| T09 | 手动／定期备份、完整性检查、恢复及存储目录迁移 | 待开发 | 无 |
+| T08 | 主密码、逐笔记加密、恢复密钥、锁定、核心可见性过滤及残留边界 | 已批准 | 2026-10-12：用户明确最后图标修正完成后验收 T08 及 T08.1–T08.7；修正已完成并验证，交付 0.8.0-t08.8 |
+| T09 | 手动／定期备份、完整性检查、恢复及存储目录迁移 | 已授权，待启动 | 用户明确 T08 最后修正完成后开始下一任务；定期备份策略待确认 |
 | T10 | Thunderbird Spaces、浏览搜索预览、删除、编辑定位、标签映射、事件与重连 | 待开发 | 无 |
 | T11 | ChatGPT 订阅登录、Gemini／Claude API Key、模型与连接管理 | 待开发 | 无 |
 | T12 | AI 写作、结果预览与应用、手动摘要、取消及版本冲突处理 | 待开发 | 无 |
@@ -508,3 +508,112 @@ T07.6 delivered: release/NotebookAid-0.7.0-t07.6-win-x64.zip, SHA-256 942cfa1062
 ## T07 user acceptance (2026-10-12)
 
 User explicitly accepted T07: “验收T07，开始下一个任务”. Accepted delivery is 0.7.0-t07.6, including lifecycle/history, source formatting and table presentation, editor layout, shared dialogs and exit confirmation. Scoped source, tests and documentation will be committed locally on main; generated packages and test output are excluded. The user also authorizes starting the next planned task, T08. Earlier pending-acceptance entries remain historical records.
+
+T07 was committed locally on main as 89d1f68 (Complete T07 history, recycle bin and editor interface refinements). No remote operation was performed.
+
+## T08 security settings decisions (2026-10-12)
+
+- User accepted locking after 15 minutes of inactivity and on application exit or notebook switch. Failed saves must preserve edits and show an error instead of discarding them.
+- User requested master-password enable/disable controls in global settings and independently for each notebook.
+- User confirmed that global settings control only the default switch, which is off by default; every notebook has an independent master password and recovery key, with per-notebook overrides.
+- Changing a setting must not implicitly decrypt existing notes or remove key protection. Enabling the global default alone does not create credentials or encrypt existing notes. T08 is not yet delivered or accepted.
+
+### T08 Passkey scope clarification
+
+User specified Windows 11 + iPhone iCloud Keychain and then clarified: “我希望的解决方式是用passkey解锁应用，然后用密码解锁加密笔记本”. Implement optional application Passkey authentication independently from per-notebook password encryption. Do not implement PRF-derived notebook keys. Physical cross-device authentication remains an acceptance check; native API availability and virtual signature tests cannot substitute for that check. See [security design](t08-security-design.md) and [T08 acceptance](t08-testing.md).
+
+### T08 validation record — 0.8.0-t08.0
+
+- Production Angular/TypeScript build and native WebAuthn helper compilation passed. Final core regression: 103/103 (`output/t08-core-final.txt`), including encrypted history/attachments, recovery, conversion interruptions, imports, filtering, request replay and Passkey signature validation. An earlier full run had one intermittent organization-write failure; its targeted rerun and the final full regression passed. Sandbox symlink/GUI restrictions required elevated test execution.
+- Development Electron security workflow passed (`output/security-packaged/1791795723181`): setup/recovery acknowledgement, encryption, incorrect password rejection, clearing on lock, idle locking, draft preservation on save failure and restart locking. An earlier GUI script clicked Save before Angular updated dirty state; the script now waits for rendering after input.
+- Production dependency audit reports the existing low-severity Quill 2.0.3 HTML-export advisory GHSA-v3m3-f69x-jf25; no new Passkey dependency advisory was reported. Quill remains at the agreed version. This is not an independent security audit.
+- Physical Windows 11/iPhone/iCloud authentication, hardware power loss and real Thunderbird note transport remain unverified. Packaged checks and deployment results follow below; T08 is not accepted or committed and T09 has not started.
+
+Final packaged checks passed: security plus restart (`output/security-packaged/1791795810437`), virtual Passkey app gate and blocked IPC (`output/passkey-packaged/1791795847632`), full existing GUI plus process restart (`output/smoke-packaged/1791795860343`, no renderer console errors). Native helper availability probe passed. Password-dialog and lock-screen screenshots were inspected. These checks do not establish physical iPhone authentication. Retained T07.6 ZIP is available for program rollback; schema 7 data requires a separate pre-T08 notebook copy to return to T07.
+
+Deployment completed with `Prepare-TestPortable.ps1`: `C:\Softwares\NotebookAid-win32-x64`, version `0.8.0-t08.0`, `verified=true`, `backupCreated=false`. Retained ZIP: `release/NotebookAid-0.8.0-t08.0-win-x64.zip`; SHA-256 `99e22fdb0ea7c4dc9d17585e588b8c4338b3cec627913cc96c85faf7dd452577`. Program files were replaced only after process/link/user-data checks. T08 awaits user acceptance; no commit and no T09 work.
+
+T08 验收说明已按用户要求改为简体中文，并同步测试目录、便携包目录及保留 ZIP 中的 `T08-TESTING.md`，未修改程序。更新后的 ZIP SHA-256 为 `680fd208eb98090ef1571e2d3143ee46caddbf1b22976e4aec4f6a180c58f8bb`；测试目录文档哈希与源码文档一致。T08 仍等待用户验收。
+
+### T08.1 Passkey 锁屏重载修复（2026-10-12，待复测）
+
+用户已在 iPhone 保存 Passkey，但手机认证后仍返回锁屏。使用有效虚拟签名后由渲染页面调用 `location.reload()`，复现旧版停留锁屏：`output/passkey-packaged/1791796810679`。根因是 `will-navigate` 无条件拦截；原专项使用主进程重载，未覆盖实际页面路径。根据 [Electron 导航事件文档](https://www.electronjs.org/docs/latest/api/web-contents/#event-will-navigate)，修复为仅在主进程已认证且目标为应用原始入口地址时允许导航。保留其他地址和未认证状态的导航限制。
+
+版本 0.8.0-t08.1。开发版专项通过（`output/passkey-packaged/1791796983824`），覆盖有效签名、渲染页面重载后进入主界面、其他地址继续被拦截、锁定时拒绝笔记 IPC；核心 Passkey 测试 3/3、构建及 diff 检查通过。未更改凭据或笔记本数据，无需重新注册 Passkey。便携验证与部署结果后补，仍等待用户实机复测，未提交 T08，也未开始 T09。
+
+最终便携包专项通过：`output/passkey-packaged/1791797117026`（渲染页面认证后重载、导航限制及锁定 IPC）和 `output/security-packaged/1791797120790`（密码、加密、自动锁定、保存失败保留草稿、重启）。本轮未重跑所有 103 项核心测试或既有完整 GUI 流程；本轮修改仅涉及导航条件，已执行相关专项。实际 iPhone 验证仍待用户复测。
+
+T08.1 已部署至 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backupCreated=false`。保留包 `release/NotebookAid-0.8.0-t08.1-win-x64.zip`，SHA-256 `f040fad77f7779e5533b4e9f81c9d31fe14e145a0026e07ff2ab7f778f12f8bb`。仍等待用户复测，未提交或启动下一任务。
+
+### T08.2 加密操作续接与锁状态（2026-10-12，待验收）
+
+用户报告输入主密码后未看到加密，侧边栏锁定后仍可重新打开卡片，并要求动态锁图标。确认原流程在设置或解锁成功后直接返回，尚未执行原始加密请求；因此该笔记仍是普通笔记，锁定后依然允许访问。修复为等待设置或解锁成功后继续加密确认，取消时不续接；校验原笔记本和笔记仍被选中，避免更改其他笔记。已解锁时使用内存中的密钥，不保存明文密码或重复提示。
+
+已加密笔记的安全按钮显示开锁／闭锁状态图标；普通笔记不显示锁图标。侧边栏显示已解锁／已锁定和对应图标，Tooltip 提示当前状态与点击操作。锁定时仍隐藏加密笔记并清空编辑区域。
+
+开发版界面专项通过（`output/security-packaged/1791799049330`）：首次设置及解锁后继续加密、取消不加密、动态图标、锁定直接读取被拒绝，以及保存失败保留草稿、自动锁定、重启。核心安全测试 9/9、构建通过。本轮未改核心密钥及存储格式，仍待用户验收，未提交 T08，也未开始 T09。
+
+最终便携安全专项及重启通过（`output/security-packaged/1791799613388`），加密开锁和锁定闭锁截图已检查；Passkey 回归通过（`output/passkey-packaged/1791799492602`）。既有按钮图标检查增加普通笔记安全按钮的明确例外，以符合用户未加密时不显示锁图标的要求。本轮未重跑全部 103 项核心测试及完整旧 GUI 流程，已执行受影响专项。
+
+T08.2 已部署至 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backupCreated=false`。保留包 `release/NotebookAid-0.8.0-t08.2-win-x64.zip`，SHA-256 `d1a04078cf1cd5bea95a6807ad56154c99f53760eaac7ae0d7574f12127c1a24`。测试目录更新只替换程序文件，未修改用户笔记本及凭据。T08 等待用户验收，未提交及未启动 T09。
+
+### T08.3 密码可见性与空选中状态（2026-10-12，待验收）
+
+用户要求密码输入框右侧眼睛切换按钮，并要求未选中笔记时不显示保存和编辑栏。已添加各输入框独立的默认隐藏切换、Eye／EyeOff 图标、键盘原生按钮、aria-pressed 及八语言文字提示，重开对话框恢复隐藏。编辑区域在无会话时隐藏并显示空状态，保留 Quill 静态宿主以避免销毁后无法重新初始化；核心在锁定时仍清空敏感内容。
+
+构建与 diff 检查通过；开发版安全及重启专项通过（`output/security-packaged/1791800669756`），覆盖切换保留输入值、重开隐藏、空状态隐藏控件、选中后恢复、加密及锁定续接。待便携验证与部署，未改加密存储或凭据，T08 仍未提交或验收。
+
+用户本轮追加设置页手动升级架构。最新版本统一使用共享常量 7；旧架构右侧显示升级按钮，最新架构显示信息而不显示按钮。使用共享 CDK 确认，在笔记本旁 `.schema-backups/{uuid}` 完整备份后原子更新清单；检查架构并发变化、活动会话、损坏和恢复状态，非当前笔记本通过独立写锁升级而不切换活动笔记本。升级不自动加密或设置密码。
+
+新增架构核心专项 9/9 通过（旧架构 1–6、备份可读、写入及备份失败保护、非活动笔记本隔离），组合界面专项及重启通过（`output/security-packaged/1791801627551`），包含取消升级、升级后版本刷新和按钮隐藏。完整回归首次 111/112（`output/t08.3-core.txt`），一项旧附件重命名发生 WRITE_FAILED；附件专项复测 6/6 通过，正在单独重跑完整核心回归。旧笔记本界面测试的图标断言已同步普通笔记安全按钮例外，原失败不是迁移数据失败。
+
+单独重跑完整核心回归仍为 111/112（`output/t08.3-core-final.txt`），此次为旧近期笔记批量创建测试 WRITE_FAILED；文件系统诊断下该组织专项复测 6/6 通过（`output/t08.3-org-diagnostics.txt`），未复现底层错误。此前 T08 已记录类似偶发写入异常，本轮未确定底层原因，也未修改笔记提交逻辑，不声称全量回归全部通过。新增升级专项及受影响界面流程均通过。
+
+最终便携组合界面及重启通过（`output/security-packaged/1791802342035`），完整既有 GUI 及进程重启通过（`output/smoke-packaged/1791802435438`，无渲染进程控制台错误）。密码按钮和空状态截图已检查。T08 仍待用户验收，未提交及未启动 T09。
+
+Passkey 便携回归通过（`output/passkey-packaged/1791802817345`）。T08.3 已通过 `Prepare-TestPortable.ps1` 更新至 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backupCreated=false`。保留 ZIP 为 `release/NotebookAid-0.8.0-t08.3-win-x64.zip`，SHA-256 `4c25d56521410fc0625e35b74061afd123e0dd444c6fa9372226051d40e4c3e8`。未操作用户真实笔记本架构或凭据；升级由用户在设置页确认后执行。T08 等待验收，未提交，未开始下一任务。
+
+
+### T08.4 笔记卡片加密状态（2026-10-12，待验收）
+
+用户要求加密笔记卡片顶部右侧显示锁定／解锁小图标，普通笔记不显示。按现有安全状态及图标实现，复用八种语言状态提示；锁定时仍隐藏加密卡片。T08 尚未验收，不提交或开始下一任务。
+
+本轮构建及 diff 检查通过；便携版安全专项和重启通过（`output/security-packaged/1791804176510`），新增断言覆盖加密卡片图标及普通卡片无图标，截图已检查。首次专项在保存步骤超时（`output/security-packaged/1791804135720`），复测通过，未确定首次超时原因。本轮未改核心存储，不重复全量核心测试；此前偶发写入失败记录仍保留。
+
+T08.4 已部署至 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backupCreated=false`。保留包 `release/NotebookAid-0.8.0-t08.4-win-x64.zip`，SHA-256 `0af6240286da6413d2c548cc61ea0f7a7e2669b95dc4d1b8b9c22b4b9c213511`。未修改用户笔记本及凭据。T08 继续等待验收，未提交或开始下一任务。
+
+
+### T08.5 侧边栏调整（2026-10-12，待验收）
+
+用户要求笔记本锁状态文案、启动默认收起下级文件夹、对调折叠和退出入口。已实现并同步八种语言。文件夹展开仅保留当前运行状态，两种侧边栏共用树展开状态。T08 继续待验收。
+
+构建与 diff 检查通过。开发版专项及重启通过（`output/security-packaged/1791806211791`），最终便携版专项及重启通过（`output/security-packaged/1791806357291`），覆盖侧边栏顺序、文件夹默认收起、两种界面手动展开／收起、弹出菜单选择和重启重置，以及笔记本状态文字。锁状态截图已检查；本轮仅调整界面，不重复核心全量测试，既有偶发写入失败记录仍保留。
+
+T08.5 已更新 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backupCreated=false`。保留 ZIP `release/NotebookAid-0.8.0-t08.5-win-x64.zip`，SHA-256 `62473fcbe11c85fa246976a3b439f86d68010fcfd52864c44ed0dcd17d52715c`。可用保留的 T08.4 ZIP 回滚程序；未修改用户笔记本或凭据。T08 继续待验收，未提交，未开始下一任务。
+
+
+### T08.6 卡片置顶图标与恢复密钥打印（2026-10-12，待验收）
+
+按用户要求移动置顶图标、增加 Electron 打印和打印 PDF、明确来源笔记本密码标签。打印专用隔离页面限制外部资源，无自动明文副本；用户主动保存的 PDF 或打印件需独立保管。T08 仍待验收，未提交。
+
+构建和 diff 检查通过。开发版及重启专项通过（`output/security-packaged/1791808628911`）；最终便携专项及重启通过（`output/security-packaged/1791808752293`），验证实际 PDF 生成（测试副本已删除）、模拟打印成功回调、打印无效输入和锁定权限拒绝、置顶图标右侧位置、来源密码标签及既有安全流程。卡片截图已检查；实体打印机和原生打印取消未实测。未重复全量核心测试，既有偶发写入失败记录仍保留。
+
+T08.6 已更新 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backupCreated=false`。保留 ZIP `release/NotebookAid-0.8.0-t08.6-win-x64.zip`，SHA-256 `2dca9e48e66dae14e88b406a3c44515ec14033c236a29322e2023786fbe28b58`。可使用保留 T08.5 ZIP 回滚；未修改用户真实笔记本、凭据或生成其打印件。T08 继续待验收，未提交或进入下一任务。
+
+
+### T08.7 应用内打印预览（2026-10-12，待验收）
+
+用户批准增加统一 CDK 打印预览及打印、保存 PDF、取消按钮，预览只保留内存。已按此实现，沿用 Electron 输出接口及系统文件选择器；T08 继续待验收，不提交或进入下一任务。
+
+构建和 diff 检查通过。开发版专项及重启通过（`output/security-packaged/1791809587024`），最终便携专项及重启通过（`output/security-packaged/1791809977129`），覆盖预览内容、无脚本隔离、取消重开、PDF 实际生成和删除、模拟打印回调及既有安全流程。窄窗口／深色主题按钮背景及边界检查通过，截图已检查并使用占位密钥。实体打印机及系统打印取消需用户实测；本轮未重复全量核心测试，既有偶发写入失败记录保留。
+
+T08.7 已更新 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backupCreated=false`。保留 ZIP `release/NotebookAid-0.8.0-t08.7-win-x64.zip`，SHA-256 `a2f2031e349f61c8b8a673f7b6e7c1e5aca4af57e109f0f36a37ded580216cf8`。可使用保留的 T08.6 ZIP 回滚程序，未修改用户真实笔记本或凭据。T08 继续待验收，未提交或进入下一任务。
+
+
+### T08 最后图标修正及条件验收（2026-10-12）
+
+用户明确：“最后一个修改，安全按钮添加盾牌图标，界面语言选择器文字前面加图标，主题选择器文字前面加主题图标，完成后验收T08 包括T08.1到包括T08.7，开始下一个任务”。在最后修改验证并交付后记录 T08 批准、提交其全部范围并开始 T09。
+
+T08 最后图标修正构建、diff 检查、安全／Passkey／架构专项 21/21，以及便携安全界面和重启专项（`output/security-packaged/1791810988226`）通过。根据用户上述明确条件验收，T08 包括此前子项及最后图标修正已批准。既有偶发核心写入异常与未实测的实体打印、Win10 条件继续在验收文档中保留，不宣称这些未验证项已经通过。
+
+T08 最终交付 0.8.0-t08.8 已部署至 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backupCreated=false`。保留 ZIP `release/NotebookAid-0.8.0-t08.8-win-x64.zip`，SHA-256 `b9812e7c8c1be5bb19851d5e80994f2749dcb2ff7a7e6a3e61f7d84063a58b7d`。本地 main 提交 T08 全部已验收范围，包、输出、依赖及凭据不提交。

@@ -1,4 +1,5 @@
 import { smokeExit } from './exit-smoke';
+import { smokeSecurity } from './security-smoke';
 import { smokeDialogs } from './dialog-smoke';
 import { smokeLifecycle } from './lifecycle-smoke';
 import { smokeNativeCapacity } from './native-capacity-smoke';
@@ -25,6 +26,7 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
     throw new Error('UI condition timed out: ' + expression);
   };
   await until("document.querySelector('app-root')?.dataset.ready === 'true'");
+  if (process.env['NOTEBOOKAID_SECURITY_TEST'] === '1') { await smokeSecurity(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_EXIT_TEST']) { await smokeExit(window, directory); if(errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_DIALOG_TEST'] === '1') { await smokeDialogs(window, directory); if(errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_EDITOR_TEST'] === '1') {
@@ -141,7 +143,7 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
   await wait(150); writeFileSync(join(directory, 'desktop-dark.png'), (await window.webContents.capturePage()).toPNG());
   await evaluate("document.querySelector('[data-testid=settings-tab]').click();const minutes=document.querySelector('[data-testid=autosave-minutes]');minutes.value='10';minutes.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('[data-testid=autosave-enabled]').click()");
   await wait(150); writeFileSync(join(directory, 'settings-dark.png'), (await window.webContents.capturePage()).toPNG());
-  if (!await evaluate("[...document.querySelectorAll('button')].every(button=>button.querySelector('svg'))")) throw new Error('A button is missing an icon');
+  if (!await evaluate("[...document.querySelectorAll('button')].every(button=>button.querySelector('svg') || button.matches('[data-testid=note-security][data-encrypted=false]'))")) throw new Error('A button is missing an icon');
   await smokeRegistry(window, directory);
   await smokeSettings(window, directory);
   await smokeEditor(window, directory);

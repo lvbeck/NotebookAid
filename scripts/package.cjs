@@ -1,6 +1,6 @@
 const { packager } = require('@electron/packager');
-const { mkdirSync, cpSync, writeFileSync, readFileSync } = require('node:fs');
-const { resolve, join } = require('node:path');
+const { mkdirSync, cpSync, writeFileSync, readFileSync, existsSync } = require('node:fs');
+const { resolve, join, dirname, relative, sep } = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 (async () => {
@@ -20,12 +20,27 @@ const { execFileSync } = require('node:child_process');
   cpSync('LICENSE', join(stage, 'LICENSE'));
   cpSync('assets', join(stage, 'assets'), { recursive: true });
   const project = JSON.parse(readFileSync('package.json', 'utf8'));
-  writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license }));
-  const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: 'win32', arch: 'x64', electronVersion: project.devDependencies.electron, overwrite: true, asar: true,
-    icon: resolve('assets/notebookaid.ico'), appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid T07 history and recycle bin preview', ProductName: 'NotebookAid' },
+  const copied = new Set();
+  const copyDependency = (name, from = workspace) => {
+    let directory = dirname(require.resolve(name, { paths: [from] }));
+    while (!existsSync(join(directory, 'package.json')) || JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')).name !== name) {
+      const parent = dirname(directory); if (parent === directory) throw Error('Dependency package was not found: ' + name); directory = parent;
+    }
+    if (copied.has(directory)) return; copied.add(directory);
+    const local = relative(resolve('node_modules'), directory);
+    if (local.startsWith('..' + sep) || local === '..') throw Error('Dependency is outside node_modules');
+    cpSync(directory, join(stage, 'node_modules', local), { recursive: true });
+    const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
+    for (const dependency of Object.keys(manifest.dependencies || {})) copyDependency(dependency, directory);
+  };
+  copyDependency('@simplewebauthn/server');
+  writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'] } }));
+  const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: 'win32', arch: 'x64', electronVersion: project.devDependencies.electron, overwrite: true, asar: true, prune: false,
+    icon: resolve('assets/notebookaid.ico'), appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid T08 security preview', ProductName: 'NotebookAid' },
     download: { cacheRoot: resolve('.cache/electron') }
   });
   const packageRoot = packages[0];
+  cpSync('dist/NotebookAid.Passkey.exe', join(packageRoot, 'NotebookAid.Passkey.exe'));
   const compiler = join(process.env.WINDIR || 'C:/Windows', 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
   execFileSync(compiler, ['/nologo', '/target:exe', '/platform:x64', '/reference:System.Web.Extensions.dll', '/out:' + join(packageRoot, 'NotebookAid.Bridge.exe'), resolve('native/Bridge.cs')], { stdio: 'inherit', windowsHide: true });
   cpSync('scripts/Register-Bridge.ps1', join(packageRoot, 'Register-Bridge.ps1'));
@@ -38,6 +53,8 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/html-import-policy.md', join(packageRoot, 'html-import-policy.md'));
   cpSync('docs/t04-testing.md', join(packageRoot, 'T04-TESTING.md'));
   cpSync('docs/t07-testing.md', join(packageRoot, 'T07-TESTING.md'));
+  cpSync('docs/t08-testing.md', join(packageRoot, 'T08-TESTING.md'));
+  cpSync('docs/t08-security-design.md', join(packageRoot, 't08-security-design.md'));
   cpSync('docs/t06a-testing.md', join(packageRoot, 'T06A-TESTING.md'));
   cpSync('docs/t06-testing.md', join(packageRoot, 'T06-TESTING.md'));
   cpSync('docs/t05-testing.md', join(packageRoot, 'T05-TESTING.md'));

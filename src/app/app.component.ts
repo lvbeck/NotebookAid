@@ -1,3 +1,6 @@
+import { PasskeyComponent } from './passkey.component';
+import { SecurityComponent } from './security.component';
+import { securityText, type SecurityKey } from './security-i18n';
 import { LifecycleComponent } from './lifecycle.component';
 import { lifecycleText, type LifecycleKey } from './lifecycle-i18n';
 import { emptyDelta, parseDelta, deltaSnapshot, type DeltaOp } from '../../shared/delta-document';
@@ -38,7 +41,7 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
@@ -149,14 +152,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly historyVersion = signal(0);
   readonly history = new BodyHistory();
   readonly newNoteMenuOpen = signal(false);
-  readonly collapsedFolders = signal<Set<string>>(new Set());
+  readonly expandedFolders = signal<Set<string>>(new Set());
   hasChildren(id: string): boolean { return this.workspace.organization().folders.some(folder => folder.parentId === id); }
   folderVisible(id: string): boolean {
     let parent = this.workspace.organization().folders.find(folder => folder.id === id)?.parentId;
-    while (parent) { if (this.collapsedFolders().has(parent)) return false; parent = this.workspace.organization().folders.find(folder => folder.id === parent)?.parentId; }
+    while (parent) { if (!this.expandedFolders().has(parent)) return false; parent = this.workspace.organization().folders.find(folder => folder.id === parent)?.parentId; }
     return true;
   }
-  toggleFolder(id: string): void { this.collapsedFolders.update(value => { const next = new Set(value); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
+  toggleFolder(id: string): void { this.expandedFolders.update(value => { const next = new Set(value); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
   readonly noteFormats: NoteFormat[] = ['markdown', 'html', 'text', 'delta'];
   readonly exportFormat = signal<NoteFormat>('markdown');
   readonly exportPreview = signal<NoteInput | null>(null);
@@ -272,7 +275,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     effect(() => { if (this.workspace.libraryUnavailable()) this.tab.set('libraries'); });
     effect(() => {
       const ready = this.ready(); this.workspace.opened();
-      if (ready) untracked(() => { this.sourceFormatError.set(false); this.inTable.set(false); this.inCodeBlock.set(false); this.history.reset(this.source()); this.historyVersion.update(value => value + 1); this.sourceMode.set(false); this.exportPreview.set(null); this.fileMessage.set(''); this.loadSource(); });
+      if (ready) untracked(() => { if (!this.workspace.session()) { this.historyNoteId.set(''); if (this.tab() === 'history' || this.tab() === 'trash') this.tab.set('editor'); } this.sourceFormatError.set(false); this.inTable.set(false); this.inCodeBlock.set(false); this.history.reset(this.source()); this.historyVersion.update(value => value + 1); this.sourceMode.set(false); this.exportPreview.set(null); this.fileMessage.set(''); this.loadSource(); });
     });
   }
 
@@ -325,6 +328,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     window.removeEventListener('keydown', this.keyboard, true);
   }
   t(key: MessageKey): string { return translate(this.locale(), key); }
+  securityLabel(key: SecurityKey): string { return securityText(this.locale(), key); }
   async setLocale(event: Event): Promise<void> {
     const input = event.target as HTMLSelectElement;
     await this.prefs.update({ locale: input.value as Locale }); input.value = this.locale();

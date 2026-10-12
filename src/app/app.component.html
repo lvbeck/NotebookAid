@@ -28,7 +28,12 @@
           <div class="folder-browser-heading">{{ t('folders') }}</div>
           <button cdkMenuItem data-testid="folder-browser-unfiled" [class.active]="workspace.query().folderId === null" (cdkMenuItemTriggered)="tab.set('editor'); workspace.filter({folderId: null, view: 'all'})"><app-icon name="Folder" /><span>{{ t('rootFolder') }}</span></button>
           @for (folder of workspace.folderRows(); track folder.id) {
-            <button cdkMenuItem [attr.data-browser-folder]="folder.id" [title]="folder.path" [style.padding-left.px]="12 + folder.depth * 12" [class.active]="workspace.query().folderId === folder.id" (cdkMenuItemTriggered)="tab.set('editor'); workspace.filter({folderId: folder.id, view: 'all'})"><app-icon name="Folder" /><span>{{ folder.name }}</span></button>
+            @if (folderVisible(folder.id)) {
+              <div class="folder-browser-row" [style.padding-left.px]="folder.depth * 12">
+                @if (hasChildren(folder.id)) { <button class="folder-browser-toggle" [attr.data-browser-toggle]="folder.id" [attr.aria-label]="t('folders') + ': ' + folder.name" [attr.aria-expanded]="expandedFolders().has(folder.id)" (click)="$event.stopPropagation(); toggleFolder(folder.id)"><app-icon [name]="expandedFolders().has(folder.id) ? 'ChevronDown' : 'ChevronRight'" /></button> }
+                <button cdkMenuItem [attr.data-browser-folder]="folder.id" [title]="folder.path" [class.active]="workspace.query().folderId === folder.id" (cdkMenuItemTriggered)="tab.set('editor'); workspace.filter({folderId: folder.id, view: 'all'})"><app-icon name="Folder" /><span>{{ folder.name }}</span></button>
+              </div>
+            }
           }
         </div>
       </ng-template>
@@ -38,7 +43,7 @@
       @for (folder of workspace.folderRows(); track folder.id) {
         @if (folderVisible(folder.id)) {
           <div class="folder-row" [style.padding-left.px]="sidebarCollapsed() ? 0 : folder.depth * 12">
-            @if (!sidebarCollapsed() && hasChildren(folder.id)) { <button class="icon-button folder-toggle" [attr.aria-label]="t('folders') + ': ' + folder.name" [attr.aria-expanded]="!collapsedFolders().has(folder.id)" (click)="toggleFolder(folder.id)"><app-icon [name]="collapsedFolders().has(folder.id) ? 'ChevronRight' : 'ChevronDown'" /></button> }
+            @if (!sidebarCollapsed() && hasChildren(folder.id)) { <button class="icon-button folder-toggle" [attr.aria-label]="t('folders') + ': ' + folder.name" [attr.aria-expanded]="expandedFolders().has(folder.id)" (click)="toggleFolder(folder.id)"><app-icon [name]="expandedFolders().has(folder.id) ? 'ChevronDown' : 'ChevronRight'" /></button> }
             <button class="nav-item folder" [attr.data-folder]="folder.id" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? folder.path : ''" [attr.aria-label]="folder.path" [class.active]="workspace.query().folderId === folder.id && tab() === 'editor'" (click)="tab.set('editor'); workspace.filter({folderId: folder.id, view: 'all'})"><app-icon name="Folder" /><span class="sidebar-text">{{ folder.name }}</span></button>
           </div>
         }
@@ -50,10 +55,11 @@
       <button class="nav-item" data-testid="trash-tab" [class.active]="tab() === 'trash'" (click)="tab.set('trash')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('trash') : ''" [attr.aria-label]="t('trash')"><app-icon name="Trash2" /><span class="sidebar-text">{{ t('trash') }}</span></button>
       <button class="nav-item" data-testid="diagnostics-tab" [class.active]="tab() === 'diagnostics'" (click)="tab.set('diagnostics')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('diagnostics') : ''" [attr.aria-label]="t('diagnostics')"><app-icon name="FlaskConical" /><span class="sidebar-text">{{ t('diagnostics') }}</span></button>
       <button class="nav-item" data-testid="libraries-tab" [class.active]="tab() === 'libraries'" (click)="showLibraries()" [disabled]="workspace.switching()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('chooseLibrary') : ''" [attr.aria-label]="t('chooseLibrary')"><app-icon name="BookOpen" /><span class="sidebar-text">{{ t('chooseLibrary') }}</span></button>
+      <app-security mode="quick" /><app-passkeys [compact]="true" />
       <button class="nav-item" data-testid="settings-tab" [class.active]="tab() === 'settings'" (click)="tab.set('settings')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('settings') : ''" [attr.aria-label]="t('settings')"><app-icon name="Settings" /><span class="sidebar-text">{{ t('settings') }}</span></button>
-      <button class="nav-item" data-testid="exit-app" (click)="quit()" [appTooltip]="sidebarCollapsed() ? t('exitApp') : ''" [attr.aria-label]="t('exitApp')"><app-icon name="Power" /><span class="sidebar-text">{{ t('exitApp') }}</span></button>
       <button class="nav-item sidebar-collapse-toggle" data-testid="sidebar-toggle" (click)="toggleSidebar()" [disabled]="!prefs.ready() || prefs.busy()" [attr.aria-expanded]="!sidebarCollapsed()" [attr.aria-label]="t(sidebarCollapsed() ? 'expandSidebar' : 'collapseSidebar')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('expandSidebar') : ''"><app-icon [name]="sidebarCollapsed() ? 'PanelLeftOpen' : 'PanelLeftClose'" /><span class="sidebar-text">{{ t('collapseSidebar') }}</span></button>
-      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T07</span></div>
+      <button class="nav-item sidebar-exit" data-testid="exit-app" (click)="quit()" [appTooltip]="sidebarCollapsed() ? t('exitApp') : ''" [attr.aria-label]="t('exitApp')"><app-icon name="Power" /><span class="sidebar-text">{{ t('exitApp') }}</span></button>
+      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T08</span></div>
     </div>
   </aside>
   <section class="workspace">
@@ -88,13 +94,15 @@
         </div>
         @if (workspace.query().view === 'recent') { <p class="muted">{{ t('recentHint') }}</p> }
         @for (note of workspace.results(); track note.id) {
-          <button class="note-card" [attr.data-note-id]="note.id" [class.selected]="workspace.session()?.note?.id === note.id" (click)="workspace.select(note.id)" [disabled]="workspace.switching()"><div class="note-meta"><app-icon name="FileText" />v{{ note.version }}<span>{{ note.primaryFormat === 'markdown' ? 'MD' : note.primaryFormat === 'html' ? 'HTML' : note.primaryFormat === 'delta' ? 'DELTA' : 'TXT' }}</span></div><strong>@if (note.pinned) { <app-icon name="Pin" /> }{{ note.title }}</strong><p class="note-folder">{{ workspace.folderPath(note.folderId) || t('rootFolder') }}</p><div class="note-tags">@for (tag of workspace.sortedTags(); track tag.id) { @if (note.tagIds.includes(tag.id)) { <span><i class="tag-dot" [style.background]="tag.color"></i>{{ tag.name }}</span> } }</div><p>{{ displayTime(note.updatedAt) }}</p></button>
+          <button class="note-card" [attr.data-note-id]="note.id" [class.selected]="workspace.session()?.note?.id === note.id" (click)="workspace.select(note.id)" [disabled]="workspace.switching()"><div class="note-meta"><app-icon name="FileText" />v{{ note.version }}<span class="note-meta-end"><span>{{ note.primaryFormat === 'markdown' ? 'MD' : note.primaryFormat === 'html' ? 'HTML' : note.primaryFormat === 'delta' ? 'DELTA' : 'TXT' }}</span>@if (note.encrypted) { <span class="note-lock-state" data-testid="note-card-security" [attr.data-unlocked]="!!workspace.status()?.security?.unlocked" [appTooltip]="securityLabel(workspace.status()?.security?.unlocked ? 'unlocked' : 'locked')" role="img" [attr.aria-label]="securityLabel(workspace.status()?.security?.unlocked ? 'unlocked' : 'locked')"><app-icon [name]="workspace.status()?.security?.unlocked ? 'LockKeyholeOpen' : 'LockKeyhole'" /></span> }@if (note.pinned) { <span class="note-pin-state" data-testid="note-card-pin" [appTooltip]="t('pinned')" role="img" [attr.aria-label]="t('pinned')"><app-icon name="Pin" /></span> }</span></div><strong>{{ note.title }}</strong><p class="note-folder">{{ workspace.folderPath(note.folderId) || t('rootFolder') }}</p><div class="note-tags">@for (tag of workspace.sortedTags(); track tag.id) { @if (note.tagIds.includes(tag.id)) { <span><i class="tag-dot" [style.background]="tag.color"></i>{{ tag.name }}</span> } }</div><p>{{ displayTime(note.updatedAt) }}</p></button>
         }
         @if (!workspace.results().length) { <p class="muted" data-testid="empty-results">{{ t(workspace.notes().length ? 'noResults' : 'emptyLibrary') }}</p> }
         <div class="pagination"><button class="icon-button" data-testid="previous-page" [attr.aria-label]="t('previousPage')" [disabled]="!workspace.query().offset || workspace.searching()" (click)="workspace.filter({offset: (workspace.query().offset || 0) - 30})"><app-icon name="ChevronLeft" /></button><span>{{ (workspace.query().offset || 0) + (workspace.total() ? 1 : 0) }}–{{ (workspace.query().offset || 0) + workspace.results().length }} / {{ workspace.total() }}</span><button class="icon-button" data-testid="next-page" [attr.aria-label]="t('nextPage')" [disabled]="(workspace.query().offset || 0) + 30 >= workspace.total() || workspace.searching()" (click)="workspace.filter({offset: (workspace.query().offset || 0) + 30})"><app-icon name="ChevronRight" /></button></div>
         <div class="list-empty"><app-icon name="BookOpen" /><p>{{ t('about') }}</p></div>
       </aside>
       <section class="editor-pane" [hidden]="tab() !== 'editor'">
+        <div class="editor-empty-state" data-testid="editor-empty" role="status" [hidden]="!!workspace.session()"><app-icon name="FileText" /><h2>{{ t('noNoteSelected') }}</h2><p>{{ t('selectNoteHint') }}</p></div>
+        <div class="editor-selection" [hidden]="!workspace.session()">
         <ng-template #noteTitle><input class="note-title" data-testid="note-title" [attr.aria-label]="t('title')" [(ngModel)]="title" [disabled]="!workspace.session() || workspace.switching()" (compositionstart)="workspace.setComposing(true)" (compositionend)="workspace.setComposing(false)" maxlength="300"></ng-template>
         <div class="editor-heading">@if (editorFullscreen()) { <ng-container [ngTemplateOutlet]="noteTitle" /> }<span class="format-badge">{{ format() === 'text' ? 'TXT' : format().toUpperCase() }} · v{{ workspace.session()?.note?.version || 0 }}</span><span class="save-status" data-testid="save-status">{{ saveLabel() }}</span><button class="secondary fullscreen-toggle" data-testid="editor-fullscreen" (click)="toggleEditorFullscreen()" [disabled]="!workspace.session()" [attr.aria-pressed]="editorFullscreen()" [attr.aria-label]="t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff')" [title]="t(editorFullscreen() ? 'exitFullscreen' : 'enterFullscreen') + ' (Ctrl+Shift+F · Esc)'"><app-icon [name]="editorFullscreen() ? 'Minimize2' : 'Maximize2'" /><span>{{ t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff') }}</span></button><button class="primary" data-testid="save-note" (click)="workspace.manualSave()" [disabled]="!workspace.session() || workspace.saving()"><app-icon name="Save" />{{ t(workspace.saving() ? 'saving' : 'save') }}</button></div>
         @if (!editorFullscreen()) { <ng-container [ngTemplateOutlet]="noteTitle" /> }
@@ -105,7 +113,7 @@
             <button class="secondary" data-testid="pin-note" [attr.aria-pressed]="session.note.pinned" (click)="workspace.place({pinned: !session.note.pinned})" [disabled]="workspace.switching()"><app-icon name="Pin" />{{ t(session.note.pinned ? 'unpinNote' : 'pinNote') }}</button>
             <button class="secondary" data-testid="note-history" (click)="openHistory()" [disabled]="workspace.switching()"><app-icon name="History" />{{ l('history') }}</button>
             <button class="secondary note-trash-button" data-testid="note-trash" (click)="trashCurrent()" [attr.aria-label]="l('move')" [title]="l('move')" [disabled]="workspace.switching()"><app-icon name="Trash2" />{{ l('move') }}</button>
-            <div class="selected-note-tags" aria-live="polite">@for (tag of workspace.sortedTags(); track tag.id) { @if (session.note.tagIds.includes(tag.id)) { <span class="selected-note-tag" [attr.data-selected-tag]="tag.id"><span class="tag-dot" [style.background]="tag.color"></span>{{ tag.name }}</span> } }</div>
+            <app-security mode="note" /><div class="selected-note-tags" aria-live="polite">@for (tag of workspace.sortedTags(); track tag.id) { @if (session.note.tagIds.includes(tag.id)) { <span class="selected-note-tag" [attr.data-selected-tag]="tag.id"><span class="tag-dot" [style.background]="tag.color"></span>{{ tag.name }}</span> } }</div>
             <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="tagOrigin" [cdkConnectedOverlayOpen]="tagMenuOpen()" [cdkConnectedOverlayOffsetY]="8" [cdkConnectedOverlayPush]="true" (overlayOutsideClick)="tagMenuOpen.set(false)" (overlayKeydown)="closeTagMenu($event)" (detach)="tagMenuOpen.set(false)">
               <div cdkTrapFocus [cdkTrapFocusAutoCapture]="true" role="group" class="note-tag-menu" [attr.aria-label]="t('noteTags')">
                 <div class="note-tag-menu-heading"><span>{{ t('selectNoteTags') }}</span><span>{{ t('multipleTags') }}</span></div>
@@ -204,6 +212,7 @@
           </section>
         }
         <footer class="editor-footer"><span>{{ t('ready') }}</span></footer>
+        </div>
       </section>
       <section class="diagnostics-pane" [hidden]="tab() !== 'diagnostics'">
         <h1>{{ t('checks') }}</h1><p class="muted">{{ t('limitations') }}</p><p class="path">{{ workspace.status()?.path }}</p><button class="secondary rebuild-button" data-testid="rebuild-index" (click)="workspace.rebuild()" [disabled]="workspace.rebuilding()"><app-icon name="RefreshCw" [class.spinning]="workspace.rebuilding()" />{{ t(workspace.rebuilding() ? 'rebuilding' : 'rebuild') }}</button>

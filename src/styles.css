@@ -273,7 +273,7 @@ app-organization { flex:1; overflow:auto; }
 .sidebar-collapsed .folder-row { padding-left:0 !important; }
 .sidebar-collapsed .folder-row .nav-item { margin-left:0; }
 .sidebar-collapsed .folder-tree { margin:10px 0; }
-.sidebar-collapse-toggle { border-top:1px solid var(--line); margin-top:12px; }
+.sidebar-exit { border-top:1px solid var(--line); margin-top:12px; }
 .sidebar-tooltip { display:block; max-width:280px; overflow-wrap:anywhere; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text); box-shadow:0 4px 16px #0002; font-size:12px; pointer-events:none; }
 .new-note-formats { min-width:180px; box-shadow:0 8px 24px #0002; }
 .tag-filter-header { gap:6px; }
@@ -392,3 +392,49 @@ app-attachments { position: relative; }
 .app-confirm-dialog .dialog-detail { background: var(--bg); border-radius: 8px; padding: 12px; color: var(--muted); }
 .app-confirm-dialog footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
 .app-confirm-dialog footer button { margin: 0; }
+
+.security-dialog label:not(.setting-row) { display: grid; gap: 8px; margin-block: 16px; }
+.security-dialog input, .security-dialog textarea { width: 100%; box-sizing: border-box; }
+.security-dialog .password-field input, .security-dialog textarea { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); }
+.password-field { display: flex; position: relative; align-items: center; }
+.security-dialog .password-field input { padding-right: 46px; }
+.password-field .password-visibility { position: absolute; right: 5px; width: 32px; height: 32px; }
+.editor-selection { display: contents; }
+.schema-version-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-block: 16px; }.schema-version-row button { margin: 0; }
+.editor-empty-state { display: flex; flex: 1; min-height: 300px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: var(--muted); padding: 40px 16px; }
+.editor-empty-state app-icon { color: var(--accent); }.editor-empty-state app-icon svg { width: 40px; height: 40px; }
+.editor-empty-state h2 { margin: 0; color: var(--text); font-size: 18px; font-weight: 600; }.editor-empty-state p { margin: 0; font-size: 13px; }
+.security-dialog textarea { resize: none; font-family: Consolas, monospace; }
+.security-dialog .setting-row input { width: auto; }
+
+.passkey-screen { min-height: 100vh; display: grid; place-items: center; padding: 32px; box-sizing: border-box; }
+.passkey-card { max-width: 500px; text-align: center; padding: 40px; }
+.passkey-card p { line-height: 1.7; }
+.passkey-logo { width: 64px; height: 64px; }
+.passkey-card button { margin: 8px auto; }
+
+.note-meta { align-items:center; }
+.note-meta-end { display:inline-flex; align-items:center; gap:7px; }
+.note-lock-state, .note-pin-state { display:inline-flex; align-items:center; color:var(--accent); }
+.note-lock-state app-icon, .note-lock-state svg, .note-pin-state app-icon, .note-pin-state svg { width:14px; height:14px; }
+
+.folder-browser-row { display:flex; align-items:center; }
+.folder-browser-row > button[cdkMenuItem] { flex:1; min-width:0; }
+.folder-browser-menu .folder-browser-toggle { flex:0 0 24px; width:24px; padding:3px; justify-content:center; }
+.folder-browser-row:not(:has(.folder-browser-toggle)) { margin-left:24px; }
+
+.recovery-print-actions { display:flex; gap:10px; flex-wrap:wrap; margin:16px 0; }
+.pdf-file-icon { position:relative; display:inline-flex; padding-bottom:5px; }
+.pdf-file-icon small { position:absolute; bottom:0; left:50%; transform:translateX(-50%); font-size:6px; line-height:8px; font-weight:700; background:var(--surface); }
+
+.recovery-preview { display:flex; flex-direction:column; max-height:calc(100vh - 48px); overflow:hidden; }
+.recovery-preview-scroll { min-height:0; overflow:auto; margin-top:20px; padding:12px; background:var(--bg); border:1px solid var(--line); border-radius:8px; }
+.recovery-preview-paper { position:relative; width:100%; max-width:794px; margin:auto; }
+.recovery-preview-paper iframe { position:absolute; inset:0; display:block; width:794px; height:1123px; border:0; background:white; transform-origin:top left; box-shadow:0 2px 10px #0002; }
+.recovery-preview footer, .recovery-preview header { flex-shrink:0; }
+.recovery-preview footer { margin-top:16px; }
+
+.recovery-preview .secondary { background:var(--bg); color:var(--text); border-color:var(--line); }
+
+.select-leading-icon { flex-shrink:0; color:var(--muted); }
+.preferences .select-trigger { gap:8px; max-width:180px; }

@@ -1,8 +1,8 @@
 {
   "name": "notebookaid",
-  "version": "0.7.0-t07.6",
+  "version": "0.8.0-t08.8",
   "private": true,
-  "description": "Local notes and writing assistant - T07 history and recycle bin preview",
+  "description": "Local notes and writing assistant - T08 security preview",
   "author": "Jin Lu <it@live.cn>",
   "license": "BSD-3-Clause",
   "main": "dist/runtime/desktop/main.js",
@@ -23,6 +23,7 @@
     "@angular/core": "22.2.2",
     "@angular/forms": "22.2.2",
     "@angular/platform-browser": "22.2.2",
+    "@simplewebauthn/server": "14.0.3",
     "dompurify": "3.4.16",
     "highlight.js": "11.11.1",
     "lucide": "1.54.0",

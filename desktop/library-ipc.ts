@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { printRecovery } from './recovery-print';
 import type { ExitCommand, ExitState } from '../shared/dialog';
 import { registerDialogs } from './app-dialog';
+import { securityText } from '../src/app/security-i18n';
+import { latestNotebookSchemaVersion } from '../shared/library';
 import { lifecycleText, type LifecycleKey } from '../src/app/lifecycle-i18n';
 import { NativeImportCache } from './native-import';
 import { DeltaError } from '../shared/delta-document';
@@ -13,6 +16,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { LibraryError } from '../core/library';
+import { NotebookSecurity } from '../core/security';
+import { inspectLibrary } from '../core/registry';
 import { LibraryRegistry } from '../core/registry';
 import { SettingsStore } from '../core/settings';
 import { formatExtensions, type NoteInput, type Result, type SaveRequest } from '../shared/library';
@@ -24,9 +29,9 @@ import { planImport, executeImport } from '../core/library-import';
 import { exportAttachmentFile, imageType, isSvg } from '../core/attachments';
 import type { AttachmentRequest } from '../shared/attachments';
 
-export function registerLibrary(dataPath: string, window: () => BrowserWindow | null, authorize: (event: IpcMainInvokeEvent) => void, selfTest = false, localeChanged: (locale: Locale) => void = () => {}) {
-  const dialogs = registerDialogs(authorize);
-  const showConfirmations = !selfTest || process.env['NOTEBOOKAID_DIALOG_TEST'] === '1';
+export function registerLibrary(dataPath: string, window: () => BrowserWindow | null, authorize: (event: IpcMainInvokeEvent) => void, selfTest = false, localeChanged: (locale: Locale) => void = () => {}, applicationLock?: { enabled(): boolean; lock(): void }, dialogAuthorize = authorize) {
+  const dialogs = registerDialogs(dialogAuthorize);
+  const showConfirmations = !selfTest || process.env['NOTEBOOKAID_DIALOG_TEST'] === '1' || process.env['NOTEBOOKAID_SECURITY_TEST'] === '1';
   let registry: LibraryRegistry | null = null;
   let settings: SettingsStore | null = null;
   const currentLocale = (): Locale => {
@@ -38,7 +43,11 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   };
   const nativeImports = new NativeImportCache();
   let choosing = false;
+  let lastActivity = Date.now(), locking = false;
   let pendingImport: { owner: string; plan: ReturnType<typeof planImport> } | null = null;
+  let sourceSecurity: NotebookSecurity | null = null;
+  let selectedImport: { owner: string; path: string } | null = null;
+  const clearImport = () => { sourceSecurity?.lock(); sourceSecurity = null; pendingImport = null; selectedImport = null; };
   const manager = () => registry ??= new LibraryRegistry(dataPath, process.env['NOTEBOOKAID_TEST_HOME'] ? join(dataPath, 'library') : join(app.getPath('appData'), 'NotebookAid', 'library'), selfTest ? stage => {
     if ((stage === 'journal' && existsSync(join(dataPath, 'simulate-write-failure'))) || (stage === 'registry' && existsSync(join(dataPath, 'simulate-registry-failure')))) throw new Error('Simulated write failure');
   } : undefined);
@@ -68,6 +77,37 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       catch (error) { return { ok: false, code: (error instanceof LibraryError || error instanceof DeltaError) ? error.code : 'WRITE_FAILED' }; }
     });
   };
+  handle('security', async (_owner, request: import('../shared/security').SecurityRequest) => {
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE');
+    choosing = true;
+    try { const result = await get().securityCommand(request); lastActivity = Date.now(); nativeImports.clear(); clearImport(); return result; }
+    finally { choosing = false; }
+  });
+  handle('securityPreference', (_owner, value) => get().setSecurityPreference(value));
+  handle('printRecovery', async (_owner, mode, key) => {
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE');
+    const state = get().status().security;
+    if (!state?.configured || !state.unlocked) throw new LibraryError('NOTEBOOK_LOCKED');
+    const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
+    choosing = true;
+    try { return await printRecovery(target, mode, key, currentLocale(), selfTest && process.env['NOTEBOOKAID_SECURITY_TEST'] === '1' ? dataPath : undefined); }
+    finally { choosing = false; }
+  });
+  handle('upgradeLibrary', async (_owner, id: string, expected: number) => {
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE');
+    const entry = manager().state().entries.find(item => item.id === id);
+    if (!entry || entry.availability !== 'available') throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
+    if (entry.schemaVersion === latestNotebookSchemaVersion) return manager().upgrade(id, expected);
+    const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
+    choosing = true;
+    try {
+      const accepted = await dialogs.ask(target, { kind: 'warning', title: translate(currentLocale(), 'upgradeSchema'), message: translate(currentLocale(), 'schemaUpgradePrompt').replace('{version}', String(latestNotebookSchemaVersion)), cancelLabel: translate(currentLocale(), 'cancelOperation'), confirmLabel: translate(currentLocale(), 'upgradeSchema') });
+      return accepted ? manager().upgrade(id, expected) : null;
+    } finally { choosing = false; }
+  });
+  handle('protectNote', (_owner, id, version, encrypted) => get().protect(id, version, encrypted));
+  handle('noteVisibility', (_owner, id, version, visible) => get().setVisibility(id, version, visible));
+  ipcMain.on('library:activity', event => { try { authorize(event as IpcMainInvokeEvent); lastActivity = Date.now(); } catch { /* Ignore untrusted activity. */ } });
   const confirmLifecycle = async (key: LifecycleKey, action: () => unknown, upgrade = false, count?: number) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
     choosing = true;
@@ -95,12 +135,19 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   handle('purgeNote', async (_owner, id, version, op) => !!await confirmLifecycle('confirmPurge', () => { get().purge(id, version, op); return true; }));
   handle('deleteOrganization', (_owner, kind, id, version) => confirmLifecycle('confirmRemove', () => get().deleteOrganization(kind, id, version), JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 6));
   handle('status', () => get().status());
-  handle('previewImport', async (owner) => {
+  handle('cancelImport', () => { if (choosing) throw new LibraryError('LIBRARY_IN_USE'); clearImport(); });
+  handle('previewImport', async (owner, credential?: string) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
     choosing = true; pendingImport = null;
     try {
-      const source = await choosePath(); if (!source) return null;
-      const plan = planImport(source, get().path); pendingImport = { owner, plan }; return plan.preview;
+      if (get().securityState().configured && !get().securityState().unlocked) throw new LibraryError('NOTEBOOK_LOCKED');
+      const source = credential !== undefined ? selectedImport?.owner === owner ? selectedImport.path : null : await choosePath(); if (!source) { clearImport(); return null; }
+      sourceSecurity?.lock(); sourceSecurity = null;
+      selectedImport = { owner, path: source };
+      const inspected = inspectLibrary(source);
+      sourceSecurity = new NotebookSecurity(inspected.path, inspected.libraryId, undefined, true);
+      if (sourceSecurity.configured) { if (credential === undefined) throw new LibraryError('BAD_CREDENTIAL'); await sourceSecurity.unlock(credential); }
+      const plan = planImport(source, get().path, { source: sourceSecurity, target: get().importSecurity() }); pendingImport = { owner, plan }; return plan.preview;
     } finally { choosing = false; }
   });
   handle('confirmImport', (owner, token: string) => {
@@ -108,7 +155,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     const plan = pendingImport.plan; pendingImport = null; choosing = true;
     try { const result = executeImport(plan); get().reloadImported(); return result; }
     catch (error) { if (existsSync(join(plan.target.path, 'import-transaction.json'))) manager().close(); throw error; }
-    finally { choosing = false; }
+    finally { clearImport(); choosing = false; }
   });
   handle('settings', (_owner, legacy: unknown) => {
     settings ??= new SettingsStore(dataPath, legacy, selfTest ? () => { if (existsSync(join(dataPath, 'simulate-settings-failure'))) throw new Error('Simulated settings failure'); } : undefined);
@@ -130,9 +177,12 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   handle('unlinkAttachment', (owner, request: AttachmentRequest, id: string) => get().unlinkAttachment(request, owner, id));
   handle('renameAttachment', (owner, request: AttachmentRequest, id: string, name: string) => get().renameAttachment(request, owner, id, name));
   handle('previewAttachment', async (_owner, noteId: string, id: string) => {
-    const bytes = get().attachmentBytes(noteId, id), mediaType = imageType(bytes);
-    if (isSvg(bytes) || /\.svg$/i.test(get().read(noteId).attachments!.find(item => item.id === id)!.name)) {
+    const library = get(), bytes = library.attachmentBytes(noteId, id), mediaType = imageType(bytes);
+    try {
+    if (isSvg(bytes) || /\.svg$/i.test(library.read(noteId).attachments!.find(item => item.id === id)!.name)) {
       const clean = await cleanSvg(bytes);
+      if (get() !== library) throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
+      library.read(noteId);
       return { mediaType: 'image/svg+xml', dataUrl: 'data:image/svg+xml;base64,' + Buffer.from(clean.body).toString('base64'), removedUnsafeSvg: clean.removed };
     }
     if (mediaType.startsWith('image/')) return { mediaType, dataUrl: `data:${mediaType};base64,${bytes.toString('base64')}` };
@@ -140,6 +190,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       try { const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); if (!text.includes('\0')) return { mediaType: 'text/plain', text }; } catch { /* Binary files remain exportable without execution. */ }
     }
     return { mediaType };
+    } finally { bytes.fill(0); }
   });
   handle('addAttachment', async (owner, request: AttachmentRequest) => {
     const target = window(); if (!target || choosing) throw new LibraryError('LIBRARY_IN_USE');
@@ -165,15 +216,18 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   handle('exportAttachment', async (_owner, noteId: string, id: string) => {
     const target = window(); if (!target || choosing) throw new LibraryError('LIBRARY_IN_USE');
     choosing = true;
+    let bytes: Buffer | undefined;
     try {
-      const bytes = get().attachmentBytes(noteId, id), item = get().read(noteId).attachments!.find(row => row.id === id)!;
+      const note = get().read(noteId), item = note.attachments!.find(row => row.id === id)!;
+      if (note.encrypted && !await confirmPlainExport(target)) return false;
+      bytes = get().attachmentBytes(noteId, id);
       let path: string | null | undefined;
       if (selfTest) path = await fileDialog();
       else { const result = await dialog.showSaveDialog(target, { defaultPath: item.name }); path = result.canceled ? null : result.filePath; }
       if (!path) return false;
       exportAttachmentFile(path, bytes, [dataPath, app.isPackaged ? dirname(process.execPath) : app.getAppPath(), ...manager().state().entries.map(entry => entry.path)]);
       return true;
-    } finally { choosing = false; }
+    } finally { bytes?.fill(0); choosing = false; }
   });
   handle('create', async (owner, id: string, input?: NoteInput) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
@@ -240,13 +294,16 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       const cleaned = await cleanHtmlImport(input.body);
       return { ...input, body: cleaned.body, removed: cleaned.removed };
     }
-    finally { choosing = false; }
+    finally { clearImport(); choosing = false; }
   });
   handle('exportFile', async (_owner, input: NoteInput) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
     if (!input || !Object.hasOwn(formatExtensions, input.primaryFormat) || typeof input.body !== 'string' || Buffer.byteLength(input.body) > 2 * 1024 * 1024) throw new LibraryError('INVALID_INPUT');
     choosing = true;
     try {
+      const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
+      const exported = input.attachmentNoteId ? get().read(input.attachmentNoteId) : undefined;
+      if (exported?.encrypted && !await confirmPlainExport(target)) return false;
       const path = await fileDialog(input); if (!path) return false;
       const library = get();
       const note = input.primaryFormat === 'delta' ? library.read(input.attachmentNoteId ?? '') : undefined;
@@ -255,12 +312,13 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       return true;
     } finally { choosing = false; }
   });
+  const confirmPlainExport = async (target: BrowserWindow): Promise<boolean> => !showConfirmations || dialogs.ask(target, { kind: 'warning', title: translate(currentLocale(), 'exportCopy'), message: securityText(currentLocale(), 'plainExport'), cancelLabel: securityText(currentLocale(), 'cancel'), confirmLabel: securityText(currentLocale(), 'confirm') });
   handle('begin', (owner, id: string) => get().begin(id, owner));
   handle('end', (owner, token: string, generation: string) => get().end(token, generation, owner));
   handle('save', (owner, request: SaveRequest) => get().save(request, owner));
   handle('rebuild', () => get().rebuild());
   handle('registry', () => manager().state());
-  handle('activate', (_owner, id: string) => { if (choosing) throw new LibraryError('LIBRARY_IN_USE'); return manager().activate(id); });
+  handle('activate', (_owner, id: string) => { if (choosing) throw new LibraryError('LIBRARY_IN_USE'); clearImport(); nativeImports.clear(); return manager().activate(id); });
   handle('register', (_owner, mode: 'existing' | 'create') => {
     if (mode !== 'existing' && mode !== 'create') throw new LibraryError('INVALID_INPUT');
     return chooseFor(path => manager().add(path, mode));
@@ -280,14 +338,32 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     const timer = setTimeout(() => finish(null), 15000);
     ipcMain.on('library:exit-result', listener); target.webContents.send('library:flush-exit', id, command);
   });
+  const autoLock = setInterval(() => {
+    const testIdle = selfTest && existsSync(join(dataPath, 'simulate-security-idle'));
+    if (!registry || choosing || locking || (!testIdle && Date.now() - lastActivity < 15 * 60 * 1000)) return;
+    const target = window(); if (!target || (!get().securityState().unlocked && !applicationLock?.enabled())) return;
+    locking = true;
+    void (async () => {
+      let reloaded = false;
+      try {
+        const state = await exitState(target, 'save');
+        if (state?.saved && !state.dirty && !state.busy) { get().lockSecurity(); nativeImports.clear(); clearImport(); target.webContents.send('library:locked'); if (applicationLock?.enabled()) { reloaded = true; applicationLock.lock(); } }
+      } finally { lastActivity = Date.now(); if (!reloaded) await exitState(target, 'resume'); locking = false; }
+    })();
+  }, 5000);
+  autoLock.unref();
   return {
     locale: currentLocale,
-    release: (owner: string) => { dialogs.cancel(); nativeImports.clear(owner); if (pendingImport?.owner === owner) pendingImport = null; registry?.release(owner); },
-    close: () => { dialogs.cancel(); nativeImports.clear(); registry?.close(); registry = null; },
+    theme: () => { try { return (settings ?? (existsSync(join(dataPath, 'settings.json')) ? new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }) : null))?.get().global.theme ?? 'system'; } catch { return 'system' as const; } },
+    lock: () => { nativeImports.clear(); clearImport(); if (registry?.state().activeId) get().lockSecurity(); },
+    release: (owner: string) => { dialogs.cancel(); nativeImports.clear(owner); clearImport(); registry?.release(owner); if (registry?.state().activeId) registry.get().lockSecurity(); },
+    close: () => { clearInterval(autoLock); clearImport(); dialogs.cancel(); nativeImports.clear(); registry?.close(); registry = null; },
     flush: async (): Promise<boolean> => {
       const target = window(); if (!target || target.webContents.isDestroyed()) return false;
       const state = await exitState(target, 'save');
-      return !!state?.saved && !state.dirty && !state.busy;
+      const saved = !!state?.saved && !state.dirty && !state.busy;
+      if (!saved) await exitState(target, 'resume');
+      return saved;
     },
     confirmExit: async (): Promise<boolean> => {
       const target = window(); if (!target || choosing) return false;

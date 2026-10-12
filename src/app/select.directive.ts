@@ -1,7 +1,7 @@
 import { AfterViewInit, Directive, DoCheck, ElementRef, OnDestroy, inject } from '@angular/core';
 import { Overlay, type OverlayRef } from '@angular/cdk/overlay';
 import { DomPortal } from '@angular/cdk/portal';
-import { Check, ChevronDown, createElement } from 'lucide';
+import { Check, ChevronDown, Languages, SunMoon, createElement } from 'lucide';
 import { Subscription } from 'rxjs';
 
 let nextId = 0;
@@ -36,6 +36,7 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
     const testId = this.select.dataset['testid']; if (testId) button.dataset['selectTrigger'] = testId;
     this.label = document.createElement('span'); this.label.className = 'select-value';
     const arrow = createElement(ChevronDown, { width: '16', height: '16', 'stroke-width': '1.8', 'aria-hidden': 'true', class: 'select-arrow' });
+    if (testId === 'language' || testId === 'theme') button.append(createElement(testId === 'language' ? Languages : SunMoon, { width: '18', height: '18', 'stroke-width': '1.65', 'aria-hidden': 'true', class: 'select-leading-icon' }));
     button.append(this.label, arrow); this.select.after(button);
     button.addEventListener('click', this.click);
     button.addEventListener('keydown', this.keydown);
