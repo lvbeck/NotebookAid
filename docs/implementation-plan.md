@@ -28,7 +28,7 @@
 | T07 | 回收站、恢复、主动永久删除、历史版本及保留规则 | 已批准 | 2026-10-12：“验收T07，开始下一个任务” |
 | T08 | 主密码、逐笔记加密、恢复密钥、锁定、核心可见性过滤及残留边界 | 已批准 | 2026-10-12：用户明确最后图标修正完成后验收 T08 及 T08.1–T08.7；修正已完成并验证，交付 0.8.0-t08.8 |
 | T09 | 手动／定期备份、完整性检查、恢复及存储目录迁移 | 已批准 | 2026-10-12：用户明确“去掉所有dialog标题前的info 图标，验收T09.3和T09，开始下个任务”； 用户授权 T08 完成后继续；已确认默认关闭、按笔记本选择目录后开启每日备份、错过时启动提示、不自动删除旧备份 |
-| T10 | Thunderbird Spaces、浏览搜索预览、删除、编辑定位、标签映射、事件与重连 | 待开发 | 无 |
+| T10 | Thunderbird Spaces、浏览搜索预览、删除、编辑定位、标签映射、事件与重连 | 已批准 | 2026-10-12：用户明确“验收T10，开始下个任务” |
 | T11 | ChatGPT 订阅登录、Gemini／Claude API Key、模型与连接管理 | 待开发 | 无 |
 | T12 | AI 写作、结果预览与应用、手动摘要、取消及版本冲突处理 | 待开发 | 无 |
 | T13 | Tasks ICS 导入预览、字段映射、日期时区、去重与异常报告 | 待开发 | 无 |
@@ -666,3 +666,30 @@ T09.1 已打包并更新 C:\Softwares\NotebookAid-win32-x64，部署脚本返回
 用户确认已完全退出并授权继续更新。0.9.3-t09.3 已部署到 C:\Softwares\NotebookAid-win32-x64，Prepare-TestPortable.ps1 返回 verified=true、backupCreated=false，ZIP SHA-256：216b819a1562368777108c099ac314efa7215d965ec43de1048dcc8cacc3e670。未操作用户笔记本数据；等待用户验收，不提交或开始下一任务。
 
 2026-10-12 用户明确验收 T09.3 和 T09，并授权下一任务。按要求移除所有统一确认对话框标题前的 info 图标（不留占位），保留警告和安全操作专用图标。T09.1 已独立提交；本轮准备提交其余已批准 T09 范围，随后开始 T10。
+
+## T10 开发记录（2026-10-12）
+
+T09／T09.3 已提交本地 main：ec7ac53，未推送。T10 接入现有 addon 安全核心、协议握手、分块预览、回收站及桌面定位，追加独立配置的标签映射字段（不改笔记架构）、无正文失效游标和重连。官方 API 已核对 Spaces 和 messages.tags。按最新要求将侧栏选择笔记本及锁定／解锁移至新建笔记上方。新增 UI 沿用主题，不增加桌面永久操作行。T10 等待验证和用户验收，不提交或开始 T11。
+
+T10 开发版实际 C# 桥接／模拟 addon UI／重启通过（output/addon-packaged/1791830523012）；此前 output/addon-packaged/1791830015868 已通过基础用例。首次测试存在 TypeScript 引号、返回函数对象不可克隆、编辑会话隐藏拒绝未检查，以及退出取消尚未结束就收尾等夹具问题；修正后通过。后续 UUID 开头为数字时 CSS 选择器缺少引号造成随机失败，已修正。预览截图已检查，修正 hidden 属性被布局 CSS 覆盖和刷新时筛选器状态丢失。全量核心 151 项（output/t10-core-full.txt）：144 通过，7 项仅因沙箱禁止创建链接失败，获权限后 3 项及另外 4 项（output/t10-link-retest.txt）全部复测通过。最终 addon／后台／栅格图片权限专项 9/9。未重跑全部核心；后续限定修改不涉及其他核心路径。避免轮询扫描所有笔记本封面及加密清单，改为缓存登记名称及核心变化监听。
+
+
+最终便携版 T10 实际 C# Native Messaging／模拟 addon 页面及重启通过（output/addon-packaged/1791830729356），确认无标题 info 图标、侧栏入口位置、搜索过滤、富文本预览、隐藏失效、编辑中删除拒绝、桌面定位、标签映射及回收站。最终图片类型白名单专项通过，仅允许 PNG／JPEG／GIF／WebP；SVG 不在 addon 渲染。全部检查和截图仍不能替代用户 Thunderbird Spaces、权限、真实安装、标签事件及大图片性能测试。T10 待用户验收，T11 未启动。
+
+T10 ZIP／XPI 已交付，C:\Softwares\NotebookAid-win32-x64 已更新为 0.10.0-t10.0，部署 verified=true、backupCreated=false。ZIP SHA-256：e80f735659773a7da6e0ceccb1eac3da43e6b3e7fc1e5a4a40c5205027ec4360；XPI SHA-256：220b619c1a6b259d33c2fa9280eecbfc2cac4a5f036f8de8a959325a6835aa72。XPI 压缩目录路径已改为规范正斜杠，所有必要脚本／样式／图标／许可证条目和内部版本 0.10.0 校验通过；旧 Compress-Archive 生成反斜杠条目，已替换其 addon 打包部分（未改变便携程序打包流程）。首次 Windows PowerShell 加载 ZipArchiveMode 类型失败，补充加载 System.IO.Compression 后生成及校验通过。未安装到用户 Thunderbird 配置或修改注册表；用户按 t10-testing.md 实机验收。T10 不提交，T11 未开始。
+
+2026-10-12 T10 验收修订：用户要求将同步标签按钮改为“从 Thunderbird 导入标签”。八语言对应文字同步改为明确的 Thunderbird → 笔记本方向；功能和协议不变，桌面包 0.10.0-t10.1、XPI 0.10.1。等待打包部署与用户验收，不提交或开始 T11。
+
+用户随后明确更正：生成的 XPI 改名为 NotebookAid.xpi，以后使用此名称。已更新打包脚本、当前验收指南及本轮交付文件；既有 addon ID、Native Messaging 主机名和协议保持兼容，历史保留版本 ZIP 不重写。
+
+0.10.0-t10.1 已打包并更新 C:\Softwares\NotebookAid-win32-x64，verified=true、backupCreated=false。addon 后台／清单已有检查 2/2，通过 XPI 内部版本及中文新文案核对；未重跑 Electron 或全部核心回归，业务行为不变。ZIP SHA-256：810df1860642b488587dbe9d73660f5abc1612f0fc953da0972a8662609a1a25；NotebookAid.xpi SHA-256：e9c3de189c13eefbf1f38f64b8ee2003d44cb1b6e41dab029e59c9581b789d1e。后续交付固定使用 NotebookAid.xpi；未安装到用户 Thunderbird 配置，需用户重新加载或安装此 XPI。T10 等待验收，不提交、不开始 T11。
+
+T10 标识与兼容迁移追加授权：用户明确要求内部标识去掉 T02，同时更新插件、注册脚本与兼容迁移。本轮新主机 de.zub_systems.notebookaid、新插件 notebookaid@zub-systems.de、新管道 NotebookAid-、AppUserModelId de.zub-systems.notebookaid；旧名称只作为迁移来源及旧插件别名保留。应用状态原子复制至 NotebookAid/state，保留旧配置与实际笔记本路径。一次性 NotebookAid-Compatibility.xpi 转移旧插件标签映射命名空间；不修改用户真实注册表或安装插件。版本 0.10.0-t10.2／XPI 0.10.2，T10 等待验收。
+
+标识迁移验证：迁移／注册 mock／插件交接／Passkey／SQLite 核心专项 12/12（output/t10-identity-checks.txt）；追加关键配置丢失拒绝及 RemoveLegacy 后，迁移专项 5/5。旧目录与新目录冲突、旧进程占用、原始配置保留、Passkey 门禁延续、注册失败回滚／WhatIf／外来目录拒绝均在隔离夹具中验证，未写真实 HKCU。首次 mock 作用域不正确与 Windows PowerShell 空字符串传给 File.Replace 的夹具／兼容问题已修正并通过。开发版新管道 Native Messaging／界面／重启通过（output/addon-packaged/1791834497846）。仍需用户真实 Thunderbird 插件 ID 配置交接与 iPhone 解锁验收。
+
+最终便携版新标识 Native Messaging／界面／重启通过（output/addon-packaged/1791834897174）。未修改实际用户注册表、应用状态或 Thunderbird 配置；真实旧 ID → 新 ID 扩展存储交接及 iPhone 解锁仍待用户验收。旧主机别名可由 Register-Bridge.ps1 -RemoveLegacy 在迁移确认后清理；建议先禁用兼容插件，保留回退存储。T10 待验收，不提交。
+
+0.10.0-t10.2 已打包并更新 C:\Softwares\NotebookAid-win32-x64，部署 verified=true、backupCreated=false。ZIP SHA-256：33fe53f25d67a0f66c9eacf18b17fc8a7c1c0a1954ac66e0b65fea5a1db07011。主 XPI 及兼容 XPI 的版本、ID 与规范 ZIP 路径校验通过，随包交付。注册脚本、旧配置复制及扩展配置交接仅在 mock／隔离测试中执行，未对实际用户状态迁移。需用户先重新注册，安装兼容包再装主包完成存储交接；T10 待验收，不提交、不开始 T11。
+
+2026-10-12 用户明确验收 T10 并授权下一任务。T10 包括标识统一及兼容迁移修订已获验收，按已记录的检查边界提交本地 main；不推送。随后开始 T11。

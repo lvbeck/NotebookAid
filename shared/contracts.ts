@@ -18,6 +18,8 @@ export interface RuntimeInfo {
 
 export interface PrototypeApi {
   appPasskeys(action: 'status' | 'enable' | 'unlock' | 'disable' | 'lock'): Promise<{ enabled: boolean; locked: boolean; count: number; supported: boolean; locale: string; theme: 'system' | 'light' | 'dark'; error?: string }>;
+  onAddonChanged(callback: () => void): () => void;
+  openDesktopTarget(callback: (target: import('./addon').DesktopNoteTarget) => Promise<boolean>): () => void;
   dialogs: import('./dialog').DialogApi;
   notifications: import('./notifications').NotificationApi;
   library: import('./library').LibraryApi;

@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "NotebookAid migration helper",
+  "version": "0.10.2",
+  "description": "One-time local migration of NotebookAid addon preferences.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "notebookaid-t02@zub-systems.de",
+      "strict_min_version": "157.0"
+    }
+  },
+  "permissions": [
+    "storage"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  }
+}

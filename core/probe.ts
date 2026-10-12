@@ -5,7 +5,7 @@ import type { ProbeResult } from '../shared/contracts';
 
 export function runSqliteProbe(directory: string): ProbeResult {
   mkdirSync(directory, { recursive: true });
-  const database = new DatabaseSync(join(directory, 't02-probe.sqlite'));
+  const database = new DatabaseSync(join(directory, 'probe.sqlite'));
   try {
     database.exec('CREATE TABLE IF NOT EXISTS probe (id INTEGER PRIMARY KEY CHECK (id = 1), value TEXT NOT NULL, writes INTEGER NOT NULL) STRICT');
     database.prepare('INSERT INTO probe VALUES (1, ?, 1) ON CONFLICT(id) DO UPDATE SET value = excluded.value, writes = writes + 1')

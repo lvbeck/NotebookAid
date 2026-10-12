@@ -1,3 +1,7 @@
+import { migrateAppData } from '../core/app-data';
+import { smokeAddon } from './addon-smoke';
+import { AddonService } from '../core/addon';
+import type { AddonRequest, DesktopNoteTarget } from '../shared/addon';
 import { translate, type Locale } from '../src/app/i18n';
 import { smokeHtmlImport } from './html-import-smoke';
 import { smokeLibrary } from './smoke';
@@ -18,11 +22,11 @@ import { smokePasskey } from './passkey-smoke';
 
 const selfTest = process.argv.includes('--self-test') || process.argv.includes('--self-test-reopen');
 const background = process.argv.includes('--background');
-const dataPath = process.env['NOTEBOOKAID_TEST_HOME'] || join(app.getPath('appData'), 'NotebookAid-T02');
+const dataPath = process.env['NOTEBOOKAID_TEST_HOME'] || migrateAppData(app.getPath('appData'), pid => { try { process.kill(pid,0); return true; } catch { return false; } });
 mkdirSync(dataPath, { recursive: true });
 app.setPath('userData', dataPath);
 app.setPath('sessionData', join(dataPath, 'session'));
-app.setAppUserModelId('de.zub-systems.notebookaid.t02');
+app.setAppUserModelId('de.zub-systems.notebookaid');
 const hasLock = app.requestSingleInstanceLock();
 if (!hasLock) app.quit();
 else void app.whenReady().then(start).catch(error => {
@@ -36,6 +40,8 @@ let tray: Tray | null = null;
 let server: Server | null = null;
 let quitting = false;
 let exitPending = false;
+let addon: AddonService;
+let addonWaiters = 0;
 let editorWindowBounds: Electron.Rectangle | null = null;
 let storage: ReturnType<typeof registerLibrary>;
 let notifications: ReturnType<typeof registerNotifications>;
@@ -62,7 +68,7 @@ function runtime(): RuntimeInfo {
 async function createWindow(show = true): Promise<BrowserWindow> {
   if (mainWindow && !mainWindow.isDestroyed()) { if (show) mainWindow.show(); return mainWindow; }
   mainWindow = new BrowserWindow({ width: 1300, height: 860, minWidth: 960, minHeight: 640, show: false,
-    title: 'NotebookAid · T09', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
+    title: 'NotebookAid · T10', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
     webPreferences: { preload: join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false }
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -114,7 +120,7 @@ async function start(): Promise<void> {
     return { enabled: passkeys.gate.enabled, locked: !passkeys.gate.unlocked, count: passkeys.gate.count, supported: await passkeys.supported(), locale: storage.locale(), theme: storage.theme(), ...(error ? { error } : {}) };
   });
   tray = new Tray(nativeImage.createFromPath(join(app.getAppPath(), 'assets/notebookaid.ico')));
-  tray.setToolTip('NotebookAid · T09');
+  tray.setToolTip('NotebookAid · T10');
   updateTray(storage.locale());
   tray.on('double-click', () => { void createWindow(); });
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });
@@ -135,6 +141,7 @@ async function start(): Promise<void> {
     }
   });
   ipcMain.handle('prototype:quit', event => { authorize(event); quitByUser(); });
+  addon = new AddonService(() => ({ ...storage.addonContext(), unlocked: passkeys.gate.unlocked, appVersion: app.getVersion() }), openDesktopNote);
   await startBridge();
   if (!background || selfTest) {
     const window = await createWindow(!selfTest);
@@ -142,23 +149,46 @@ async function start(): Promise<void> {
   }
 }
 
+async function openDesktopNote(target: DesktopNoteTarget): Promise<boolean> {
+  const window = await createWindow();
+  if (window.isMinimized()) window.restore(); window.show(); window.focus();
+  return new Promise(resolveResult => {
+    const id = randomBytes(16).toString('hex');
+    const finish = (ok: boolean) => { clearTimeout(timer); ipcMain.removeListener('prototype:open-note-result', listener); resolveResult(ok); };
+    const listener = (event: Electron.IpcMainEvent, responseId: unknown, ok: unknown) => { if (responseId === id && event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame) finish(ok === true); };
+    const timer = setTimeout(() => finish(false), 20000); ipcMain.on('prototype:open-note-result', listener);
+    window.webContents.send('prototype:open-note', id, target);
+  });
+}
 async function startBridge(): Promise<void> {
-  const name = 'NotebookAid-T02-' + createHash('sha256').update(dataPath.toLowerCase()).digest('hex').slice(0, 24);
+  const name = 'NotebookAid-' + createHash('sha256').update(dataPath.toLowerCase()).digest('hex').slice(0, 24);
   const pipePath = '\\\\.\\pipe\\' + name;
   server = createServer(socket => {
-    socket.setTimeout(5000, () => socket.destroy());
+    socket.setTimeout(25000, () => socket.destroy());
     socket.on('error', () => socket.destroy());
     const decoder = new FrameDecoder();
     socket.on('data', chunk => {
       try {
         for (const raw of decoder.push(chunk)) {
-          const request = raw as { token?: unknown; method?: unknown };
+          const request = raw as AddonRequest & { token?: unknown };
           const token = typeof request?.token === 'string' ? Buffer.from(request.token) : Buffer.alloc(0);
           const expected = Buffer.from(sessionToken);
           if (token.length !== expected.length || !timingSafeEqual(token, expected)) throw new Error('Unauthorized');
-          if (request.method !== 'status' && request.method !== 'open') throw new Error('Invalid operation');
-          if (request.method === 'open') void createWindow();
-          socket.write(encodeFrame({ ok: true, ...runtime(), windowVisible: mainWindow?.isVisible() ?? false }));
+          if (request.method === 'status' || request.method === 'open') {
+            if (request.method === 'open') void createWindow();
+            socket.write(encodeFrame({ ok: true, ...runtime(), windowVisible: mainWindow?.isVisible() ?? false }));
+          } else {
+            void (async () => {
+              let result = await addon.request(request);
+              if (result.ok && ['trash', 'mapTags'].includes(request.method)) mainWindow?.webContents.send('prototype:addon-changed');
+              if (request.method === 'changes' && result.ok && !result.value.resyncRequired && addonWaiters < 8) {
+                addonWaiters++;
+                try { for (let i = 0; i < 60 && !socket.destroyed; i++) { await new Promise(resolve => setTimeout(resolve, 250)); result = await addon.request(request); if (!result.ok || result.value.resyncRequired) break; } }
+                finally { addonWaiters--; }
+              }
+              if (!socket.destroyed) { try { socket.end(encodeFrame(result)); } catch { socket.end(encodeFrame({ ok: false, code: 'RESPONSE_TOO_LARGE' })); } }
+            })().catch(() => { if (!socket.destroyed) socket.end(encodeFrame({ ok: false, code: 'BACKGROUND_UNAVAILABLE' })); });
+          }
         }
       } catch { socket.end(encodeFrame({ ok: false, error: 'INVALID_OR_UNAUTHORIZED_REQUEST' })); }
     });
@@ -185,6 +215,7 @@ app.on('window-all-closed', () => { /* The explicit Exit command owns background
 app.on('before-quit', event => {
   if (!quitting && storage) { event.preventDefault(); void quitByUser(); return; }
   quitting = true;
+  addon?.close();
   server?.close();
   tray?.destroy();
   storage?.close();
@@ -196,6 +227,7 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if (process.env['NOTEBOOKAID_ADDON_TEST'] === '1') { await smokeAddon(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_PASSKEY_TEST'] === '1') { await smokePasskey(window, dataPath, passkeys.gate); await quitByUser(true); return; }
     if (!process.argv.includes('--self-test-reopen')) await smokeHtmlImport(dataPath);
     await smokeLibrary(window, dataPath, rendererErrors);

@@ -1,6 +1,6 @@
 import type { SaveRequest } from './library';
 export interface Folder { id: string; name: string; parentId: string | null; order?: number; }
-export interface Tag { id: string; name: string; color: string; }
+export interface Tag { id: string; name: string; color: string; thunderbird?: { profileId: string; key: string; missing: boolean }; }
 export interface Organization { schemaVersion: 1; version: number; folders: Folder[]; tags: Tag[]; }
 export type OrganizationEditInput = { kind: 'folder' | 'tag'; id: string; name: string; parentId?: string | null; color?: string } | { kind: 'folder-order'; ids: string[] };
 export type OrganizationEdit = OrganizationEditInput & { expectedVersion: number };

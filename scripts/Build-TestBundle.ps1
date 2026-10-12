@@ -4,8 +4,8 @@ $releaseRoot = Join-Path $workspace 'release'
 $version = (Get-Content -LiteralPath (Join-Path $workspace 'package.json') -Raw | ConvertFrom-Json).version
 if ($version -notmatch '^[0-9A-Za-z.-]+$') { throw 'Invalid package version' }
 $packageRoot = Join-Path (Join-Path $releaseRoot $version) 'NotebookAid-win32-x64'
-$addonArchive = Join-Path $releaseRoot 'NotebookAid-T02.zip'
-$addonPath = Join-Path $releaseRoot 'NotebookAid-T02.xpi'
+$addonArchive = Join-Path $releaseRoot 'NotebookAid.zip'
+$addonPath = Join-Path $releaseRoot 'NotebookAid.xpi'
 $bundlePath = Join-Path $releaseRoot "NotebookAid-$version-win-x64.zip"
 foreach ($target in @($packageRoot, $addonArchive, $addonPath, $bundlePath)) {
     if (-not ([System.IO.Path]::GetFullPath($target).StartsWith($workspace + '\', [System.StringComparison]::OrdinalIgnoreCase))) { throw 'Output is outside the workspace' }
@@ -19,6 +19,7 @@ Copy-Item -LiteralPath (Join-Path $workspace 'docs/t03c-testing.md') -Destinatio
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t04-testing.md') -Destination (Join-Path $packageRoot 'T04-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/html-import-policy.md') -Destination (Join-Path $packageRoot 'html-import-policy.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t07-testing.md') -Destination (Join-Path $packageRoot 'T07-TESTING.md') -Force
+Copy-Item -LiteralPath (Join-Path $workspace 'docs/t10-testing.md') -Destination (Join-Path $packageRoot 'T10-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t09-testing.md') -Destination (Join-Path $packageRoot 'T09-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t09-restore-testing.md') -Destination (Join-Path $packageRoot 'T09-RESTORE-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t09-appearance-testing.md') -Destination (Join-Path $packageRoot 'T09-APPEARANCE-TESTING.md') -Force
@@ -28,11 +29,34 @@ Copy-Item -LiteralPath (Join-Path $workspace 'docs/t06a-testing.md') -Destinatio
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t06-testing.md') -Destination (Join-Path $packageRoot 'T06-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t05-testing.md') -Destination (Join-Path $packageRoot 'T05-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t05a-testing.md') -Destination (Join-Path $packageRoot 'T05A-TESTING.md') -Force
-Compress-Archive -Path @((Join-Path $workspace 'thunderbird/*'), (Join-Path $workspace 'LICENSE')) -DestinationPath $addonArchive -Force
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression
+$addonRoot = Join-Path $workspace 'thunderbird'
+$addonStream = [IO.File]::Open($addonArchive, [IO.FileMode]::Create)
+$addonZip = New-Object IO.Compression.ZipArchive($addonStream, [IO.Compression.ZipArchiveMode]::Create)
+try {
+    foreach ($source in Get-ChildItem -LiteralPath $addonRoot -Recurse -File) {
+        $entryName = $source.FullName.Substring($addonRoot.Length + 1).Replace('\', '/')
+        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($addonZip, $source.FullName, $entryName, [IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+    [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($addonZip, (Join-Path $workspace 'LICENSE'), 'LICENSE', [IO.Compression.CompressionLevel]::Optimal) | Out-Null
+} finally { $addonZip.Dispose(); $addonStream.Dispose() }
 Copy-Item -LiteralPath $addonArchive -Destination $addonPath -Force
-Copy-Item -LiteralPath $addonPath -Destination (Join-Path $packageRoot 'NotebookAid-T02.xpi') -Force
+Copy-Item -LiteralPath $addonPath -Destination (Join-Path $packageRoot 'NotebookAid.xpi') -Force
+$compatPath = Join-Path $releaseRoot 'NotebookAid-Compatibility.xpi'
+$compatRoot = Join-Path $workspace 'thunderbird-compat'
+$compatStream = [IO.File]::Open($compatPath, [IO.FileMode]::Create)
+$compatZip = New-Object IO.Compression.ZipArchive($compatStream, [IO.Compression.ZipArchiveMode]::Create)
+try {
+    foreach ($source in Get-ChildItem -LiteralPath $compatRoot -Recurse -File) {
+        $entryName = $source.FullName.Substring($compatRoot.Length + 1).Replace('\', '/')
+        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($compatZip, $source.FullName, $entryName, [IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+    [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($compatZip, (Join-Path $workspace 'LICENSE'), 'LICENSE', [IO.Compression.CompressionLevel]::Optimal) | Out-Null
+} finally { $compatZip.Dispose(); $compatStream.Dispose() }
+Copy-Item -LiteralPath $compatPath -Destination (Join-Path $packageRoot 'NotebookAid-Compatibility.xpi') -Force
 Compress-Archive -LiteralPath $packageRoot -DestinationPath $bundlePath -CompressionLevel Optimal -Force
-$hashes = @($bundlePath, $addonPath) | ForEach-Object {
+$hashes = @($bundlePath, $addonPath, $compatPath) | ForEach-Object {
     $hash = Get-FileHash -LiteralPath $_ -Algorithm SHA256
     "$($hash.Hash.ToLowerInvariant())  $([System.IO.Path]::GetFileName($_))"
 }

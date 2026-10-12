@@ -4,6 +4,8 @@
     <div class="brand"><img class="brand-mark" src="assets/notebookaid-64.png" alt=""><strong>NotebookAid</strong></div>
     <p class="tagline">{{ t('tagline') }}</p>
     <div class="sidebar-actions">
+      <button class="nav-item" data-testid="libraries-tab" [class.active]="tab() === 'libraries'" (click)="showLibraries()" [disabled]="workspace.switching()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('chooseLibrary') : ''" [attr.aria-label]="t('chooseLibrary')"><app-icon name="BookOpen" /><span class="sidebar-text">{{ t('chooseLibrary') }}</span></button>
+      <app-security mode="quick" />
       <button class="sidebar-action new-note" cdkOverlayOrigin #createOrigin="cdkOverlayOrigin" data-testid="create-note" (click)="newNoteMenuOpen.set(!newNoteMenuOpen())" [attr.aria-expanded]="newNoteMenuOpen()" aria-controls="new-note-formats" [disabled]="workspace.switching() || !workspace.status()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('newNote') : ''" [attr.aria-label]="t('newNote')"><app-icon name="Plus" /><span class="sidebar-text">{{ t('newNote') }}</span></button>
       <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="createOrigin" [cdkConnectedOverlayOpen]="newNoteMenuOpen()" [cdkConnectedOverlayPositions]="[{originX: 'end', originY: 'top', overlayX: 'start', overlayY: 'top', offsetX: 8}]" [cdkConnectedOverlayPush]="true" (overlayOutsideClick)="newNoteMenuOpen.set(false)">
         <div id="new-note-formats" class="new-note-formats" role="group" [attr.aria-label]="t('newFormat')">
@@ -54,12 +56,11 @@
     <div class="sidebar-bottom">
       <button class="nav-item" data-testid="trash-tab" [class.active]="tab() === 'trash'" (click)="tab.set('trash')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('trash') : ''" [attr.aria-label]="t('trash')"><app-icon name="Trash2" /><span class="sidebar-text">{{ t('trash') }}</span></button>
       <button class="nav-item" data-testid="diagnostics-tab" [class.active]="tab() === 'diagnostics'" (click)="tab.set('diagnostics')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('diagnostics') : ''" [attr.aria-label]="t('diagnostics')"><app-icon name="FlaskConical" /><span class="sidebar-text">{{ t('diagnostics') }}</span></button>
-      <button class="nav-item" data-testid="libraries-tab" [class.active]="tab() === 'libraries'" (click)="showLibraries()" [disabled]="workspace.switching()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('chooseLibrary') : ''" [attr.aria-label]="t('chooseLibrary')"><app-icon name="BookOpen" /><span class="sidebar-text">{{ t('chooseLibrary') }}</span></button>
-      <app-security mode="quick" /><app-passkeys [compact]="true" />
+      <app-passkeys [compact]="true" />
       <button class="nav-item" data-testid="settings-tab" [class.active]="tab() === 'settings'" (click)="tab.set('settings')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('settings') : ''" [attr.aria-label]="t('settings')"><app-icon name="Settings" /><span class="sidebar-text">{{ t('settings') }}</span></button>
       <button class="nav-item sidebar-collapse-toggle" data-testid="sidebar-toggle" (click)="toggleSidebar()" [disabled]="!prefs.ready() || prefs.busy()" [attr.aria-expanded]="!sidebarCollapsed()" [attr.aria-label]="t(sidebarCollapsed() ? 'expandSidebar' : 'collapseSidebar')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('expandSidebar') : ''"><app-icon [name]="sidebarCollapsed() ? 'PanelLeftOpen' : 'PanelLeftClose'" /><span class="sidebar-text">{{ t('collapseSidebar') }}</span></button>
       <button class="nav-item sidebar-exit" data-testid="exit-app" (click)="quit()" [appTooltip]="sidebarCollapsed() ? t('exitApp') : ''" [attr.aria-label]="t('exitApp')"><app-icon name="Power" /><span class="sidebar-text">{{ t('exitApp') }}</span></button>
-      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T09</span></div>
+      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T10</span></div>
     </div>
   </aside>
   <section class="workspace">

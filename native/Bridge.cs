@@ -12,7 +12,15 @@ internal static class Bridge
 {
     private const int MaxFrameSize = 65536;
     private static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
-    private static readonly string DataDirectory = Environment.GetEnvironmentVariable("NOTEBOOKAID_TEST_HOME") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "NotebookAid-T02");
+    private static string DataDirectory {
+        get {
+            string test = Environment.GetEnvironmentVariable("NOTEBOOKAID_TEST_HOME"); if (test != null) return test;
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string current = Path.Combine(appData, "NotebookAid", "state");
+            string legacy = Path.Combine(appData, "NotebookAid-T02");
+            return File.Exists(Path.Combine(current, "bridge-runtime.json")) ? current : File.Exists(Path.Combine(legacy, "bridge-runtime.json")) ? legacy : current;
+        }
+    }
 
     private static int Main()
     {
@@ -29,8 +37,9 @@ internal static class Bridge
                 {
                     var request = Json.Deserialize<Dictionary<string, object>>(message);
                     string method = request != null && request.ContainsKey("method") ? request["method"] as string : null;
-                    if (method != "status" && method != "open" && method != "start") throw new InvalidDataException("Unsupported operation");
-                    response = Handle(method);
+                    if (method != "status" && method != "open" && method != "start" && method != "handshake" && method != "query" && method != "organization" && method != "preview" && method != "trash" && method != "openNote" && method != "mapTags" && method != "changes" && method != "image") throw new InvalidDataException("Unsupported operation");
+                    if (method == "start" || method == "status" || method == "open") response = Handle(method);
+                    else response = CallCore(request);
                 }
                 catch (Exception error)
                 {
@@ -58,17 +67,19 @@ internal static class Bridge
         return CallCore(method);
     }
 
-    private static object CallCore(string method)
+    private static object CallCore(string method) { return CallCore(new Dictionary<string, object> { { "method", method } }); }
+    private static object CallCore(Dictionary<string, object> request)
     {
         string runtimePath = Path.Combine(DataDirectory, "bridge-runtime.json");
         if (!File.Exists(runtimePath)) throw new IOException("Open NotebookAid or choose Start background first.");
         var runtime = Json.Deserialize<Dictionary<string, object>>(File.ReadAllText(runtimePath));
         string pipeName = runtime["pipe"] as string;
-        if (pipeName == null || !pipeName.StartsWith("NotebookAid-T02-", StringComparison.Ordinal)) throw new InvalidDataException("Invalid endpoint");
+        if (pipeName == null || !pipeName.StartsWith("NotebookAid-", StringComparison.Ordinal)) throw new InvalidDataException("Invalid endpoint");
         using (var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut))
         {
             pipe.Connect(300);
-            WriteFrame(pipe, Json.Serialize(new { token = runtime["token"], method = method }));
+            request["token"] = runtime["token"];
+            WriteFrame(pipe, Json.Serialize(request));
             return Json.DeserializeObject(ReadFrame(pipe, false));
         }
     }

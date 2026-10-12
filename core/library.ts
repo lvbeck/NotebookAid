@@ -290,6 +290,7 @@ export class NoteLibrary {
     }
     names.clear();
     for (const tag of value.tags) {
+      if (tag.thunderbird) { this.id(tag.thunderbird.profileId); if (typeof tag.thunderbird.key !== 'string' || !tag.thunderbird.key || tag.thunderbird.key.length > 128 || /[\x00-\x1f]/.test(tag.thunderbird.key) || typeof tag.thunderbird.missing !== 'boolean') throw new LibraryError('INVALID_INPUT'); }
       const key = tag.name.normalize('NFKC').toLowerCase();
       if (names.has(key) || typeof tag.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(tag.color)) throw new LibraryError('INVALID_INPUT'); names.add(key);
     }
@@ -307,7 +308,7 @@ export class NoteLibrary {
       const index = next.folders.findIndex(item => item.id === input.id);
       if (index < 0) next.folders.push(row); else next.folders[index] = row;
     } else {
-      const row = { id: input.id, name: input.name.trim(), color: input.color ?? '#7460c9' };
+      const row = { ...next.tags.find(item => item.id === input.id), id: input.id, name: input.name.trim(), color: input.color ?? '#7460c9' };
       const index = next.tags.findIndex(item => item.id === input.id);
       if (index < 0) next.tags.push(row); else next.tags[index] = row;
     }
@@ -315,6 +316,30 @@ export class NoteLibrary {
     this.enableOrganization(); this.fault?.('organization');
     this.atomic(this.safe('organization.json'), JSON.stringify(next)); this.structure = next;
     return this.organization();
+  }
+  mapThunderbirdTags(profileId: unknown, tags: unknown, expectedVersion: unknown): { mapped: number; retained: number; version: number } {
+    if (typeof profileId !== 'string') throw new LibraryError('INVALID_INPUT'); this.id(profileId);
+    if (expectedVersion !== this.structure.version) throw new LibraryError('VERSION_CONFLICT');
+    if (!Array.isArray(tags) || tags.length > 500) throw new LibraryError('INVALID_INPUT');
+    const keys = new Set<string>();
+    for (const tag of tags) {
+      if (!tag || typeof tag.key !== 'string' || !tag.key || tag.key.length > 128 || /[\x00-\x1f]/.test(tag.key) || keys.has(tag.key) || typeof tag.name !== 'string' || !tag.name.trim() || tag.name.length > 80 || /[\x00-\x1f]/.test(tag.name) || typeof tag.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(tag.color)) throw new LibraryError('INVALID_INPUT');
+      keys.add(tag.key);
+    }
+    const next = this.organization(); let retained = 0;
+    for (const row of next.tags) if (row.thunderbird?.profileId === profileId) { row.thunderbird.missing = !keys.has(row.thunderbird.key); if (row.thunderbird.missing) retained++; }
+    for (const tag of tags) {
+      let row = next.tags.find(t => t.thunderbird?.profileId === profileId && t.thunderbird.key === tag.key);
+      let name = tag.name.trim(), suffix = 1;
+      const taken = (value: string) => next.tags.some(t => t.id !== row?.id && t.name.normalize('NFKC').toLowerCase() === value.normalize('NFKC').toLowerCase());
+      while (taken(name)) name = tag.name.trim().slice(0, 58) + ' (Thunderbird ' + suffix++ + ')';
+      if (!row) { row = { id: randomUUID(), name, color: tag.color, thunderbird: { profileId, key: tag.key, missing: false } }; next.tags.push(row); }
+      else { row.name = name; row.color = tag.color; row.thunderbird!.missing = false; }
+    }
+    next.version++; this.validateStructure(next); this.enableOrganization(); this.fault?.('organization');
+    this.atomic(this.safe('organization.json'), JSON.stringify(next)); this.structure = next;
+    this.events.emit('change', { noteId: '', version: 0, indexed: this.indexed });
+    return { mapped: tags.length, retained, version: next.version };
   }
   private validatePlacement(value: NotePlacement, references = true): void {
     if (value.folderId !== null) this.id(value.folderId);

@@ -468,6 +468,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     })();
   }, selfTest && process.env['NOTEBOOKAID_BACKUP_TEST'] === '1' ? 1000 : 60000); backupTimer.unref();
   return {
+    addonContext: () => { const library = get(); return { library, name: manager().currentName(), unlocked: true, locale: currentLocale(), theme: settings?.get().global.theme ?? 'system' }; },
     locale: currentLocale,
     theme: () => { try { return (settings ?? (existsSync(join(dataPath, 'settings.json')) ? new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }) : null))?.get().global.theme ?? 'system'; } catch { return 'system' as const; } },
     lock: () => { nativeImports.clear(); clearImport(); if (registry?.state().activeId) get().lockSecurity(); },

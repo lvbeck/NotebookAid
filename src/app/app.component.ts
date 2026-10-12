@@ -253,6 +253,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.editorToolsOpen.set(false); this.exportMenuOpen.set(false);
     }
   };
+  private readonly stopDesktopTarget = window.notebookAid.openDesktopTarget(async target => {
+    for (let n = 0; n < 150 && (!this.ready() || !this.workspace.status()); n++) await new Promise(resolve => setTimeout(resolve, 100));
+    if (this.workspace.status()?.libraryId !== target.libraryId) return false;
+    this.tab.set('editor'); await this.workspace.refresh(); await this.workspace.select(target.noteId);
+    return this.workspace.session()?.note.id === target.noteId;
+  });
   constructor() {
     effect(() => {
       const enabled = this.editorFullscreen();
@@ -325,6 +331,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     window.notebookAid.runtime().then(value => this.runtime.set(value)).catch(() => this.sqliteResult.set(this.t('failed')));
   }
   ngOnDestroy(): void {
+    this.stopDesktopTarget();
     document.removeEventListener('pointerdown', this.closeEditorMenus);
     this.editor?.off('text-change', this.onEditorChange);
     this.media.removeEventListener('change', this.themeListener);

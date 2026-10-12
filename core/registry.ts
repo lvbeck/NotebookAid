@@ -91,6 +91,7 @@ export class LibraryRegistry {
     if (!this.library) { valid(this.config.activeId, 'NOT_FOUND_OR_UNAVAILABLE'); this.activate(this.config.activeId); }
     return this.library!;
   }
+  currentName(): string { return this.config.entries.find(entry => entry.id === this.currentId)?.name ?? 'NotebookAid'; }
   upgrade(id: string, expected: number): import('../shared/library').LibraryUpgradeResult {
     const entry = this.entry(id), inspected = inspectLibrary(entry.path);
     valid(!entry.libraryId || entry.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');

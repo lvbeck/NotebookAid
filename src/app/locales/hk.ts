@@ -277,7 +277,7 @@ export const hongKong: Record<MessageKey, string> = {
   "welcome": "開始使用",
   "sample": "歡迎使用 NotebookAid",
   "sampleHint": "為下一個想法留一處空間",
-  "preview": "T09 備份與儲存",
+  "preview": "T10 Thunderbird 整合",
   "previewHint": "本機自動儲存 · 支援選擇性加密 · 手動及每日備份",
   "save": "儲存",
   "saving": "正在儲存…",

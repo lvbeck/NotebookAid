@@ -1,17 +1,20 @@
 {
   "manifest_version": 2,
-  "name": "NotebookAid T02 Bridge Test",
-  "version": "0.2.4",
-  "description": "Native Messaging lifecycle test for the NotebookAid T02 preview.",
+  "name": "NotebookAid",
+  "version": "0.10.2",
+  "description": "Browse local notebooks and open notes in NotebookAid.",
   "author": "Jin Lu",
   "browser_specific_settings": {
     "gecko": {
-      "id": "notebookaid-t02@zub-systems.de",
+      "id": "notebookaid@zub-systems.de",
       "strict_min_version": "157.0"
     }
   },
   "permissions": [
-    "nativeMessaging"
+    "nativeMessaging",
+    "storage",
+    "messagesRead",
+    "messagesTagsList"
   ],
   "icons": {
     "32": "icons/notebookaid-32.png",
@@ -20,12 +23,17 @@
     "128": "icons/notebookaid-128.png"
   },
   "browser_action": {
-    "default_title": "NotebookAid T02",
-    "default_popup": "popup.html",
+    "default_title": "NotebookAid",
     "default_icon": {
       "16": "icons/notebookaid-16.png",
       "32": "icons/notebookaid-32.png",
       "64": "icons/notebookaid-64.png"
     }
-  }
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_security_policy": "script-src 'self'; object-src 'none'; connect-src 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'"
 }

@@ -69,3 +69,7 @@ T01 只定义验证任务，不宣称上述能力已经通过。
 ## T03-A 实际依赖
 
 新增并锁定 `@angular/cdk@22.2.2`，其 peerDependencies 接受 Angular 22 和当前 RxJS 7.8.2；官方 npm 元数据和本地 LICENSE 均为 MIT。未升级既有 Angular／Electron 等依赖。构建声明包含 CDK 的 Google 版权及 MIT 文本；打包时另保留 CDK-LICENSE.txt。消息历史由 NotebookAid 的独立 SQLite 存储实现，不使用外部消息服务。
+
+## T10 addon 资源
+
+复用已锁定 Quill 2.0.3、marked 18.1.0、DOMPurify 3.4.16 的本地发行文件，随 XPI 保留 vendor 下许可证及既有 Lucide 许可；没有 CDN 或依赖升级。Thunderbird 官方 Spaces 与 messages.tags API 链接见 t10-testing.md。
