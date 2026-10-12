@@ -1,4 +1,6 @@
 import { migrateAppData } from '../core/app-data';
+import { registerAi } from './ai-ipc';
+import { smokeAi } from './ai-smoke';
 import { smokeAddon } from './addon-smoke';
 import { AddonService } from '../core/addon';
 import type { AddonRequest, DesktopNoteTarget } from '../shared/addon';
@@ -41,6 +43,7 @@ let server: Server | null = null;
 let quitting = false;
 let exitPending = false;
 let addon: AddonService;
+let ai: ReturnType<typeof registerAi>;
 let addonWaiters = 0;
 let editorWindowBounds: Electron.Rectangle | null = null;
 let storage: ReturnType<typeof registerLibrary>;
@@ -68,7 +71,7 @@ function runtime(): RuntimeInfo {
 async function createWindow(show = true): Promise<BrowserWindow> {
   if (mainWindow && !mainWindow.isDestroyed()) { if (show) mainWindow.show(); return mainWindow; }
   mainWindow = new BrowserWindow({ width: 1300, height: 860, minWidth: 960, minHeight: 640, show: false,
-    title: 'NotebookAid · T10', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
+    title: 'NotebookAid', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
     webPreferences: { preload: join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false }
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -120,7 +123,7 @@ async function start(): Promise<void> {
     return { enabled: passkeys.gate.enabled, locked: !passkeys.gate.unlocked, count: passkeys.gate.count, supported: await passkeys.supported(), locale: storage.locale(), theme: storage.theme(), ...(error ? { error } : {}) };
   });
   tray = new Tray(nativeImage.createFromPath(join(app.getAppPath(), 'assets/notebookaid.ico')));
-  tray.setToolTip('NotebookAid · T10');
+  tray.setToolTip('NotebookAid');
   updateTray(storage.locale());
   tray.on('double-click', () => { void createWindow(); });
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });
@@ -142,6 +145,7 @@ async function start(): Promise<void> {
   });
   ipcMain.handle('prototype:quit', event => { authorize(event); quitByUser(); });
   addon = new AddonService(() => ({ ...storage.addonContext(), unlocked: passkeys.gate.unlocked, appVersion: app.getVersion() }), openDesktopNote);
+  ai = registerAi(dataPath, protectedCaller, selfTest && process.env['NOTEBOOKAID_AI_TEST'] === '1', () => passkeys.gate.unlocked);
   await startBridge();
   if (!background || selfTest) {
     const window = await createWindow(!selfTest);
@@ -216,6 +220,7 @@ app.on('before-quit', event => {
   if (!quitting && storage) { event.preventDefault(); void quitByUser(); return; }
   quitting = true;
   addon?.close();
+  ai?.close();
   server?.close();
   tray?.destroy();
   storage?.close();
@@ -227,6 +232,7 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if (process.env['NOTEBOOKAID_AI_TEST'] === '1') { await smokeAi(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_ADDON_TEST'] === '1') { await smokeAddon(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_PASSKEY_TEST'] === '1') { await smokePasskey(window, dataPath, passkeys.gate); await quitByUser(true); return; }
     if (!process.argv.includes('--self-test-reopen')) await smokeHtmlImport(dataPath);

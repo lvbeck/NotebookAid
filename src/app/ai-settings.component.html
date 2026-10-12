@@ -1,0 +1,25 @@
+<h2 data-testid="ai-title">{{ t('title') }}</h2><p class="muted">{{ t('hint') }}</p>
+<div class="ai-provider-picker"><span>{{ t('provider') }}</span><div class="ai-provider-options" role="radiogroup" [attr.aria-label]="t('provider')">@for (id of providers; track id) { <button type="button" class="secondary" role="radio" [attr.data-testid]="'ai-provider-' + id" [class.selected]="viewProvider() === id" [attr.aria-checked]="viewProvider() === id" [disabled]="busy()" (click)="showProvider(id)"><app-icon [name]="id === 'chatgpt' ? 'Bot' : id === 'gemini' ? 'Sparkles' : 'BrainCircuit'" />{{ id === 'chatgpt' ? 'ChatGPT' : id === 'gemini' ? 'Gemini' : 'Claude' }}</button> }</div></div>
+@if (!state().available) { <p class="warning">{{ t('storage') }}</p> }
+@for (connection of state().connections; track connection.provider) {
+ @if (connection.provider === viewProvider()) {
+ <section class="ai-provider" [attr.data-testid]="'ai-' + connection.provider">
+  <h3>{{ connection.provider === 'chatgpt' ? 'ChatGPT' : connection.provider === 'gemini' ? 'Gemini' : 'Claude' }}<span>{{ t(connection.connected ? 'connected' : 'disconnected') }}{{ state().selected === connection.provider ? ' · ' + t('selected') : '' }}</span></h3>
+  @if (connection.account) { <p>{{ connection.account }}</p> }
+  @if (connection.provider === 'chatgpt' && connection.connected) { <p class="muted">{{ t('renewal') }}</p> }
+  @if (connection.provider === 'chatgpt') { <p class="muted">{{ t('subscription') }}</p>@if (state().accounts.length) { <label class="setting-row"><span>{{ t('account') }}</span><select appSelect [ngModel]="state().accountId" (change)="account($event)" [disabled]="busy()">@for (account of state().accounts; track account.id) { <option [value]="account.id">{{ account.label }}</option> }</select></label> }<div class="actions"><button class="secondary" data-testid="ai-login" (click)="run({action:'login'})" [disabled]="busy() || !state().available"><app-icon name="ArrowLeftRight" />{{ t('login') }}</button>@if (state().accounts.length) { <button class="secondary" (click)="run({action:'login',fresh:true})" [disabled]="busy() || !state().available"><app-icon name="Plus" />{{ t('addAccount') }}</button> }<button class="secondary" (click)="run({action:'usage'})" [disabled]="busy()"><app-icon name="FileOutput" />{{ t('usage') }}</button></div> }
+  @else {
+   <p class="muted">{{ t('billing') }}</p><label [for]="'key-' + connection.provider">{{ t('key') }}</label><div class="ai-secret"><input [id]="'key-' + connection.provider" [attr.data-testid]="'ai-key-' + connection.provider" [type]="visible[connection.provider] ? 'text' : 'password'" [(ngModel)]="keys[connection.provider]" autocomplete="off" spellcheck="false" maxlength="4096" [disabled]="busy() || !state().available"><button class="secondary" (click)="visible[connection.provider] = !visible[connection.provider]" [attr.aria-label]="t(visible[connection.provider] ? 'hide' : 'show')" [attr.aria-pressed]="visible[connection.provider]"><app-icon [name]="visible[connection.provider] ? 'EyeOff' : 'Eye'" /></button><button class="secondary" [attr.data-testid]="'ai-save-' + connection.provider" (click)="saveKey(connection.provider)" [disabled]="busy() || !state().available || !keys[connection.provider]"><app-icon name="Save" />{{ t('connect') }}</button></div>
+  }
+  @if (connection.connected) {
+   <div class="actions"><button class="secondary" [attr.data-testid]="'ai-check-' + connection.provider" (click)="run({action:'check',provider:connection.provider})" [disabled]="busy()"><app-icon name="RefreshCw" />{{ t('check') }}</button><button class="secondary" (click)="run({action:'disconnect',provider:connection.provider})" [disabled]="busy()"><app-icon name="X" />{{ t('disconnect') }}</button></div>
+   <label class="setting-row"><span>{{ t('model') }}</span><select appSelect [attr.data-testid]="'ai-model-' + connection.provider" [ngModel]="connection.model || ''" (change)="select(connection.provider, $event)" [disabled]="busy() || !connection.models.length || !!connection.error"><option value="">{{ connection.model && !connection.models.length ? connection.model : t('choose') }}</option>@for (model of connection.models; track model.id) { <option [value]="model.id">{{ model.name }}</option> }</select></label>
+   @if (connection.checkedAt && !connection.models.length && !connection.error) { <p class="muted">{{ t('empty') }}</p> }
+   @if (connection.error) { <p class="warning ai-message">{{ error(connection.error) }}</p> }
+  }
+ </section>
+ }
+}
+@if (busy()) { <p role="status">{{ t('busy') }}</p> }
+@if (loggingIn()) { <button class="secondary" data-testid="ai-cancel" (click)="run({action:'cancel'})"><app-icon name="X" />{{ t('cancel') }}</button> }
+@if (message()) { <p class="ai-message" role="status" data-testid="ai-message">{{ message() }}</p> }

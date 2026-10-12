@@ -277,7 +277,7 @@ export const italian: Record<MessageKey, string> = {
   "welcome": "Per iniziare",
   "sample": "Benvenuto in NotebookAid",
   "sampleHint": "Uno spazio per la prossima idea",
-  "preview": "T10 integrazione Thunderbird",
+  "preview": "T11 connessioni IA",
   "previewHint": "Salvataggio locale · cifratura facoltativa · backup manuali e giornalieri",
   "save": "Salva",
   "saving": "Salvataggio…",

@@ -3,6 +3,7 @@
   <div class="actions settings-sections"><button class="secondary" [class.selected]="section() === 'global'" data-testid="settings-global" (click)="section.set('global')"><app-icon name="Settings" />{{ t('globalSettings') }}</button><button class="secondary" [class.selected]="section() === 'library'" data-testid="settings-library" (click)="section.set('library'); workspace.refreshRegistry()"><app-icon name="BookOpen" />{{ t('librarySettings') }}</button></div>
   @if (prefs.error()) { <p class="warning" role="alert" data-testid="settings-error">{{ t('preferencesFailed') }} · {{ prefs.error() }} <button class="secondary" (click)="prefs.reload()" [disabled]="prefs.busy()"><app-icon name="RefreshCw" />{{ t('libRefresh') }}</button></p> }
   <div [hidden]="section() !== 'global'">
+    <article class="panel settings-panel"><app-ai-settings [locale]="locale" [active]="active && section() === 'global'" /></article>
     <article class="panel settings-panel"><app-passkeys /></article>
     <article class="panel settings-panel"><h2>{{ securityText('master') }}</h2><label class="setting-row"><span>{{ securityText('global') }}</span><input type="checkbox" data-testid="global-security-default" [checked]="prefs.state().global.masterPasswordDefault ?? false" (change)="securityDefault($event)" [disabled]="prefs.busy() || !prefs.ready()"></label><p class="muted">{{ securityText('globalHint') }}</p></article>
     <article class="panel settings-panel"><h2>{{ t('globalSettings') }}</h2><p class="muted">{{ t('globalSettingsHint') }}</p>

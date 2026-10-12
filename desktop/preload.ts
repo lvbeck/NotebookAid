@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { PrototypeApi } from '../shared/contracts';
 
 const api: PrototypeApi = {
+  ai: { request: input => ipcRenderer.invoke('ai:request', input) },
   onAddonChanged: callback => { const listener = () => callback(); ipcRenderer.on('prototype:addon-changed', listener); return () => ipcRenderer.removeListener('prototype:addon-changed', listener); },
   openDesktopTarget: callback => { const listener = (_event: Electron.IpcRendererEvent, id: string, target: import('../shared/addon').DesktopNoteTarget) => { void callback(target).then(ok => ipcRenderer.send('prototype:open-note-result', id, ok)).catch(() => ipcRenderer.send('prototype:open-note-result', id, false)); }; ipcRenderer.on('prototype:open-note', listener); return () => ipcRenderer.removeListener('prototype:open-note', listener); },
   appPasskeys: action => ipcRenderer.invoke('prototype:passkeys', action),

@@ -106,3 +106,9 @@ T06-A capacity correction: native file import retains attachment payloads in the
 ## T10 实际桥接协议
 
 协议版本 1，经固定方法白名单、Native Messaging 和认证管道处理。handshake／changes 返回当前 libraryId、版本／能力、语言／主题和无正文游标；query／organization 分页，preview 按版本分块，image 仅受控栅格附件。trash 只进回收站，拒绝编辑会话；openNote 重新验证可见性后请求桌面保存并定位。mapTags 接受 profileId、来源 key／name／color 完整快照与组织 expectedVersion，来源删除只标记缺失。所有其他写入、密码／恢复／备份／导出接口不开放。App gate 锁定返回 APP_LOCKED；libraryId 不符返回 LIBRARY_CHANGED；旧协议返回 PROTOCOL_MISMATCH。见 t10-testing.md。
+
+## T11 AI 连接 IPC
+
+ai:request 仅主 renderer 主 frame、应用解锁状态可用。白名单 action 为 state、login（可选 fresh）、cancel、key（仅 Gemini/Claude）、check、select、account、disconnect、usage。返回非敏感连接摘要、账户标签及模型清单或固定错误码；不返回 Key/token，不接受自定义网络地址或笔记内容。写操作串行；异步登录、刷新及模型获取完成前再次验证 renderer 权限。官方固定 HTTPS API，由主进程请求，拒绝重定向，20 秒网络超时／2 MiB 响应上限／10 页模型上限。OAuth 127.0.0.1 回调 3 分钟超时，state、nonce、PKCE 和签名验证，不复用其他应用 client ID 或授权。见 t11-testing.md。
+
+T11.1：login 和 account 在已验证凭据保存后获取 ChatGPT 模型目录；目录失败返回 ok=true 的连接状态及 warning，同时在连接摘要保留固定错误码。后台续期由主进程串行调度，锁屏／退出时禁止提交令牌，暂时失败退避，撤销授权不循环重试；不扩大 renderer 或 addon 权限。界面提供商切换仅改变显示面板。

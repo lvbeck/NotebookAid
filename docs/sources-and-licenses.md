@@ -73,3 +73,7 @@ T01 只定义验证任务，不宣称上述能力已经通过。
 ## T10 addon 资源
 
 复用已锁定 Quill 2.0.3、marked 18.1.0、DOMPurify 3.4.16 的本地发行文件，随 XPI 保留 vendor 下许可证及既有 Lucide 许可；没有 CDN 或依赖升级。Thunderbird 官方 Spaces 与 messages.tags API 链接见 t10-testing.md。
+
+## T11 登录与连接
+
+新增锁定 jose 6.2.2（MIT，Filip Skokan），用于 OpenAI OIDC JWT 签名／issuer／audience／expiry 校验，随程序保留 JOSE-LICENSE.txt 及模块 LICENSE.md。ChatGPT、Gemini、Claude 的官方接口依据见 t11-testing.md；未引入供应商收费 SDK 或自定义密码算法。安装审计仍有既有 low 告警，未进行无关依赖升级。

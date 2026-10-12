@@ -86,7 +86,7 @@
       @if (tab() === 'trash' || tab() === 'history') { <app-lifecycle [locale]="locale()" [noteId]="tab() === 'history' ? historyNoteId() : ''" (closed)="tab.set('editor')" /> }
       @if (tab() === 'organization') { <app-organization [locale]="locale()" /> }
       @if (tab() === 'libraries') { <app-libraries [locale]="locale()" (settingsRequested)="showLibrarySettings($event)" /> }
-      <app-settings [hidden]="tab() !== 'settings'" [locale]="locale()" />
+      <app-settings [hidden]="tab() !== 'settings'" [active]="tab() === 'settings'" [locale]="locale()" />
       <aside class="note-list" [hidden]="tab() !== 'editor'">
         <div class="list-heading"><h2>{{ workspace.query().folderId ? workspace.folderPath(workspace.query().folderId!) : t(workspace.query().view === 'pinned' ? 'pinned' : workspace.query().view === 'recent' ? 'recent' : 'all') }}</h2><span data-testid="query-total">{{ workspace.total() }}</span></div>
         <label class="note-search"><app-icon name="Search" /><input data-testid="note-search" [attr.aria-label]="t('searchNotes')" [placeholder]="t('searchNotes')" [ngModel]="workspace.query().text || ''" (ngModelChange)="workspace.filter({text: $event}, true)" maxlength="300"></label>
