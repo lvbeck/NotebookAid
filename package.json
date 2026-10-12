@@ -1,8 +1,8 @@
 {
   "name": "notebookaid",
-  "version": "0.9.1-t09.1",
+  "version": "0.9.3-t09.3",
   "private": true,
-  "description": "Local notes and writing assistant - T08 security preview",
+  "description": "Local notes and writing assistant - T09 backup and storage preview",
   "author": "Jin Lu <it@live.cn>",
   "license": "BSD-3-Clause",
   "main": "dist/runtime/desktop/main.js",

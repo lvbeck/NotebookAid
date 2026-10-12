@@ -55,6 +55,7 @@ export class NotebookSecurity {
   }
   get configured(): boolean { return existsSync(this.path('keyring.json')); }
   get unlocked(): boolean { return this.key !== null; }
+  verifyStructure(): void { if (this.configured) this.ring(); }
   lock(): void { this.epoch++; this.key?.fill(0); this.key = null; }
   private ring(): Keyring {
     const path = this.path('keyring.json');

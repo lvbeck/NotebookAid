@@ -7,9 +7,9 @@ import { IconComponent } from './icon.component';
   standalone: true, imports: [DialogModule, IconComponent], selector: 'app-confirm-dialog',
   template: `
     <section class="app-confirm-dialog" data-testid="app-dialog">
-      <header><span class="dialog-symbol" [class.warning]="data.kind === 'warning'"><app-icon [name]="data.kind === 'warning' ? 'TriangleAlert' : 'InfoPlain'" /></span><h2 id="app-dialog-title">{{ data.title }}</h2><button class="icon-button" data-testid="dialog-close" [attr.aria-label]="data.cancelLabel" (click)="ref.close(false)"><app-icon name="X" /></button></header>
+      <header>@if (data.kind === 'warning') { <span class="dialog-symbol warning"><app-icon name="TriangleAlert" /></span> }<h2 id="app-dialog-title">{{ data.title }}</h2><button class="icon-button" data-testid="dialog-close" [attr.aria-label]="data.cancelLabel" (click)="ref.close(false)"><app-icon name="X" /></button></header>
       <div id="app-dialog-description" class="dialog-copy"><p>{{ data.message }}</p>@if (data.detail) { <p class="dialog-detail">{{ data.detail }}</p> }</div>
-      <footer><button class="secondary" data-testid="dialog-cancel" (click)="ref.close(false)"><app-icon name="X" />{{ data.cancelLabel }}</button>@if (data.discardLabel) { <button class="secondary" data-testid="dialog-discard" (click)="ref.close('discard')"><app-icon name="Power" />{{ data.discardLabel }}</button> }<button class="primary" data-testid="dialog-confirm" (click)="ref.close(true)"><app-icon name="Check" />{{ data.confirmLabel }}</button></footer>
+      <footer><button class="secondary" data-testid="dialog-cancel" (click)="ref.close(false)"><app-icon name="X" />{{ data.cancelLabel }}</button>@if (data.trayLabel) { <button class="secondary" data-testid="dialog-tray" (click)="ref.close('tray')"><app-icon name="Minimize2" />{{ data.trayLabel }}</button> }@if (data.discardLabel) { <button class="secondary" data-testid="dialog-discard" (click)="ref.close('discard')"><app-icon name="Power" />{{ data.discardLabel }}</button> }<button class="primary" data-testid="dialog-confirm" (click)="ref.close(true)"><app-icon name="Check" />{{ data.confirmLabel }}</button></footer>
     </section>`
 })
 export class AppConfirmDialog {
@@ -29,12 +29,12 @@ export class AppDialogs implements OnDestroy {
       ariaLabelledBy: 'app-dialog-title', ariaDescribedBy: 'app-dialog-description',
       autoFocus: '[data-testid=dialog-cancel]', restoreFocus: true,
       panelClass: 'app-dialog-panel', backdropClass: 'app-dialog-backdrop',
-      width: data.discardLabel ? '640px' : '480px', maxWidth: 'calc(100vw - 32px)'
+      width: data.trayLabel && data.discardLabel ? '800px' : data.discardLabel || data.trayLabel ? '640px' : '480px', maxWidth: 'calc(100vw - 32px)'
     });
     this.active = { id: data.id, ref };
     ref.closed.subscribe(accepted => {
       if (this.active?.id === data.id) this.active = null;
-      void window.notebookAid.dialogs.respond(data.id, accepted === 'discard' ? 'discard' : accepted === true);
+      void window.notebookAid.dialogs.respond(data.id, accepted === 'tray' ? 'tray' : accepted === 'discard' ? 'discard' : accepted === true);
     });
   });
   private readonly stopDismiss = window.notebookAid.dialogs.onDismiss(id => {

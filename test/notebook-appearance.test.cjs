@@ -4,6 +4,7 @@ const fs = require('node:fs'), path = require('node:path'), zlib = require('node
 const { randomUUID } = require('node:crypto');
 const { LibraryRegistry } = require('../dist/runtime/core/registry');
 const { readAppearance, validateAppearance } = require('../dist/runtime/core/notebook-appearance');
+const { createBackup, restoreBackup } = require('../dist/runtime/core/backups');
 function fixture(fault) { const base = path.resolve('output/appearance-core'); fs.mkdirSync(base, { recursive: true }); const root = fs.mkdtempSync(path.join(base, 'case-')); return { root, registry: new LibraryRegistry(root, path.join(root, 'first'), fault) }; }
 function crc(data) { let result = 0xffffffff; for (const b of data) { result ^= b; for (let n = 0; n < 8; n++) result = (result >>> 1) ^ (result & 1 ? 0xedb88320 : 0); } return (result ^ 0xffffffff) >>> 0; }
 function chunk(type, data) { const h = Buffer.alloc(4); h.writeUInt32BE(data.length); const body = Buffer.concat([Buffer.from(type), data]), c = Buffer.alloc(4); c.writeUInt32BE(crc(body)); return Buffer.concat([h, body, c]); }
@@ -29,6 +30,10 @@ test('appearance rejects URLs, SVG, invalid colors, oversized and nonsquare cove
 test('failed appearance write preserves the old value and active editor session', () => {
   let fail = false; const { registry } = fixture(stage => { if (fail && stage === 'appearance') throw Error('Fixture failure'); });
   try { const library = registry.get(), entry = registry.state().entries[0]; const note = library.create(randomUUID()).note, session = library.begin(note.id, 'fixture'); registry.setAppearance(entry.id, appearance); fail = true; assert.throws(() => registry.setAppearance(entry.id, { ...appearance, color: '#bd9da6' }), code('WRITE_FAILED')); assert.deepEqual(readAppearance(entry.path), appearance); assert.equal(registry.get(), library); const saved = library.save({ noteId: note.id, token: session.token, generation: session.generation, expectedVersion: note.version, operationId: randomUUID(), title: 'Retained', body: 'Unsaved draft' }, 'fixture'); assert.equal(saved.note.body, 'Unsaved draft'); } finally { registry.close(); }
+});
+test('appearance is retained by backup restore and storage migration', () => {
+  const { root, registry } = fixture();
+  try { registry.get(); const entry = registry.state().entries[0]; registry.setAppearance(entry.id, appearance); const result = createBackup(entry.path, path.join(root, 'backups')); const target = path.join(root, 'restored'); restoreBackup(result.path, target, entry.libraryId); assert.deepEqual(readAppearance(target), appearance); const moved = path.join(root, 'moved'); registry.maintenance(entry.id, 'migrate', moved); assert.deepEqual(readAppearance(moved), appearance); assert.deepEqual(readAppearance(entry.path), appearance); } finally { registry.close(); }
 });
 test('malformed appearance cannot inject content or prevent access to notebook notes', () => {
   const { registry } = fixture();

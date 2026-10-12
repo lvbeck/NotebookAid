@@ -59,7 +59,7 @@
       <button class="nav-item" data-testid="settings-tab" [class.active]="tab() === 'settings'" (click)="tab.set('settings')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('settings') : ''" [attr.aria-label]="t('settings')"><app-icon name="Settings" /><span class="sidebar-text">{{ t('settings') }}</span></button>
       <button class="nav-item sidebar-collapse-toggle" data-testid="sidebar-toggle" (click)="toggleSidebar()" [disabled]="!prefs.ready() || prefs.busy()" [attr.aria-expanded]="!sidebarCollapsed()" [attr.aria-label]="t(sidebarCollapsed() ? 'expandSidebar' : 'collapseSidebar')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('expandSidebar') : ''"><app-icon [name]="sidebarCollapsed() ? 'PanelLeftOpen' : 'PanelLeftClose'" /><span class="sidebar-text">{{ t('collapseSidebar') }}</span></button>
       <button class="nav-item sidebar-exit" data-testid="exit-app" (click)="quit()" [appTooltip]="sidebarCollapsed() ? t('exitApp') : ''" [attr.aria-label]="t('exitApp')"><app-icon name="Power" /><span class="sidebar-text">{{ t('exitApp') }}</span></button>
-      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T08</span></div>
+      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T09</span></div>
     </div>
   </aside>
   <section class="workspace">
@@ -76,6 +76,7 @@
       </div>
     </header>
     <div class="preview-banner"><span>{{ t('preview') }}</span>{{ t('previewHint') }}</div>
+    @if (missedBackup()) { <div class="library-warning" role="status" data-testid="backup-missed">{{ backupLabel('missed') }} <button class="secondary" (click)="tab.set('settings'); missedBackup.set(false)"><app-icon name="Settings" />{{ backupLabel('settings') }}</button></div> }
     @if (workspace.error()) { <div class="library-warning" role="alert">{{ t('saveFailed') }} · {{ workspace.error() }} · {{ t(workspace.error() === 'INVALID_DELTA' || workspace.error() === 'UNSUPPORTED_DELTA' ? 'deltaInvalid' : 'draftRetained') }} <button class="secondary" (click)="workspace.manualSave()" [disabled]="workspace.saving()"><app-icon name="RefreshCw" />{{ t('retry') }}</button></div> }
     @if (workspace.status() && (!workspace.status()!.indexed || workspace.status()!.issues.length || workspace.status()!.pendingRecovery)) { <div class="library-warning">{{ t('recoveryNotice') }} {{ workspace.status()!.issues.join(', ') }} · {{ workspace.status()!.pendingRecovery }} <button class="secondary rebuild-button" data-testid="rebuild-index" (click)="workspace.rebuild()" [disabled]="workspace.rebuilding()"><app-icon name="RefreshCw" [class.spinning]="workspace.rebuilding()" />{{ t(workspace.rebuilding() ? 'rebuilding' : 'rebuild') }}</button></div> }
     @if (notifications.storageFailed()) { <div class="library-warning" role="status">{{ t('noticeStorageFailed') }} <button class="secondary" (click)="notifications.reload()" [disabled]="notifications.busy()"><app-icon name="RefreshCw" />{{ t('noticeReload') }}</button></div> }

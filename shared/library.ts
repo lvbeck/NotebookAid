@@ -3,8 +3,9 @@ import type { Attachment, AttachmentRequest, AttachmentView, AttachmentPreview }
 import type { Organization, OrganizationEdit, NotePlacement, PlacementRequest, NoteQuery } from './organization';
 import type { LibraryImportPreview, LibraryImportResult } from './library-import';
 import type { RegistryApi } from './registry';
-export type LibraryErrorCode = 'PASSWORD_POLICY' | 'BAD_CREDENTIAL' | 'NOTEBOOK_LOCKED' | 'ENCRYPTED_NOTES_REMAIN' | 'INVALID_INPUT' | 'WRITE_FAILED' | 'INTEGRITY_CHECK_FAILED' | 'VERSION_CONFLICT' | 'SESSION_EXPIRED' | 'NOTE_IN_USE' | 'LIBRARY_IN_USE' | 'NOT_FOUND_OR_UNAVAILABLE' | 'COMMIT_STATUS_UNKNOWN' | 'DUPLICATE_LIBRARY' | 'LIBRARY_ID_MISMATCH' | 'REGISTRY_INVALID' | 'UNSUPPORTED_LIBRARY' | 'CURRENT_LIBRARY' | 'INVALID_DELTA' | 'UNSUPPORTED_DELTA' | 'CANCELLED';
-export type Result<T> = { ok: true; value: T } | { ok: false; code: LibraryErrorCode };
+export type MaintenanceErrorCode = 'TARGET_NOT_EMPTY' | 'PATH_OVERLAP' | 'PATH_LINKED' | 'RESTORE_TARGET_INVALID' | 'RESTORE_FAILED_ROLLED_BACK' | 'RESTORE_ROLLBACK_FAILED' | 'RESTORE_INTERRUPTED' | 'DISK_FULL' | 'ACCESS_DENIED';
+export type LibraryErrorCode = MaintenanceErrorCode | 'PASSWORD_POLICY' | 'BAD_CREDENTIAL' | 'NOTEBOOK_LOCKED' | 'ENCRYPTED_NOTES_REMAIN' | 'INVALID_INPUT' | 'WRITE_FAILED' | 'INTEGRITY_CHECK_FAILED' | 'VERSION_CONFLICT' | 'SESSION_EXPIRED' | 'NOTE_IN_USE' | 'LIBRARY_IN_USE' | 'NOT_FOUND_OR_UNAVAILABLE' | 'COMMIT_STATUS_UNKNOWN' | 'DUPLICATE_LIBRARY' | 'LIBRARY_ID_MISMATCH' | 'REGISTRY_INVALID' | 'UNSUPPORTED_LIBRARY' | 'CURRENT_LIBRARY' | 'INVALID_DELTA' | 'UNSUPPORTED_DELTA' | 'CANCELLED';
+export type Result<T> = { ok: true; value: T } | { ok: false; code: LibraryErrorCode; details?: { targetPath?: string; rollbackPath?: string; stagingPath?: string } };
 export type NoteFormat = 'markdown' | 'html' | 'text' | 'delta';
 export const formatExtensions: Record<NoteFormat, string> = { markdown: 'md', html: 'html', text: 'txt', delta: 'nadelta' };
 export const latestNotebookSchemaVersion = 7;
@@ -17,6 +18,10 @@ export interface SaveRequest { noteId: string; token: string; generation: string
 export interface SaveResult { removedUnsafeSvg?: number; note: NoteDocument; saved: true; indexed: boolean; }
 export interface LibraryStatus { security?: import('./security').SecurityState; path: string; libraryId: string; indexed: boolean; issues: string[]; pendingRecovery: number; }
 export interface LibraryApi extends RegistryApi, SettingsApi {
+  backups(): Promise<Result<import('./backup').BackupState>>;
+  onBackupStatus(callback: (value: { ok: boolean; libraryId: string | null }) => void): () => void;
+  configureBackup(id: string, enabled: boolean, chooseDirectory: boolean): Promise<Result<import('./backup').BackupState | null>>;
+  maintenance(id: string, action: import('./backup').MaintenanceAction): Promise<Result<unknown>>;
   printRecovery(mode: 'print' | 'pdf', key: string): Promise<Result<boolean>>;
   upgradeLibrary(id: string, expectedSchemaVersion: number): Promise<Result<LibraryUpgradeResult | null>>;
   security(request: import('./security').SecurityRequest): Promise<Result<{ state: import('./security').SecurityState; recoveryKey?: string }>>;

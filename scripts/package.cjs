@@ -36,7 +36,7 @@ const { execFileSync } = require('node:child_process');
   copyDependency('@simplewebauthn/server');
   writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'] } }));
   const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: 'win32', arch: 'x64', electronVersion: project.devDependencies.electron, overwrite: true, asar: true, prune: false,
-    icon: resolve('assets/notebookaid.ico'), appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid T08 security preview', ProductName: 'NotebookAid' },
+    icon: resolve('assets/notebookaid.ico'), appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid T09 backup preview', ProductName: 'NotebookAid' },
     download: { cacheRoot: resolve('.cache/electron') }
   });
   const packageRoot = packages[0];
@@ -53,6 +53,8 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/html-import-policy.md', join(packageRoot, 'html-import-policy.md'));
   cpSync('docs/t04-testing.md', join(packageRoot, 'T04-TESTING.md'));
   cpSync('docs/t07-testing.md', join(packageRoot, 'T07-TESTING.md'));
+  cpSync('docs/t09-testing.md', join(packageRoot, 'T09-TESTING.md'));
+  cpSync('docs/t09-restore-testing.md', join(packageRoot, 'T09-RESTORE-TESTING.md'));
   cpSync('docs/t09-appearance-testing.md', join(packageRoot, 'T09-APPEARANCE-TESTING.md'));
   cpSync('docs/t08-testing.md', join(packageRoot, 'T08-TESTING.md'));
   cpSync('docs/t08-security-design.md', join(packageRoot, 't08-security-design.md'));

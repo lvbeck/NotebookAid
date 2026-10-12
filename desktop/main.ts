@@ -62,7 +62,7 @@ function runtime(): RuntimeInfo {
 async function createWindow(show = true): Promise<BrowserWindow> {
   if (mainWindow && !mainWindow.isDestroyed()) { if (show) mainWindow.show(); return mainWindow; }
   mainWindow = new BrowserWindow({ width: 1300, height: 860, minWidth: 960, minHeight: 640, show: false,
-    title: 'NotebookAid · T08', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
+    title: 'NotebookAid · T09', icon: applicationIcon(), backgroundColor: '#f6f6f9', autoHideMenuBar: true,
     webPreferences: { preload: join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false, backgroundThrottling: false }
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -78,7 +78,7 @@ async function createWindow(show = true): Promise<BrowserWindow> {
   mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   mainWindow.webContents.session.setPermissionCheckHandler(() => false);
   mainWindow.webContents.session.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (_details, callback) => callback({ cancel: true }));
-  mainWindow.on('close', event => { if (!quitting) { event.preventDefault(); void quitByUser(); } });
+  mainWindow.on('close', event => { if (!quitting) { event.preventDefault(); void quitByUser(false, true); } });
   mainWindow.on('closed', () => { storage.release(owner); mainWindow = null; });
   await mainWindow.loadFile(rendererPath);
   if (show) mainWindow.show();
@@ -114,7 +114,7 @@ async function start(): Promise<void> {
     return { enabled: passkeys.gate.enabled, locked: !passkeys.gate.unlocked, count: passkeys.gate.count, supported: await passkeys.supported(), locale: storage.locale(), theme: storage.theme(), ...(error ? { error } : {}) };
   });
   tray = new Tray(nativeImage.createFromPath(join(app.getAppPath(), 'assets/notebookaid.ico')));
-  tray.setToolTip('NotebookAid · T08');
+  tray.setToolTip('NotebookAid · T09');
   updateTray(storage.locale());
   tray.on('double-click', () => { void createWindow(); });
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });
@@ -167,12 +167,14 @@ async function startBridge(): Promise<void> {
   writeFileSync(runtimeFile, JSON.stringify({ pipe: name, token: sessionToken, pid: process.pid }), { mode: 0o600 });
 }
 
-async function quitByUser(testShutdown = false): Promise<void> {
+async function quitByUser(testShutdown = false, allowTray = false): Promise<void> {
   if (exitPending) return;
   exitPending = true;
   try {
     if (!testShutdown) await createWindow();
-    if (storage && !(testShutdown ? await storage.flush() : await storage.confirmExit())) return;
+    const answer = storage ? (testShutdown ? await storage.flush() : await storage.confirmExit(allowTray)) : true;
+    if (!answer) return;
+    if (answer === 'tray') { mainWindow?.hide(); return; }
   writeFileSync(stoppedFile, JSON.stringify({ stoppedAt: new Date().toISOString() }));
   quitting = true;
   app.quit();

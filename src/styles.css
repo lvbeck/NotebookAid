@@ -465,3 +465,5 @@ app-attachments { position: relative; }
 
 .select-leading-icon { flex-shrink:0; color:var(--muted); }
 .preferences .select-trigger { gap:8px; max-width:180px; }
+
+[data-testid="backup-result"], [data-testid="backup-error"] { white-space:pre-wrap; }

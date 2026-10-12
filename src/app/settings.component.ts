@@ -1,4 +1,5 @@
 import { PasskeyComponent } from './passkey.component';
+import { BackupComponent } from './backup.component';
 import { NotebookAppearanceComponent } from './notebook-appearance.component';
 import { securityText, type SecurityKey } from './security-i18n';
 import { SecurityComponent } from './security.component';
@@ -12,7 +13,7 @@ import { IconComponent } from './icon.component';
 import { languages, translate, type Locale, type MessageKey } from './i18n';
 import { effectiveAutosave, type SettingsLocale, type SettingsTheme } from '../../shared/settings';
 import { latestNotebookSchemaVersion } from '../../shared/library';
-@Component({ selector: 'app-settings', standalone: true, imports: [NotebookAppearanceComponent, PasskeyComponent, SecurityComponent, SelectDirective, FormsModule, IconComponent], templateUrl: './settings.component.html' })
+@Component({ selector: 'app-settings', standalone: true, imports: [NotebookAppearanceComponent, BackupComponent, PasskeyComponent, SecurityComponent, SelectDirective, FormsModule, IconComponent], templateUrl: './settings.component.html' })
 export class SettingsComponent {
   @Input() locale: Locale = 'zh-CN';
   readonly prefs = inject(Preferences);

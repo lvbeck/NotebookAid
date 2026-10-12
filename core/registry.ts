@@ -5,8 +5,12 @@ import { DatabaseSync } from 'node:sqlite';
 import { NoteLibrary, LibraryError, type CommitStage } from './library';
 import type { LibraryErrorCode } from '../shared/library';
 import type { LibraryEntry, RegistryState } from '../shared/registry';
+import { copyNotebook, createBackup, restoreBackup, pathsOverlap as pathsOverlapLocal } from './backups';
+import type { MaintenanceAction } from '../shared/backup';
 import { readAppearance } from './notebook-appearance';
 import { defaultNotebookAppearance } from '../shared/notebook-appearance';
+import { restoreGuardPath } from './restore-guard';
+import { plainPath } from './library-import';
 
 interface Config { schemaVersion: 1; activeId: string | null; entries: LibraryEntry[]; }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -94,6 +98,115 @@ export class LibraryRegistry {
     const library = new NoteLibrary(entry.path, this.fault, 'existing');
     try { return library.upgradeSchema(expected); } finally { library.close(); }
   }
+  maintenance(id: string, action: MaintenanceAction, target?: string, backup?: string): unknown {
+    if (action === 'restore') {
+      const entry = this.entry(id); valid(target && backup && entry.libraryId);
+      if (id === this.currentId) this.library?.assertMaintenance(true);
+      if (pathKey(target) === pathKey(entry.path)) return this.restoreOriginal(entry, backup);
+      valid(!this.config.entries.some(item => pathsOverlapLocal(target, item.path)), 'PATH_OVERLAP');
+      restoreBackup(backup, target, entry.libraryId);
+      const next = new NoteLibrary(target, this.fault, 'existing');
+      try { next.verifyIntegrity(); this.checkDuplicate(next.path, next.libraryId, id); this.persist({ ...this.config, entries: this.config.entries.map(item => item.id === id ? { ...item, path: next.path } : item) }); }
+      catch (error) { next.close(); throw error; }
+      if (id === this.currentId) { this.library?.close(); this.library = next; } else next.close();
+      return { path: target, previousPath: existsSync(entry.path) ? entry.path : undefined };
+    }
+    const entry = this.entry(id), inspected = inspectLibrary(entry.path);
+    valid(entry.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
+    const current = id === this.currentId, source = current ? this.get() : new NoteLibrary(entry.path, this.fault, 'existing');
+    try {
+      if (action === 'verify') return source.verifyIntegrity();
+      if (action === 'backup') { valid(target); source.verifyIntegrity(); return createBackup(source.path, target); }
+      valid(action === 'migrate'); valid(target); source.assertMaintenance();
+      source.verifyIntegrity(); copyNotebook(source.path, target);
+      const next = new NoteLibrary(target, this.fault, 'existing');
+      try {
+        next.verifyIntegrity(); this.checkDuplicate(next.path, next.libraryId, entry.id);
+        this.persist({ ...this.config, entries: this.config.entries.map(item => item.id === id ? { ...item, path: next.path } : item) });
+      } catch (error) { next.close(); throw error; }
+      if (current) { source.close(); this.library = next; } else next.close();
+      return { path: target, previousPath: entry.path };
+    } finally { if (!current) source.close(); }
+  }
+  private restoreOriginal(entry: LibraryEntry, backup: string): unknown {
+    const target = resolve(entry.path), token = randomUUID(), staging = target + '.restore-staging-' + token, rollback = target + '.restore-rollback-' + token;
+    const guard = restoreGuardPath(target);
+    const retained = () => ({ targetPath: target, ...(existsSync(rollback) ? { rollbackPath: rollback } : {}), ...(existsSync(staging) ? { stagingPath: staging } : {}) });
+    plainPath(target); plainPath(backup); plainPath(staging); plainPath(rollback); plainPath(guard); plainPath(guard + '.sqlite');
+    valid(!pathsOverlapLocal(target, backup) && !this.config.entries.some(item => item.id !== entry.id && pathsOverlapLocal(target, item.path)), 'PATH_OVERLAP');
+    valid(existsSync(target) && lstatSync(target).isDirectory(), 'RESTORE_TARGET_INVALID');
+    valid(!existsSync(guard), 'RESTORE_INTERRUPTED');
+    const gate = new DatabaseSync(guard + '.sqlite'); let writer: DatabaseSync | null = null, moved = false, installed = false, closed = false, ownedGuard = false, replacement: NoteLibrary | null = null;
+    const current = entry.id === this.currentId;
+    const saveGuard = (phase: string) => {
+      const temporary = guard + '.' + randomUUID() + '.pending', fd = openSync(temporary, 'wx');
+      try {
+        try { writeFileSync(fd, JSON.stringify({ format: 'NotebookAidRestore', version: 1, token, target, staging, rollback, libraryId: entry.libraryId, phase })); fsyncSync(fd); } finally { closeSync(fd); }
+        if (phase === 'preparing') valid(!existsSync(guard), 'RESTORE_INTERRUPTED');
+        renameSync(temporary, guard); ownedGuard = true;
+      } finally { if (existsSync(temporary)) unlinkSync(temporary); }
+    };
+    try {
+      try { gate.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE'); } catch { throw new LibraryError('LIBRARY_IN_USE'); }
+      if (!current) {
+        plainPath(join(target, '.writer.sqlite')); writer = new DatabaseSync(join(target, '.writer.sqlite'));
+        try { writer.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE'); } catch { throw new LibraryError('LIBRARY_IN_USE'); }
+      }
+      saveGuard('preparing');
+      restoreBackup(backup, staging, entry.libraryId!);
+      const probe = new NoteLibrary(staging, this.fault, 'existing');
+      try { probe.verifyIntegrity(); } finally { probe.close(); }
+      this.fault?.('restore-prepared'); saveGuard('prepared');
+      if (current) { this.library!.close(); this.library = null; closed = true; } else { writer!.close(); writer = null; }
+      renameSync(target, rollback); moved = true; saveGuard('original-moved'); this.fault?.('restore-original-moved');
+      renameSync(staging, target); installed = true; saveGuard('replacement-moved'); this.fault?.('restore-replacement-moved');
+      replacement = new NoteLibrary(target, this.fault, 'existing', token); replacement.verifyIntegrity(); this.fault?.('restore-verified');
+      saveGuard('verified'); unlinkSync(guard);
+      if (current) { this.library = replacement; replacement = null; } else { replacement.close(); replacement = null; }
+      return { path: target, previousPath: rollback };
+    } catch (error) {
+      replacement?.close(); replacement = null;
+      if (moved) {
+        try {
+          this.fault?.('restore-rollback');
+          if (installed) { plainPath(target); plainPath(staging); valid(!existsSync(staging)); renameSync(target, staging); }
+          plainPath(rollback); plainPath(target); valid(!existsSync(target)); renameSync(rollback, target);
+          if (existsSync(guard)) unlinkSync(guard);
+          if (current && closed) { try { this.library = new NoteLibrary(target, this.fault, 'existing'); } catch { this.library = null; } }
+        } catch { throw new LibraryError('RESTORE_ROLLBACK_FAILED', retained()); }
+        throw new LibraryError('RESTORE_FAILED_ROLLED_BACK', retained());
+      }
+      if (ownedGuard && existsSync(guard)) unlinkSync(guard);
+      if (current && closed) this.library = new NoteLibrary(target, this.fault, 'existing');
+      if (error instanceof LibraryError) throw error;
+      const native = (error as NodeJS.ErrnoException)?.code;
+      throw new LibraryError(native === 'ENOSPC' ? 'DISK_FULL' : ['EACCES','EPERM'].includes(native ?? '') ? 'ACCESS_DENIED' : 'WRITE_FAILED', retained());
+    } finally { writer?.close(); gate.close(); }
+  }
+  private recoverRestore(entry: LibraryEntry): void {
+    const target = resolve(entry.path), guard = restoreGuardPath(target);
+    if (!existsSync(guard)) return;
+    plainPath(guard); plainPath(guard + '.sqlite');
+    const gate = new DatabaseSync(guard + '.sqlite');
+    try {
+      try { gate.exec('PRAGMA busy_timeout=0; BEGIN EXCLUSIVE'); } catch { throw new LibraryError('LIBRARY_IN_USE'); }
+      valid(lstatSync(guard).isFile() && statSync(guard).size <= 8192, 'RESTORE_INTERRUPTED');
+      let value: any; try { value = JSON.parse(readFileSync(guard, 'utf8')); } catch { throw new LibraryError('RESTORE_INTERRUPTED'); }
+      valid(value?.format === 'NotebookAidRestore' && value.version === 1 && typeof value.token === 'string' && uuid.test(value.token) && value.libraryId === entry.libraryId && value.target === target && value.staging === target + '.restore-staging-' + value.token && value.rollback === target + '.restore-rollback-' + value.token && ['preparing','prepared','original-moved','replacement-moved','verified'].includes(value.phase), 'RESTORE_INTERRUPTED');
+      const details = { targetPath: target, stagingPath: value.staging, rollbackPath: value.rollback };
+      plainPath(target); plainPath(value.staging); plainPath(value.rollback);
+      try {
+        if (value.phase === 'verified') {
+          const restored = new NoteLibrary(target, this.fault, 'existing', value.token);
+          try { valid(restored.libraryId === entry.libraryId); restored.verifyIntegrity(); } finally { restored.close(); }
+        } else if (existsSync(value.rollback)) {
+          if (existsSync(target)) { valid(!existsSync(value.staging)); renameSync(target, value.staging); }
+          renameSync(value.rollback, target);
+        } else { valid(existsSync(target) && inspectLibrary(target).libraryId === entry.libraryId); }
+        unlinkSync(guard);
+      } catch { throw new LibraryError('RESTORE_ROLLBACK_FAILED', details); }
+    } finally { gate.close(); }
+  }
   state(): RegistryState {
     return { activeId: this.currentId, entries: this.config.entries.map(entry => {
       let availability: 'available' | LibraryErrorCode = 'available';
@@ -121,6 +234,7 @@ export class LibraryRegistry {
   activate(id: unknown) {
     const entry = this.entry(id);
     if (entry.id === this.currentId && this.library) return this.library.status();
+    this.recoverRestore(entry);
     const inspected = inspectLibrary(entry.path);
     valid(!entry.libraryId || inspected.libraryId === entry.libraryId, 'LIBRARY_ID_MISMATCH');
     this.checkDuplicate(inspected.path, inspected.libraryId, entry.id);

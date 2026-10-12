@@ -28,8 +28,17 @@ export async function smokeExit(window: BrowserWindow, directory: string): Promi
   if(await run("document.querySelectorAll('[data-testid=app-dialog]').length")!==1)throw Error('Repeated close duplicated dialog');
   await window.webContents.capturePage().then(image=>writeFileSync(join(directory,'exit-clean.png'),image.toPNG()));
   await click('dialog-cancel');await resumed();if(!window.isVisible())throw Error('Window close hid app');
+  window.close();await modal();await click('dialog-tray');await resumed();
+  if(window.isVisible())throw Error('Tray choice did not hide window');
+  if(await run("document.querySelector('[data-testid=note-title]').value")!=='Exit saved title')throw Error('Tray lost saved note');
+  window.show();
   if(mode!=='clean'){
     await title('Exit changed title');
+    window.close();await modal();await click('dialog-tray');await resumed();
+    if(window.isVisible())throw Error('Dirty tray choice did not hide window');
+    if(await run("document.querySelector('[data-testid=note-title]').value")!=='Exit changed title')throw Error('Tray lost draft');
+    if((await run('window.notebookAid.library.list()')).value[0].title!=='Exit saved title')throw Error('Tray saved without user decision');
+    window.show();
     await click('exit-app');await modal();await until("!!document.querySelector('[data-testid=dialog-discard]')");
     const list=await run('window.notebookAid.library.list()');if(list.value[0].title!=='Exit saved title')throw Error('Exit inspection saved edits');
     await window.webContents.capturePage().then(image=>writeFileSync(join(directory,'exit-unsaved.png'),image.toPNG()));
@@ -43,7 +52,7 @@ export async function smokeExit(window: BrowserWindow, directory: string): Promi
     }
   }
   window.close();await modal();
-  writeFileSync(join(directory,'exit-report.json'),JSON.stringify({mode,nativeClose:true,sidebar:true,collapsed:true,duplicateCloseGuard:true,cancelPreserves:true,noSaveBeforeDecision:true,failedSaveStaysOpen:mode==='save'}));
+  writeFileSync(join(directory,'exit-report.json'),JSON.stringify({mode,nativeClose:true,trayClean:true,trayDirty:mode!=='clean',sidebar:true,collapsed:true,duplicateCloseGuard:true,cancelPreserves:true,noSaveBeforeDecision:true,failedSaveStaysOpen:mode==='save'}));
   await click(mode==='discard'?'dialog-discard':'dialog-confirm');
   await new Promise<void>(()=>{});
 }

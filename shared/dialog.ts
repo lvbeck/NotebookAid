@@ -6,6 +6,7 @@ export interface AppDialog {
   cancelLabel: string;
   confirmLabel: string;
   discardLabel?: string;
+  trayLabel?: string;
   kind: 'info' | 'warning';
 }
 export interface DialogApi {
@@ -14,6 +15,6 @@ export interface DialogApi {
   respond(id: string, accepted: DialogAnswer): Promise<void>;
 }
 
-export type DialogAnswer = boolean | 'discard';
+export type DialogAnswer = boolean | 'discard' | 'tray';
 export type ExitCommand = 'inspect' | 'save' | 'resume';
 export interface ExitState { dirty: boolean; busy: boolean; saved: boolean; }

@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { printRecovery } from './recovery-print';
+import { BackupStore, pathsOverlap, verifyBackup } from '../core/backups';
+import { backupText } from '../src/app/backup-i18n';
 import type { ExitCommand, ExitState } from '../shared/dialog';
 import { registerDialogs } from './app-dialog';
 import { securityText } from '../src/app/security-i18n';
@@ -12,7 +14,7 @@ import { attachmentHash } from '../core/attachments';
 import { translate, type Locale } from '../src/app/i18n';
 import { defaultSettings } from '../shared/settings';
 import { app, dialog, ipcMain, nativeImage, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
-import { existsSync, readFileSync, lstatSync } from 'node:fs';
+import { existsSync, readFileSync, lstatSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { LibraryError } from '../core/library';
@@ -26,7 +28,7 @@ import { importNote, exportNote } from '../core/note-files';
 import { cleanSvg } from './svg-import';
 import { readAttachmentFile } from '../core/attachments';
 import { cleanHtmlImport } from './html-import';
-import { planImport, executeImport } from '../core/library-import';
+import { planImport, executeImport, plainPath } from '../core/library-import';
 import { exportAttachmentFile, imageType, isSvg } from '../core/attachments';
 import type { AttachmentRequest } from '../shared/attachments';
 
@@ -44,12 +46,16 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   };
   const nativeImports = new NativeImportCache();
   let choosing = false;
+  let backupStore: BackupStore | null = null;
+  const backups = () => backupStore ??= new BackupStore(dataPath);
+  const startedAt = Date.now(), backupRetries = new Map<string, number>();
   let lastActivity = Date.now(), locking = false;
   let pendingImport: { owner: string; plan: ReturnType<typeof planImport> } | null = null;
   let sourceSecurity: NotebookSecurity | null = null;
   let selectedImport: { owner: string; path: string } | null = null;
   const clearImport = () => { sourceSecurity?.lock(); sourceSecurity = null; pendingImport = null; selectedImport = null; };
   const manager = () => registry ??= new LibraryRegistry(dataPath, process.env['NOTEBOOKAID_TEST_HOME'] ? join(dataPath, 'library') : join(app.getPath('appData'), 'NotebookAid', 'library'), selfTest ? stage => {
+    if (stage.startsWith('restore-') && existsSync(join(dataPath, 'simulate-restore-failure')) && readFileSync(join(dataPath, 'simulate-restore-failure'), 'utf8').trim() === stage) throw new Error('Simulated restore failure');
     if ((stage === 'journal' && existsSync(join(dataPath, 'simulate-write-failure'))) || (stage === 'appearance' && existsSync(join(dataPath, 'simulate-appearance-failure'))) || (stage === 'registry' && existsSync(join(dataPath, 'simulate-registry-failure')))) throw new Error('Simulated write failure');
   } : undefined);
   const get = () => manager().get();
@@ -75,9 +81,65 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     ipcMain.handle(`library:${name}`, async (event, ...args): Promise<Result<unknown>> => {
       authorize(event);
       try { return { ok: true, value: await callback(String(event.sender.id), ...args) }; }
-      catch (error) { return { ok: false, code: (error instanceof LibraryError || error instanceof DeltaError) ? error.code : 'WRITE_FAILED' }; }
+      catch (error) { return { ok: false, code: (error instanceof LibraryError || error instanceof DeltaError) ? error.code : (error as NodeJS.ErrnoException).code === 'ENOSPC' ? 'DISK_FULL' : ['EACCES','EPERM'].includes((error as NodeJS.ErrnoException).code ?? '') ? 'ACCESS_DENIED' : 'WRITE_FAILED', ...(error instanceof LibraryError && error.details ? { details: error.details } : {}) }; }
     });
   };
+  const maintenancePath = async (purpose: 'directory' | 'backup' | 'target', defaultPath?: string): Promise<string | null> => {
+    const title = backupText(currentLocale(), purpose === 'backup' ? 'sourceTitle' : purpose === 'target' ? 'targetTitle' : 'backupDirectoryTitle');
+    if (selfTest && existsSync(join(dataPath, 'backup-dialog.json'))) {
+      const record = join(dataPath, 'backup-picker-titles.json'), titles = existsSync(record) ? JSON.parse(readFileSync(record, 'utf8')) : []; titles.push({ purpose, title }); writeFileSync(record, JSON.stringify(titles));
+      const path = JSON.parse(readFileSync(join(dataPath, 'backup-dialog.json'), 'utf8'))[purpose];
+      if (path === null) return null;
+      if (typeof path !== 'string' || !resolve(path).startsWith(resolve(dataPath) + sep)) throw new LibraryError('INVALID_INPUT');
+      return resolve(path);
+    }
+    const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
+    const selected = await dialog.showOpenDialog(target, { title, buttonLabel: backupText(currentLocale(), 'choose'), ...(defaultPath ? { defaultPath } : {}), properties: purpose === 'backup' ? ['openDirectory'] : ['openDirectory','createDirectory'] });
+    return selected.canceled || !selected.filePaths[0] ? null : resolve(selected.filePaths[0]);
+  };
+  const safeDestination = (path: string, allowNotebookId?: string) => {
+    try { plainPath(path); } catch { throw new LibraryError('PATH_LINKED'); }
+    const entries = manager().state().entries, same = entries.some(entry => entry.id === allowNotebookId && resolve(entry.path).toLowerCase() === resolve(path).toLowerCase());
+    if ((!selfTest && (pathsOverlap(path, app.getAppPath()) || (!same && pathsOverlap(path, dataPath)))) || entries.some(entry => !(same && entry.id === allowNotebookId) && pathsOverlap(path, entry.path))) throw new LibraryError('PATH_OVERLAP');
+  };
+  handle('backups', () => backups().state());
+  handle('configureBackup', async (_owner, id, enabled, chooseDirectory) => {
+    if (!manager().has(id) || typeof enabled !== 'boolean' || typeof chooseDirectory !== 'boolean') throw new LibraryError('INVALID_INPUT');
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE'); choosing = true;
+    try {
+      const directory = chooseDirectory ? await maintenancePath('directory') : backups().state().policies[id]?.directory ?? null;
+      if (chooseDirectory && !directory) return null;
+      if (directory) safeDestination(directory);
+      backups().update(id, directory, enabled); return backups().state();
+    } finally { choosing = false; }
+  });
+  handle('maintenance', async (_owner, id, action) => {
+    if (!manager().has(id) || !['backup', 'verify', 'restore', 'migrate'].includes(action)) throw new LibraryError('INVALID_INPUT');
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE'); choosing = true;
+    try {
+      if (action === 'verify') return manager().maintenance(id, action);
+      if (action === 'backup') {
+        const directory = backups().state().policies[id]?.directory; if (!directory) throw new LibraryError('INVALID_INPUT'); safeDestination(directory);
+        const result = manager().maintenance(id, action, directory); backups().complete(id); return result;
+      }
+      const backup = action === 'restore' ? await maintenancePath('backup') : null;
+      if (action === 'restore' && !backup) return null;
+      const entry = manager().state().entries.find(item => item.id === id)!;
+      if (backup) {
+        try { plainPath(backup); } catch { throw new LibraryError('PATH_LINKED'); }
+        if (verifyBackup(backup).libraryId !== entry.libraryId) throw new LibraryError('LIBRARY_ID_MISMATCH');
+      }
+      const target = await maintenancePath('target', action === 'restore' ? entry.path : undefined); if (!target) return null; safeDestination(target, action === 'restore' ? id : undefined);
+      const original = action === 'restore' && resolve(target).toLowerCase() === resolve(entry.path).toLowerCase();
+      if (backup && pathsOverlap(target, backup)) throw new LibraryError('PATH_OVERLAP');
+      if (existsSync(target) && !lstatSync(target).isDirectory()) throw new LibraryError('RESTORE_TARGET_INVALID');
+      if (!original && existsSync(target) && readdirSync(target).length) throw new LibraryError('TARGET_NOT_EMPTY');
+      if (Object.values(backups().state().policies).some(p => p.directory && pathsOverlap(target, p.directory))) throw new LibraryError('PATH_OVERLAP');
+      const windowTarget = window(); if (!windowTarget) throw new LibraryError('INVALID_INPUT');
+      if (!await dialogs.ask(windowTarget, { kind: 'warning', title: backupText(currentLocale(), action), message: backupText(currentLocale(), original ? 'restoreOriginalWarning' : 'switchWarning'), detail: backup ? backupText(currentLocale(), 'sourceTitle') + ': ' + backup + '\n' + backupText(currentLocale(), 'targetTitle') + ': ' + target : target, cancelLabel: translate(currentLocale(), 'cancelOperation'), confirmLabel: backupText(currentLocale(), action) })) return null;
+      nativeImports.clear(); clearImport(); return manager().maintenance(id, action, target, backup ?? undefined);
+    } finally { choosing = false; }
+  });
   handle('security', async (_owner, request: import('../shared/security').SecurityRequest) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
     choosing = true;
@@ -387,12 +449,30 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     })();
   }, 5000);
   autoLock.unref();
+  const backupTimer = setInterval(() => {
+    if (!registry || choosing || locking) return;
+    let due: import('../shared/backup').BackupState['policies'];
+    try { due = backups().state().policies; } catch { return; }
+    const dueNow = selfTest && process.env['NOTEBOOKAID_BACKUP_TEST'] === '1' && existsSync(join(dataPath, 'simulate-backup-due')) ? Date.now() + 86400001 : Date.now();
+    const item = Object.entries(due).find(([id, p]) => p.enabled && p.directory && p.nextAt !== null && p.nextAt >= startedAt && p.nextAt <= dueNow && (backupRetries.get(id) ?? 0) < Date.now() && manager().has(id));
+    const target = window(); if (!item || !target) return;
+    const [id, policy] = item; locking = true; choosing = true;
+    void (async () => {
+      try {
+        const state = await exitState(target, 'save'); if (!state?.saved || state.dirty || state.busy) return;
+        const latest = backups().state().policies[id]; if (!latest?.enabled || latest.directory !== policy.directory) return;
+        choosing = true; safeDestination(policy.directory!); manager().maintenance(id, 'backup', policy.directory!); backups().complete(id);
+        if (!target.isDestroyed()) target.webContents.send('library:backup-status', { ok: true, libraryId: manager().state().entries.find(entry => entry.id === id)?.libraryId ?? null });
+      } catch { backupRetries.set(id, Date.now() + 300000); if (!target.isDestroyed()) target.webContents.send('library:backup-status', { ok: false, libraryId: null }); }
+      finally { choosing = false; if (!target.isDestroyed()) await exitState(target, 'resume'); locking = false; }
+    })();
+  }, selfTest && process.env['NOTEBOOKAID_BACKUP_TEST'] === '1' ? 1000 : 60000); backupTimer.unref();
   return {
     locale: currentLocale,
     theme: () => { try { return (settings ?? (existsSync(join(dataPath, 'settings.json')) ? new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }) : null))?.get().global.theme ?? 'system'; } catch { return 'system' as const; } },
     lock: () => { nativeImports.clear(); clearImport(); if (registry?.state().activeId) get().lockSecurity(); },
     release: (owner: string) => { dialogs.cancel(); nativeImports.clear(owner); clearImport(); registry?.release(owner); if (registry?.state().activeId) registry.get().lockSecurity(); },
-    close: () => { clearInterval(autoLock); clearImport(); dialogs.cancel(); nativeImports.clear(); registry?.close(); registry = null; },
+    close: () => { clearInterval(autoLock); clearInterval(backupTimer); clearImport(); dialogs.cancel(); nativeImports.clear(); registry?.close(); registry = null; },
     flush: async (): Promise<boolean> => {
       const target = window(); if (!target || target.webContents.isDestroyed()) return false;
       const state = await exitState(target, 'save');
@@ -400,7 +480,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       if (!saved) await exitState(target, 'resume');
       return saved;
     },
-    confirmExit: async (): Promise<boolean> => {
+    confirmExit: async (allowTray = false): Promise<boolean | 'tray'> => {
       const target = window(); if (!target || choosing) return false;
       let accepted = false;
       try {
@@ -410,13 +490,15 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
           return false;
         }
         const answer = await dialogs.choose(target, {
-          kind: state.dirty ? 'warning' : 'info', title: translate(currentLocale(), 'exitApp'),
-          message: translate(currentLocale(), state.dirty ? 'exitUnsaved' : 'exitClean'),
+          kind: state.dirty ? 'warning' : 'info', title: translate(currentLocale(), allowTray ? 'closeWindow' : 'exitApp'),
+          message: allowTray ? translate(currentLocale(), 'closeWindowChoice') + (state.dirty ? '\n' + translate(currentLocale(), 'exitUnsaved') : '') : translate(currentLocale(), state.dirty ? 'exitUnsaved' : 'exitClean'),
+          trayLabel: allowTray ? translate(currentLocale(), 'minimizeToTray') : undefined,
           cancelLabel: translate(currentLocale(), 'cancelOperation'),
           confirmLabel: translate(currentLocale(), state.dirty ? 'saveAndExit' : 'confirmExit'),
           discardLabel: state.dirty ? translate(currentLocale(), 'discardAndExit') : undefined
         });
         if (answer === false) return false;
+        if (answer === 'tray') return 'tray';
         if (answer === 'discard') { accepted = true; return true; }
         const final = await exitState(target, state.dirty ? 'save' : 'inspect');
         accepted = !!final && !final.busy && !final.dirty && (!state.dirty || final.saved);

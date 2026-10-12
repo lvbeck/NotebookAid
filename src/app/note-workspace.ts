@@ -185,6 +185,7 @@ export class NoteWorkspace {
     return result;
   }
   constructor() {
+    this.api.onBackupStatus(value => { void this.notifications.publish(value.ok ? 'lifecycleComplete' : 'operationFailed', 'settings', value.libraryId, value.ok ? null : 'WRITE_FAILED'); });
     this.api.onSecurityLocked(() => { this.clearSensitiveView(); void (async () => { const result = await this.api.status(); if (result.ok) this.status.set(result.value); await this.refresh(); })(); });
     effect(() => {
       this.autosaveContext();

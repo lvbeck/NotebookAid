@@ -1,5 +1,6 @@
 import { NotebookSecurity } from './security';
 import { validateAppearance } from './notebook-appearance';
+import { restoreAllowed } from './restore-guard';
 import type { SecurityState, SecurityRequest } from '../shared/security';
 import { parseDelta, deltaText } from '../shared/delta-document';
 import { validateNative } from './delta-files';
@@ -18,12 +19,12 @@ import { latestNotebookSchemaVersion, formatExtensions, type LibraryUpgradeResul
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const maxBody = 2 * 1024 * 1024;
 const digest = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
-export class LibraryError extends Error { constructor(readonly code: LibraryErrorCode) { super(code); } }
+export class LibraryError extends Error { constructor(readonly code: LibraryErrorCode, readonly details?: { targetPath?: string; rollbackPath?: string; stagingPath?: string }) { super(code); } }
 type Head = { formatVersion: 1; id: string; revisionId: string; version: number; metadataHash: string };
 type Metadata = Omit<NoteDocument, 'body'> & { schemaVersion: 1; parentRevisionId: string | null; bodyHash: string; operationId: string; requestHash: string; visibleInThunderbird: boolean };
 type Journal = { schemaVersion: 1; operationId: string; requestHash?: string; head: Head };
 type Session = { noteId: string; owner: string; token: string; generation: string };
-export type CommitStage = 'appearance' | 'schema' | 'journal' | 'revision' | 'head' | 'index' | 'organization' | 'purge-journal' | 'purge-moved' | 'history-floor' | 'history-pruned' | 'security-prepared' | 'security-moved';
+export type CommitStage = 'restore-prepared' | 'restore-original-moved' | 'restore-replacement-moved' | 'restore-verified' | 'restore-rollback' | 'appearance' | 'schema' | 'journal' | 'revision' | 'head' | 'index' | 'organization' | 'purge-journal' | 'purge-moved' | 'history-floor' | 'history-pruned' | 'security-prepared' | 'security-moved';
 
 export class NoteLibrary {
   setAppearance(value: unknown): void {
@@ -48,7 +49,8 @@ export class NoteLibrary {
   onChange(listener: (change: { noteId: string; version: number; indexed: boolean }) => void): () => void {
     this.events.on('change', listener); return () => { this.events.off('change', listener); };
   }
-  constructor(directory: string, private readonly fault?: (stage: CommitStage) => void, mode: 'existing' | 'create' | 'legacy' = 'legacy') {
+  constructor(directory: string, private readonly fault?: (stage: CommitStage) => void, mode: 'existing' | 'create' | 'legacy' = 'legacy', restoreToken?: string) {
+    if (!restoreAllowed(directory, restoreToken)) throw new LibraryError('RESTORE_INTERRUPTED');
     if (mode === 'existing' && !existsSync(join(directory, 'library.json'))) throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
     if (mode === 'create' && existsSync(directory) && readdirSync(directory).length) throw new LibraryError('INVALID_INPUT');
     if (mode !== 'existing') mkdirSync(directory, { recursive: true });
@@ -91,6 +93,26 @@ export class NoteLibrary {
   }
   close(): void { this.security?.lock(); this.catalog.clear(); this.sessions.clear(); this.events.removeAllListeners(); this.index?.close(); this.index = null; this.lock.close(); }
   status(): LibraryStatus { return { security: this.securityState(), path: this.path, libraryId: this.libraryId, indexed: this.indexed, issues: [...this.issues], pendingRecovery: this.pendingRecovery }; }
+  assertMaintenance(allowDamaged = false): void { if (this.sessions.size) throw new LibraryError('NOTE_IN_USE'); if (!allowDamaged && (this.pendingRecovery || this.issues.size)) throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
+  verifyIntegrity(): import('../shared/backup').IntegrityResult {
+    if (this.pendingRecovery || this.issues.size) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+    this.security.verifyStructure();
+    let notes = 0, revisions = 0, attachments = 0, encryptedSkipped = 0;
+    const seen = new Set<string>();
+    for (const id of readdirSync(this.safe('notes'))) {
+      this.id(id);
+      if (this.security.encrypted(id) && !this.security.unlocked) { encryptedSkipped++; continue; }
+      notes++;
+      for (const head of this.revisionHeads(id)) {
+        const note = this.readHead(head); revisions++;
+        for (const item of note.attachments ?? []) {
+          const key = id + '/' + item.id; if (seen.has(key)) continue;
+          seen.add(key); this.checkedAttachment(id, item).fill(0); attachments++;
+        }
+      }
+    }
+    return { notes, revisions, attachments, encryptedSkipped };
+  }
   upgradeSchema(expected: number): LibraryUpgradeResult {
     if (!Number.isSafeInteger(expected) || expected < 1 || expected > latestNotebookSchemaVersion) throw new LibraryError('INVALID_INPUT');
     if (this.manifest.schemaVersion === latestNotebookSchemaVersion) return { schemaVersion: latestNotebookSchemaVersion, backupPath: null };

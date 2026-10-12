@@ -25,6 +25,10 @@ const api: PrototypeApi = {
     position: value => ipcRenderer.invoke('notifications:position', value)
   },
   library: {
+    backups: () => ipcRenderer.invoke('library:backups'),
+    onBackupStatus: callback => { const listener = (_event: Electron.IpcRendererEvent, value: { ok: boolean; libraryId: string | null }) => callback(value); ipcRenderer.on('library:backup-status', listener); return () => ipcRenderer.removeListener('library:backup-status', listener); },
+    configureBackup: (id, enabled, chooseDirectory) => ipcRenderer.invoke('library:configureBackup', id, enabled, chooseDirectory),
+    maintenance: (id, action) => ipcRenderer.invoke('library:maintenance', id, action),
     printRecovery: (mode, key) => ipcRenderer.invoke('library:printRecovery', mode, key),
     upgradeLibrary: (id, expected) => ipcRenderer.invoke('library:upgradeLibrary', id, expected),
     security: request => ipcRenderer.invoke('library:security', request),

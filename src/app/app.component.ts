@@ -1,5 +1,6 @@
 import { PasskeyComponent } from './passkey.component';
 import { SecurityComponent } from './security.component';
+import { backupText } from './backup-i18n';
 import { securityText, type SecurityKey } from './security-i18n';
 import { LifecycleComponent } from './lifecycle.component';
 import { lifecycleText, type LifecycleKey } from './lifecycle-i18n';
@@ -45,6 +46,8 @@ type Theme = 'light' | 'dark' | 'system';
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
+  readonly missedBackup = signal(false);
+  backupLabel(key: 'missed' | 'settings'): string { return backupText(this.locale(), key); }
   private readonly dialogs = inject(AppDialogs);
   readonly workspace = inject(NoteWorkspace);
   @ViewChild(SettingsComponent) settingsPanel?: SettingsComponent;
@@ -318,6 +321,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.localizeEditor();
     this.ready.set(true);
     void this.workspace.init();
+    void window.notebookAid.library.backups().then(result => { if (result.ok) this.missedBackup.set(result.value.missed.length > 0); }).catch(() => {});
     window.notebookAid.runtime().then(value => this.runtime.set(value)).catch(() => this.sqliteResult.set(this.t('failed')));
   }
   ngOnDestroy(): void {

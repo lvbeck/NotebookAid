@@ -4,10 +4,10 @@ import type { AppDialog, DialogAnswer } from '../shared/dialog';
 
 /** Keep confirmation and the protected operation in the main process. */
 export function registerDialogs(authorize: (event: IpcMainInvokeEvent) => void) {
-  let pending: { id: string; target: BrowserWindow; allowDiscard: boolean; finish: (accepted: DialogAnswer) => void } | null = null;
+  let pending: { id: string; target: BrowserWindow; allowDiscard: boolean; allowTray: boolean; finish: (accepted: DialogAnswer) => void } | null = null;
   ipcMain.handle('app-dialog:respond', (event, id: unknown, accepted: unknown) => {
     authorize(event);
-    if (typeof id !== 'string' || (typeof accepted !== 'boolean' && !(accepted === 'discard' && pending?.allowDiscard))) return;
+    if (typeof id !== 'string' || (typeof accepted !== 'boolean' && !(accepted === 'discard' && pending?.allowDiscard) && !(accepted === 'tray' && pending?.allowTray))) return;
     if (pending?.id === id && event.sender === pending.target.webContents) pending.finish(accepted);
   });
   const choose = (target: BrowserWindow, data: Omit<AppDialog, 'id'>): Promise<DialogAnswer> => {
@@ -25,7 +25,7 @@ export function registerDialogs(authorize: (event: IpcMainInvokeEvent) => void) 
           if (!contents.isDestroyed()) contents.send('app-dialog:dismiss', id);
           resolve(accepted);
         };
-        pending = { id, target, finish, allowDiscard: !!data.discardLabel };
+        pending = { id, target, finish, allowDiscard: !!data.discardLabel, allowTray: !!data.trayLabel };
         target.once('closed', cancel); target.once('hide', cancel);
         contents.once('render-process-gone', cancel); contents.on('did-start-navigation', navigation);
         if (target.isMinimized()) target.restore();
