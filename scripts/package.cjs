@@ -53,6 +53,7 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/html-import-policy.md', join(packageRoot, 'html-import-policy.md'));
   cpSync('docs/t04-testing.md', join(packageRoot, 'T04-TESTING.md'));
   cpSync('docs/t07-testing.md', join(packageRoot, 'T07-TESTING.md'));
+  cpSync('docs/t09-appearance-testing.md', join(packageRoot, 'T09-APPEARANCE-TESTING.md'));
   cpSync('docs/t08-testing.md', join(packageRoot, 'T08-TESTING.md'));
   cpSync('docs/t08-security-design.md', join(packageRoot, 't08-security-design.md'));
   cpSync('docs/t06a-testing.md', join(packageRoot, 'T06A-TESTING.md'));

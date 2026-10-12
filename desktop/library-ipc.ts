@@ -11,14 +11,15 @@ import { validateNative } from '../core/delta-files';
 import { attachmentHash } from '../core/attachments';
 import { translate, type Locale } from '../src/app/i18n';
 import { defaultSettings } from '../shared/settings';
-import { app, dialog, ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
-import { existsSync, readFileSync } from 'node:fs';
+import { app, dialog, ipcMain, nativeImage, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import { existsSync, readFileSync, lstatSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { LibraryError } from '../core/library';
 import { NotebookSecurity } from '../core/security';
 import { inspectLibrary } from '../core/registry';
 import { LibraryRegistry } from '../core/registry';
+import { validateAppearance } from '../core/notebook-appearance';
 import { SettingsStore } from '../core/settings';
 import { formatExtensions, type NoteInput, type Result, type SaveRequest } from '../shared/library';
 import { importNote, exportNote } from '../core/note-files';
@@ -49,7 +50,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   let selectedImport: { owner: string; path: string } | null = null;
   const clearImport = () => { sourceSecurity?.lock(); sourceSecurity = null; pendingImport = null; selectedImport = null; };
   const manager = () => registry ??= new LibraryRegistry(dataPath, process.env['NOTEBOOKAID_TEST_HOME'] ? join(dataPath, 'library') : join(app.getPath('appData'), 'NotebookAid', 'library'), selfTest ? stage => {
-    if ((stage === 'journal' && existsSync(join(dataPath, 'simulate-write-failure'))) || (stage === 'registry' && existsSync(join(dataPath, 'simulate-registry-failure')))) throw new Error('Simulated write failure');
+    if ((stage === 'journal' && existsSync(join(dataPath, 'simulate-write-failure'))) || (stage === 'appearance' && existsSync(join(dataPath, 'simulate-appearance-failure'))) || (stage === 'registry' && existsSync(join(dataPath, 'simulate-registry-failure')))) throw new Error('Simulated write failure');
   } : undefined);
   const get = () => manager().get();
   const choosePath = async (): Promise<string | null> => {
@@ -318,6 +319,40 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   handle('save', (owner, request: SaveRequest) => get().save(request, owner));
   handle('rebuild', () => get().rebuild());
   handle('registry', () => manager().state());
+  handle('setNotebookAppearance', (_owner, id, value) => {
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE');
+    value = validateAppearance(value);
+    if (value?.cover) {
+      if (typeof value.cover !== 'string' || value.cover.length > 1500000 || !value.cover.startsWith('data:image/png;base64,')) throw new LibraryError('INVALID_INPUT');
+      const image = nativeImage.createFromDataURL(value.cover), size = image.getSize();
+      if (image.isEmpty() || size.width !== 512 || size.height !== 512) throw new LibraryError('INVALID_INPUT');
+      value = { ...value, cover: image.toDataURL() };
+    }
+    return manager().setAppearance(id, value);
+  });
+  handle('chooseNotebookCover', async (_owner, id) => {
+    if (!manager().has(id)) throw new LibraryError('INVALID_INPUT');
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE');
+    choosing = true;
+    try {
+      let path: string | null;
+      if (selfTest && existsSync(join(dataPath, 'cover-dialog.json'))) {
+        const value = JSON.parse(readFileSync(join(dataPath, 'cover-dialog.json'), 'utf8')).path;
+        path = value === null ? null : typeof value === 'string' && resolve(value).startsWith(resolve(dataPath) + sep) ? resolve(value) : null;
+      } else {
+        const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
+        const result = await dialog.showOpenDialog(target, { properties: ['openFile'], filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'] }] });
+        path = result.canceled ? null : result.filePaths[0] ?? null;
+      }
+      if (!path) return null;
+      const info = lstatSync(path);
+      if (!info.isFile() || info.isSymbolicLink() || info.size > 20 * 1024 * 1024) throw new LibraryError('INVALID_INPUT');
+      const image = nativeImage.createFromBuffer(readFileSync(path)), size = image.getSize();
+      if (image.isEmpty() || size.width > 8192 || size.height > 8192 || size.width * size.height > 32000000) throw new LibraryError('INVALID_INPUT');
+      const limit = Math.min(1, 2048 / Math.max(size.width, size.height));
+      return (limit < 1 ? image.resize({ width: Math.max(1, Math.round(size.width * limit)), height: Math.max(1, Math.round(size.height * limit)), quality: 'good' }) : image).toDataURL();
+    } finally { choosing = false; }
+  });
   handle('activate', (_owner, id: string) => { if (choosing) throw new LibraryError('LIBRARY_IN_USE'); clearImport(); nativeImports.clear(); return manager().activate(id); });
   handle('register', (_owner, mode: 'existing' | 'create') => {
     if (mode !== 'existing' && mode !== 'create') throw new LibraryError('INVALID_INPUT');

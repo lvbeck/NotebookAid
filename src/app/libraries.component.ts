@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog';
 import { SecurityDialog } from './security.component';
 import { securityText } from './security-i18n';
-import { Component, Input, Injector, afterNextRender, inject, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, Injector, afterNextRender, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NoteWorkspace } from './note-workspace';
 import { IconComponent } from './icon.component';
@@ -11,6 +11,7 @@ import { NotificationService } from './notification-service';
 
 @Component({ selector: 'app-libraries', standalone: true, imports: [FormsModule, IconComponent], templateUrl: './libraries.component.html' })
 export class LibrariesComponent {
+  @Output() readonly settingsRequested = new EventEmitter<string>();
   @Input() locale: Locale = 'zh-CN';
   readonly workspace = inject(NoteWorkspace);
   private readonly notifications = inject(NotificationService);

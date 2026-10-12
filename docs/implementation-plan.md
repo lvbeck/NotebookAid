@@ -617,3 +617,20 @@ T08.7 已更新 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backup
 T08 最后图标修正构建、diff 检查、安全／Passkey／架构专项 21/21，以及便携安全界面和重启专项（`output/security-packaged/1791810988226`）通过。根据用户上述明确条件验收，T08 包括此前子项及最后图标修正已批准。既有偶发核心写入异常与未实测的实体打印、Win10 条件继续在验收文档中保留，不宣称这些未验证项已经通过。
 
 T08 最终交付 0.8.0-t08.8 已部署至 `C:\Softwares\NotebookAid-win32-x64`，`verified=true`、`backupCreated=false`。保留 ZIP `release/NotebookAid-0.8.0-t08.8-win-x64.zip`，SHA-256 `b9812e7c8c1be5bb19851d5e80994f2749dcb2ff7a7e6a3e61f7d84063a58b7d`。本地 main 提交 T08 全部已验收范围，包、输出、依赖及凭据不提交。
+
+
+### T09.1 笔记本外观追加需求（2026-10-12，已按条件验收）
+
+用户明确批准预览并要求实现、打包及更新测试目录，随后追加十个预定义封面，允许选择内置或自有图片。本需求纳入当前 T09 的追加范围；这是实现授权，不是 T09 验收，不提交或开始 T10。顶部按用户最终决定优先封面，否则彩色笔记本图标，修正垂直居中。
+
+实现笔记本内 appearance.json、本地核心校验与写锁、CDK 1:1 裁剪、六个颜色选项、十张原创 SVG 风景资源，以及卡片入口、占位图、顶部缩略图。内置和自选图片保存为重编码的 512×512 PNG，不依赖原文件路径。见 t09-appearance-testing.md。待最终验证、打包与交付。
+
+T09.1 构建、编译及 diff 检查通过；外观／登记／备份核心 23/23，安全核心 9/9，八语言新增文字完整性检查通过。开发版外观和重启（output/appearance-packaged/1791817539603）、最终便携外观和重启（output/appearance-packaged/1791817656356）、便携备份与重启（output/backup-packaged/1791817421617）通过。截图已检查。首次链接夹具因沙箱权限受限，获准后复测通过；窄窗口初始测试混用原生与渲染尺寸，修正测试后通过。未更改应用窗口限制；未重跑全部旧核心测试或操作用户真实笔记本。等待用户验收，不提交 T09 或开始 T10。
+
+T09.1 已打包并更新 C:\Softwares\NotebookAid-win32-x64，部署脚本返回 verified=true、backupCreated=false。保留 ZIP：release/NotebookAid-0.9.0-t09.1-win-x64.zip；SHA-256：1d51ed6d6a11d158e145697f3e5df95d99b8933ed4b2d05a3ae1bf4248c988fb。未修改用户真实笔记本或凭据。回滚使用保留的 T09.0 ZIP，见 t09-appearance-testing.md。T09 含此次追加外观需求等待用户验收，未提交、未启动 T10。
+
+用户明确“预定义色块也扩展为十个，然后验收T09.1”。本轮增加四个清淡色块，总计十个；构建与最终便携外观／重启专项通过（output/appearance-packaged/1791818884776），覆盖十个色块逐一选中。按此条件验收 T09.1 外观功能，T09 备份主体仍未验收，不开始 T10。独立暂存树 Angular 与桌面 TypeScript 构建通过，外观核心 5/5 通过；准备独立提交已批准的外观源码、测试、资源和文档，保留未验收备份改动。
+
+独立提交副本的组合核心检查首次 11/12：旧登记用例在首次 activate 的注册表原子替换处出现既有 WRITE_FAILED；外观 5/5 均通过。单独复测登记 7/7 通过。本轮未修改登记持久化算法或声称该偶发问题已修复，既有记录继续保留。
+
+十色版 0.9.1-t09.1 已打包并部署 C:\Softwares\NotebookAid-win32-x64，verified=true、backupCreated=false。保留 ZIP 为 release/NotebookAid-0.9.1-t09.1-win-x64.zip，SHA-256 36c5681a7132cdea471e1f5dddebcaa333edcacd155ba5c78b68fbe2f77d757f。未操作用户笔记本和凭据；可用保留的 0.9.0-t09.1 ZIP 回滚程序。用户条件验收的 T09.1 已完成，独立提交外观范围；T09 备份主体仍待验收。

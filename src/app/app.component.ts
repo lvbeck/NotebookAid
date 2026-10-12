@@ -47,6 +47,9 @@ type Theme = 'light' | 'dark' | 'system';
 export class AppComponent implements AfterViewInit, OnDestroy {
   private readonly dialogs = inject(AppDialogs);
   readonly workspace = inject(NoteWorkspace);
+  @ViewChild(SettingsComponent) settingsPanel?: SettingsComponent;
+  readonly activeLibrary = computed(() => this.workspace.registry().entries.find(item => item.current));
+  showLibrarySettings(id: string): void { this.editorFullscreen.set(false); this.tab.set('settings'); this.settingsPanel?.select(id); this.settingsPanel?.section.set('library'); }
   readonly notifications = inject(NotificationService);
   @ViewChild('editorHost', { static: true }) host!: ElementRef<HTMLElement>;
   @ViewChild('toolbarHost', { static: true }) toolbar!: ElementRef<HTMLElement>;

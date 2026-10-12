@@ -15,7 +15,7 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "assets": [{ "glob": "notebookaid-64.png", "input": "assets", "output": "assets" }],
+            "assets": [{ "glob": "notebookaid-64.png", "input": "assets", "output": "assets" }, { "glob": "*.svg", "input": "assets/notebook-covers", "output": "assets/notebook-covers" }],
             "styles": ["node_modules/quill/dist/quill.snow.css", "src/styles.css"],
             "baseHref": "./",
             "optimization": { "scripts": true, "styles": { "minify": true, "inlineCritical": false }, "fonts": false },

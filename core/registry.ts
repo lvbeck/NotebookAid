@@ -5,6 +5,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { NoteLibrary, LibraryError, type CommitStage } from './library';
 import type { LibraryErrorCode } from '../shared/library';
 import type { LibraryEntry, RegistryState } from '../shared/registry';
+import { readAppearance } from './notebook-appearance';
+import { defaultNotebookAppearance } from '../shared/notebook-appearance';
 
 interface Config { schemaVersion: 1; activeId: string | null; entries: LibraryEntry[]; }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -96,10 +98,12 @@ export class LibraryRegistry {
     return { activeId: this.currentId, entries: this.config.entries.map(entry => {
       let availability: 'available' | LibraryErrorCode = 'available';
       let schemaVersion: number | null = null;
+      let appearance = defaultNotebookAppearance(), appearanceIssue = false;
       try {
         const inspected = inspectLibrary(entry.path);
         valid(!entry.libraryId || inspected.libraryId === entry.libraryId, 'LIBRARY_ID_MISMATCH');
         schemaVersion = inspected.schemaVersion;
+        try { appearance = readAppearance(inspected.path); } catch { appearanceIssue = true; }
         if (entry.id !== this.currentId) {
           const lockPath = join(inspected.path, '.writer.sqlite');
           if (existsSync(lockPath)) {
@@ -111,7 +115,7 @@ export class LibraryRegistry {
           }
         }
       } catch (error) { availability = error instanceof LibraryError ? error.code : 'NOT_FOUND_OR_UNAVAILABLE'; }
-      return { ...entry, schemaVersion, availability, current: entry.id === this.currentId };
+      return { ...entry, appearance, appearanceIssue, schemaVersion, availability, current: entry.id === this.currentId };
     }) };
   }
   activate(id: unknown) {
@@ -145,6 +149,13 @@ export class LibraryRegistry {
   rename(id: unknown, name: unknown): RegistryState {
     const entry = this.entry(id); valid(typeof name === 'string' && name.trim() && name.trim().length <= 100 && !/[\x00-\x1f]/.test(name));
     this.persist({ ...this.config, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, name: name.trim() } : item) }); return this.state();
+  }
+  setAppearance(id: unknown, value: unknown): RegistryState {
+    const entry = this.entry(id), inspected = inspectLibrary(entry.path);
+    valid(entry.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
+    const current = entry.id === this.currentId, library = current ? this.get() : new NoteLibrary(inspected.path, this.fault, 'existing');
+    try { library.setAppearance(value); } finally { if (!current) library.close(); }
+    return this.state();
   }
   relocate(id: unknown, directory: string): RegistryState {
     const entry = this.entry(id); valid(entry.id !== this.currentId, 'CURRENT_LIBRARY');

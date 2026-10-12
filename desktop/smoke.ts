@@ -1,5 +1,6 @@
 import { smokeExit } from './exit-smoke';
 import { smokeSecurity } from './security-smoke';
+import { smokeAppearance } from './appearance-smoke';
 import { smokeDialogs } from './dialog-smoke';
 import { smokeLifecycle } from './lifecycle-smoke';
 import { smokeNativeCapacity } from './native-capacity-smoke';
@@ -26,6 +27,7 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
     throw new Error('UI condition timed out: ' + expression);
   };
   await until("document.querySelector('app-root')?.dataset.ready === 'true'");
+  if (process.env['NOTEBOOKAID_APPEARANCE_TEST'] === '1') { await smokeAppearance(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_SECURITY_TEST'] === '1') { await smokeSecurity(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_EXIT_TEST']) { await smokeExit(window, directory); if(errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_DIALOG_TEST'] === '1') { await smokeDialogs(window, directory); if(errors.length) throw Error(errors.join('; ')); return; }

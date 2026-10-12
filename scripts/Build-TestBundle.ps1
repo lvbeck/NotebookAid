@@ -19,6 +19,7 @@ Copy-Item -LiteralPath (Join-Path $workspace 'docs/t03c-testing.md') -Destinatio
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t04-testing.md') -Destination (Join-Path $packageRoot 'T04-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/html-import-policy.md') -Destination (Join-Path $packageRoot 'html-import-policy.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t07-testing.md') -Destination (Join-Path $packageRoot 'T07-TESTING.md') -Force
+Copy-Item -LiteralPath (Join-Path $workspace 'docs/t09-appearance-testing.md') -Destination (Join-Path $packageRoot 'T09-APPEARANCE-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t08-testing.md') -Destination (Join-Path $packageRoot 'T08-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t08-security-design.md') -Destination (Join-Path $packageRoot 't08-security-design.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t06a-testing.md') -Destination (Join-Path $packageRoot 'T06A-TESTING.md') -Force

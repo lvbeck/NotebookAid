@@ -10,8 +10,8 @@
   <div class="library-grid">
   @for (entry of workspace.registry().entries; track entry.id) {
     <article class="panel library-entry" [class.current]="entry.current" [attr.data-library-id]="entry.id" data-testid="library-entry">
-      <div class="library-entry-heading"><app-icon name="BookOpen" /><h2>{{ entry.name }}</h2>@if (entry.current) { <span class="preview-pill">{{ t('libCurrent') }}</span> }</div>
-      <p class="path">{{ entry.path }}</p>
+      <div class="library-entry-heading"><app-icon name="BookOpen" [style.color]="entry.appearance?.color || '#7460c9'" /><h2>{{ entry.name }}</h2>@if (entry.current) { <span class="preview-pill">{{ t('libCurrent') }}</span> }</div>
+      <div class="library-entry-details"><p class="path">{{ entry.path }}</p><div class="notebook-cover">@if (entry.appearance?.cover; as cover) { <img [src]="cover" [alt]="entry.name"> } @else { <span class="notebook-cover-placeholder" [style.color]="entry.appearance?.color || '#7460c9'"><app-icon name="Image" /></span> }</div></div>
       <p class="muted">{{ t('libLastOpened') }}: {{ time(entry.lastOpenedAt) }}</p>
       <p [class.warning]="entry.availability !== 'available'">{{ entry.availability === 'available' ? t('libAvailable') : error(entry.availability) }}</p>
       @if (editing() === entry.id) {
@@ -23,6 +23,7 @@
           <button class="secondary" data-testid="library-rename" (click)="edit(entry.id, entry.name)" [disabled]="workspace.switching()"><app-icon name="NotebookPen" />{{ t('libRename') }}</button>
           <button class="secondary" data-testid="library-relocate" (click)="workspace.manage('relocate', entry.id)" [disabled]="workspace.switching() || entry.current || !entry.libraryId"><app-icon name="FileInput" />{{ t('libRelocate') }}</button>
           <button class="secondary" data-testid="library-remove" (click)="removing.set(entry.id)" [disabled]="workspace.switching() || entry.current"><app-icon name="Trash2" />{{ t('libRemove') }}</button>
+          <button class="secondary" data-testid="library-settings" (click)="settingsRequested.emit(entry.id)" [disabled]="workspace.switching()"><app-icon name="Settings" />{{ t('librarySettings') }}</button>
         </div>
       }
       @if (removing() === entry.id) { <div class="library-remove-confirm" role="group" [attr.aria-label]="t('libRemove')"><p>{{ t('libRemoveConfirm') }}</p><button class="secondary" (click)="removing.set('')"><app-icon name="X" />{{ t('noticeCancel') }}</button><button class="primary" data-testid="library-remove-confirm" (click)="remove(entry.id)" [disabled]="workspace.switching() || entry.current"><app-icon name="Check" />{{ t('libRemove') }}</button></div> }

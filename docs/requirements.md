@@ -270,3 +270,9 @@ T07 默认保留全部历史，不自动清空回收站，不自动裁剪旧版�
 - Inspect pending title/body/placement changes before saving; pause autosave and prevent editing while deciding. Await in-flight saves. Saving must finish successfully before exit; failure keeps the application and edits available. Cancel never saves or discards edits. Discard does not undo edits already saved earlier.
 - Current architecture has one active editable note session and flushes before switching notes/notebooks; the exit check covers all pending note buffers in that session. Future multi-editor support must aggregate every session.
 - This user decision supersedes the earlier close-to-tray default. Explicit Hide to tray remains available.
+
+
+### 笔记本外观（2026-10-12 用户批准）
+
+每个笔记本可设置颜色（默认蓝紫色、颜色选择器和清淡预定义色块）以及封面（默认无封面）。内置十个类似山和太阳的低饱和自然景色封面，也支持自选图片并进行 1:1 裁剪。选择笔记本卡片增加指定笔记本设置入口；名称前显示自定义颜色图标、路径右侧显示方形封面或占位图。顶部名称前优先封面缩略图，否则显示彩色笔记本图标，并与文字垂直居中。外观随笔记本备份及迁移；不改变笔记正文、架构和加密状态。
+2026-10-12 补充确认：预定义色块扩展为十个，保持清淡配色；完成此修改后验收 T09.1。

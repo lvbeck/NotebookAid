@@ -1,4 +1,5 @@
 import { NotebookSecurity } from './security';
+import { validateAppearance } from './notebook-appearance';
 import type { SecurityState, SecurityRequest } from '../shared/security';
 import { parseDelta, deltaText } from '../shared/delta-document';
 import { validateNative } from './delta-files';
@@ -22,9 +23,14 @@ type Head = { formatVersion: 1; id: string; revisionId: string; version: number;
 type Metadata = Omit<NoteDocument, 'body'> & { schemaVersion: 1; parentRevisionId: string | null; bodyHash: string; operationId: string; requestHash: string; visibleInThunderbird: boolean };
 type Journal = { schemaVersion: 1; operationId: string; requestHash?: string; head: Head };
 type Session = { noteId: string; owner: string; token: string; generation: string };
-export type CommitStage = 'schema' | 'journal' | 'revision' | 'head' | 'index' | 'organization' | 'purge-journal' | 'purge-moved' | 'history-floor' | 'history-pruned' | 'security-prepared' | 'security-moved';
+export type CommitStage = 'appearance' | 'schema' | 'journal' | 'revision' | 'head' | 'index' | 'organization' | 'purge-journal' | 'purge-moved' | 'history-floor' | 'history-pruned' | 'security-prepared' | 'security-moved';
 
 export class NoteLibrary {
+  setAppearance(value: unknown): void {
+    const appearance = validateAppearance(value);
+    try { this.fault?.('appearance'); this.atomic(this.safe('appearance.json'), JSON.stringify(appearance)); }
+    catch (error) { if (error instanceof LibraryError) throw error; throw new LibraryError('WRITE_FAILED'); }
+  }
   readonly path: string;
   readonly libraryId: string;
   private lock!: DatabaseSync;
