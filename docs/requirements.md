@@ -1,6 +1,6 @@
 # 需求规格
 
-状态：T01–T03 已批准；T04 已批准并提交，T05 已交付待验收；Delta 新需求仅纳入计划。更新日期：2026-10-11。
+状态：T01–T06-A 已批准；T06-A 已提交，T07 及本轮编辑界面调整待用户验收。更新日期：2026-10-11。
 
 本文中的“已确认”来自用户在本聊天及此前“评估 Thunderbird 记事本方案”（`01a1204e-6566-7dd0-afd3-0c34d98bb474`）中的决定。后续新增需求与建议默认值分别记录；技术细节需对应任务验证，记录计划不等于实施授权或验收通过。
 
@@ -92,7 +92,7 @@
 以下是对已确认功能的具体设计建议，随 T01 一起审阅：
 
 - 每篇笔记只有一个主格式；其他格式是导出副本，不在副本与原笔记之间自动双向更新。
-- 关闭窗口默认保留托盘和后台；“退出 NotebookAid”明确停止后台。addon 不应在用户明确退出后反复自动重启，显示连接状态并提供启动操作。
+- 从 T07.5 起，关闭原生窗口、侧边栏退出及托盘退出均先确认，再结束应用和后台；“隐藏到托盘”仍可单独保留后台。addon 不应在用户明确退出后反复自动重启，显示连接状态并提供启动操作。
 - 尚未运行时，addon 可按需启动后台；只有打开编辑操作才显示编辑窗口。
 - 编辑锁按编辑会话判断，自动保存不释放锁；普通预览不占用编辑锁。删除含编辑中笔记的文件夹应整体拒绝。
 - 删除默认移入回收站；永久删除由用户主动执行。确认保留规则前不自动永久清理。
@@ -228,3 +228,37 @@ T06 图片尺寸工具栏补充：选中图片时在图片下方或可见区域�
 R40 实施约定（T06-A）：选择性使用架构版本 5；完整 Delta 文档使用 NotebookAidDelta version 1，单篇原生交换使用 .nadelta / NotebookAidNative version 1，包含当前附件及完整性校验，不包含历史或组织设置。使用前确认升级并保留完整笔记本备份，普通三格式笔记本不自动迁移。
 
 R40 容量修正（2026-10-11，用户明确要求）：原生交换与笔记附件统一，每篇最多 50 个附件、单个 20 MiB、合计 200 MiB；不再使用 20 MiB 附件总量／32 MiB 容器限制。交换文件上限覆盖 Base64 与文档元数据开销，超限或损坏必须拒绝，不可静默省略附件。
+
+### T07 历史与回收站实施边界
+
+T07 默认保留全部历史，不自动清空回收站，不自动裁剪旧版本。用户最终更正为“保留所有历史，并提供批量手动清理功能”：历史页允许手动指定保留最近 N 个版本，预览清理数量并确认后执行，当前版本始终保留；无自动 50 版本上限。历史恢复新增版本，恢复标题、正文、格式和附件关联，保留当前组织归属及置顶。永久删除必须主动确认，并移除该笔记本中的笔记、历史和附件，不代表磁盘安全擦除，也不删除外部备份或导出副本。
+
+文件夹仅允许在没有子文件夹且没有笔记引用时删除；标签仅允许在没有笔记引用时删除，回收站笔记也计入引用。首次历史手动清理或组织删除使用架构版本 6，先创建完整升级备份；历史中已不存在的组织项不在恢复时复活，跨笔记本导入将失效的历史组织引用规范化。详见 [T07 验收指南](t07-testing.md)。这些为本轮实现默认值，待用户验收。
+# T07 编辑界面补充确认（2026-10-11）
+
+- 笔记归属操作保持单行：文件夹图标及所属文件夹、标签、置顶、历史版本、带文字的移至回收站；窄窗口可横向滚动，不拆行。
+- 合并模式切换与编辑工具栏，整合附件和导出；空间不足时通过菜单展示格式工具和导出选项。导出格式按最长选项计算紧凑宽度，选项文字保持单行。
+- 全屏编辑进入时最大化桌面窗口，笔记标题移入顶部固定保存栏；退出时返回普通窗口原有尺寸位置，标题返回原位置并保留编辑内容。按钮、快捷键和离开编辑页的退出路径一致。
+- 本轮仅为 T07 验收前调整，不构成 T07 用户验收或 T08 开工批准。
+
+### T07 source formatting and table presentation (confirmed 2026-10-11)
+
+- Add a source beautify/minify toggle beside the editor mode switch for Delta JSON and HTML notes; use different icons and retain undo/redo. Markdown and TXT whitespace is not compressed.
+- HTML formatting must preserve inline text spacing, attribute values, pre/code/raw content and CSS-sensitive whitespace. This is conservative formatting, not sanitization or aggressive minification.
+- Match task checkboxes and table borders, spacing and header shading to the existing theme. Expose header/body row commands for HTML and Delta; Markdown uses its required first header row.
+- Continue T07 acceptance fixes only; packaging and test deployment do not authorize a commit or T08.
+
+## T07 dialog and fullscreen spacing correction (2026-10-12)
+
+- Fullscreen note organization actions use equal 16 px vertical padding between the header and toolbar separators.
+- Application confirmations use a shared Angular CDK dialog with existing theme colors and buttons. This includes lifecycle actions, attachment/Delta schema upgrades, and unsaved exit warnings. Native file, directory and Save As pickers remain unchanged, as explicitly confirmed by the user.
+- Cancel has initial focus. Escape, backdrop and close cancel; keyboard focus stays inside the dialog. Closing/reloading/crashing the renderer cannot accept a pending operation. Main-process authorization and one-use request IDs protect responses.
+
+
+## T07.5 exit confirmation (2026-10-12)
+
+- Sidebar exit uses a Power icon and text; collapsed mode shows the icon with the existing right-side tooltip.
+- Native window close, sidebar exit and tray exit use the same CDK confirmation. Saved notes show Confirm exit / Cancel. Unsaved notes show Save and exit / Discard changes and exit / Cancel.
+- Inspect pending title/body/placement changes before saving; pause autosave and prevent editing while deciding. Await in-flight saves. Saving must finish successfully before exit; failure keeps the application and edits available. Cancel never saves or discards edits. Discard does not undo edits already saved earlier.
+- Current architecture has one active editable note session and flushes before switching notes/notebooks; the exit check covers all pending note buffers in that session. Future multi-editor support must aggregate every session.
+- This user decision supersedes the earlier close-to-tray default. Explicit Hide to tray remains available.

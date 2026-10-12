@@ -15,6 +15,14 @@ export interface SaveRequest { noteId: string; token: string; generation: string
 export interface SaveResult { removedUnsafeSvg?: number; note: NoteDocument; saved: true; indexed: boolean; }
 export interface LibraryStatus { path: string; libraryId: string; indexed: boolean; issues: string[]; pendingRecovery: number; }
 export interface LibraryApi extends RegistryApi, SettingsApi {
+  cleanHistory(id: string, version: number, retain: number, operationId: string): Promise<Result<number | null>>;
+  trashNote(id: string, version: number, operationId: string): Promise<Result<SaveResult | null>>;
+  restoreNote(id: string, version: number, operationId: string): Promise<Result<SaveResult>>;
+  purgeNote(id: string, version: number, operationId: string): Promise<Result<boolean>>;
+  history(id: string, offset?: number): Promise<Result<{ revisions: (NoteSummary & { revisionId: string; attachmentCount: number })[]; total: number }>>;
+  revision(id: string, revision: string): Promise<Result<NoteDocument>>;
+  restoreRevision(id: string, revision: string, version: number, operationId: string): Promise<Result<SaveResult | null>>;
+  deleteOrganization(kind: 'folder' | 'tag', id: string, version: number): Promise<Result<Organization | null>>;
   attachments(noteId: string): Promise<Result<AttachmentView[]>>;
   addAttachment(request: AttachmentRequest): Promise<Result<SaveResult | null>>;
   unlinkAttachment(request: AttachmentRequest, id: string): Promise<Result<SaveResult>>;
@@ -36,5 +44,5 @@ export interface LibraryApi extends RegistryApi, SettingsApi {
   end(token: string, generation: string): Promise<Result<void>>;
   save(request: SaveRequest): Promise<Result<SaveResult>>;
   rebuild(): Promise<Result<LibraryStatus>>;
-  onExit(callback: () => Promise<boolean>): () => void;
+  onExit(callback: (command: import('./dialog').ExitCommand) => Promise<import('./dialog').ExitState>): () => void;
 }

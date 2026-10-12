@@ -1,6 +1,24 @@
+import { lifecycleText } from '../lifecycle-i18n';
 import type { MessageKey } from '../i18n';
 
 export const portuguese: Record<MessageKey, string> = {
+  exitApp: "Sair da aplicação",
+  saveAndExit: "Guardar e sair",
+  discardAndExit: "Descartar alterações e sair",
+  confirmExit: "Confirmar saída",
+  exitUnsaved: "Há notas por guardar. Guardar antes de sair?",
+  exitClean: "Todas as notas estão guardadas. Sair do NotebookAid?",
+  exitBlocked: "Não foi possível verificar o estado de gravação ou há uma operação em curso. Continue a editar e tente mais tarde.",
+
+  beautifySource: "Formatar código",
+  minifySource: "Minimizar código",
+  sourceFormatHint: "Formatar HTML ou Delta JSON. Preserva texto, espaços em linha e código. Pode anular.",
+  sourceFormatFailed: "Não foi possível formatar. Verifique a sintaxe e o limite de 2 MiB. O código não foi alterado.",
+  tableHeaderRow: "Definir linha de cabeçalho",
+  tableBodyRow: "Definir linha de conteúdo",
+  markdownTableHeader: "Markdown usa sempre a primeira linha como cabeçalho.",
+  moreEditorTools: "Mais ferramentas de edição",
+  lifecycleComplete: lifecycleText('pt-PT', 'success'),
   deltaFormat: "Texto formatado Delta",
   deltaUpgrade: "Delta requer o esquema 5. Será guardada uma cópia completa ao lado em .delta-backups. Versões antigas não podem abrir este esquema. Continuar?",
   deltaInvalid: "Documento Delta inválido ou não suportado. Corrija o JSON e os atributos conforme os detalhes antes de guardar.",
@@ -143,7 +161,7 @@ export const portuguese: Record<MessageKey, string> = {
   "newFormat": "Formato da nova nota",
   "importNote": "Importar nota",
   "richText": "Texto formatado",
-  "sourceMode": "Origem / texto simples",
+  "sourceMode": "Código-fonte",
   "undo": "Anular",
   "redo": "Refazer",
   "exportFormat": "Formato de exportação",
@@ -254,7 +272,7 @@ export const portuguese: Record<MessageKey, string> = {
   "welcome": "Primeiros passos",
   "sample": "Bem-vindo ao NotebookAid",
   "sampleHint": "Um espaço para a sua próxima ideia",
-  "preview": "T06-A texto formatado nativo",
+  "preview": "T07 histórico e reciclagem",
   "previewHint": "Gravação local automática · Markdown / HTML / TXT / Delta · encriptação e cópias de segurança ainda não implementadas",
   "save": "Guardar",
   "saving": "A guardar…",

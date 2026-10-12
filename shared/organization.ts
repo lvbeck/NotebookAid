@@ -6,4 +6,4 @@ export type OrganizationEditInput = { kind: 'folder' | 'tag'; id: string; name: 
 export type OrganizationEdit = OrganizationEditInput & { expectedVersion: number };
 export interface NotePlacement { folderId: string | null; tagIds: string[]; pinned: boolean; }
 export interface PlacementRequest extends Pick<SaveRequest, 'noteId' | 'token' | 'generation' | 'expectedVersion' | 'operationId'>, NotePlacement {}
-export interface NoteQuery { text?: string; folderId?: string | null; tagIds?: string[]; view?: 'all' | 'pinned' | 'recent'; offset?: number; limit?: number; }
+export interface NoteQuery { text?: string; folderId?: string | null; tagIds?: string[]; view?: 'all' | 'pinned' | 'recent' | 'trash'; offset?: number; limit?: number; }

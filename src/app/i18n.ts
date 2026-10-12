@@ -1,3 +1,4 @@
+import { lifecycleText } from './lifecycle-i18n';
 import { hongKong } from './locales/hk';
 import { french } from './locales/fr';
 import { italian } from './locales/it';
@@ -5,6 +6,23 @@ import { spanish } from './locales/es';
 import { portuguese } from './locales/pt';
 import { german } from './locales/de';
 export const english = {
+  exitApp: "Exit app",
+  saveAndExit: "Save and exit",
+  discardAndExit: "Discard changes and exit",
+  confirmExit: "Confirm exit",
+  exitUnsaved: "There are unsaved notes. Save your changes before exiting?",
+  exitClean: "All notes are saved. Exit NotebookAid?",
+  exitBlocked: "The save state could not be checked, or an operation is still in progress. Keep editing and try again.",
+
+  beautifySource: "Beautify source",
+  minifySource: "Minify source",
+  sourceFormatHint: "Format HTML or Delta JSON. Text, inline spaces and code are preserved. Undo is available.",
+  sourceFormatFailed: "Source could not be formatted. Check the syntax and the 2 MiB limit. Your source is unchanged.",
+  tableHeaderRow: "Set as header row",
+  tableBodyRow: "Set as body row",
+  markdownTableHeader: "Markdown always uses the first row as the header.",
+  moreEditorTools: "More editing tools",
+  lifecycleComplete: lifecycleText('en', 'success'),
   deltaFormat: "Delta rich text",
   deltaUpgrade: "Creating or importing Delta upgrades this notebook to schema 5. A full backup is saved beside it in .delta-backups. Older applications cannot open schema 5. Continue?",
   deltaInvalid: "Invalid or unsupported Delta document. Correct the JSON and supported attributes below before saving.",
@@ -66,7 +84,7 @@ dragSort: "Drag to reorder siblings", moveUp: "Move up", moveDown: "Move down", 
   htmlPreview: 'Isolated preview (external resources disabled)',
   htmlCleaned: 'Imported HTML was cleaned: executable content, unsafe links or resource-loading content was removed. The cleaned HTML will be saved; the source file is unchanged.',
   sourceRefresh: 'Source changed. Refresh rich text before editing.',
-  newFormat: 'New note format', importNote: 'Import note', richText: 'Rich text', sourceMode: 'Source / plain text', undo: 'Undo', redo: 'Redo', exportFormat: 'Export format', exportCopy: 'Export copy…', exportPreviewTitle: 'Export preview', exportConfirm: 'Choose location and export', exportSuccess: 'Copy exported successfully.', exportCancelled: 'Export cancelled.', exportFailed: 'Export failed. Choose a new filename outside application and notebook folders; existing files are not overwritten.', exportHint: 'This exports the displayed snapshot, not a live link. Same-format export preserves the body source; conversion may omit unsupported formatting and resources. Review the preview. Raw HTML may contain active content when opened in another application. Only new filenames are accepted; existing files are never overwritten.', formatPreserved: 'Source editing mode: saving is available. This is not a save error. Unsupported layout or attributes remain in the original source, including links and image references. Edit below and click Save.',
+  newFormat: 'New note format', importNote: 'Import note', richText: 'Rich text', sourceMode: 'Source', undo: 'Undo', redo: 'Redo', exportFormat: 'Export format', exportCopy: 'Export copy…', exportPreviewTitle: 'Export preview', exportConfirm: 'Choose location and export', exportSuccess: 'Copy exported successfully.', exportCancelled: 'Export cancelled.', exportFailed: 'Export failed. Choose a new filename outside application and notebook folders; existing files are not overwritten.', exportHint: 'This exports the displayed snapshot, not a live link. Same-format export preserves the body source; conversion may omit unsupported formatting and resources. Review the preview. Raw HTML may contain active content when opened in another application. Only new filenames are accepted; existing files are never overwritten.', formatPreserved: 'Source editing mode: saving is available. This is not a save error. Unsupported layout or attributes remain in the original source, including links and image references. Edit below and click Save.',
 globalSettings: "Global settings", librarySettings: "Notebook settings", globalSettingsHint: "Language and theme apply to the application. Autosave is the default for notebooks that inherit it.", librarySettingsHint: "These are local preferences for this notebook entry. They do not move with the notebook folder. Changes apply when committed; inactive notebooks can be configured without opening them.", inheritGlobal: "Inherit global autosave", restoreInheritance: "Restore inheritance", effectiveSettings: "Effective settings", autosaveEvery: "Save every", minutesUnit: "minutes", autosaveDisabled: "Scheduled autosave off", autosaveGlobalHint: "Default: on, 5 minutes. Inheriting notebooks follow this setting; overrides stay unchanged. Enter 1–60 whole minutes, then leave the field to apply. Manual save, switching and normal exit still save when the timer is off.", preferencesFailed: "Settings could not be loaded or saved. Previous values are retained. If loading failed, scheduled autosave is paused; manual saving remains available. Check the code and retry. Intervals must be whole minutes from 1 to 60.", notActiveLibrary: "Not the active notebook", libraryMaintenance: "Notebook maintenance", maintenanceHint: "Open this notebook first to rebuild its index. This action never rebuilds another notebook.",
 
   libTitle: 'Notebooks', libHint: 'Add an existing notebook or create one in an empty folder. Opening a notebook saves current edits before switching.', libAdd: 'Add existing notebook', libCreate: 'Create new notebook', libRefresh: 'Refresh status', libSelectFirst: 'Select an available notebook. No other notebook is opened automatically.', libCurrent: 'Current', libLastOpened: 'Last opened', libNeverOpened: 'Not opened yet', libAvailable: 'Available', libOpen: 'Open', libRename: 'Display name', libRelocate: 'Relocate', libRemove: 'Remove from list', libRemoveConfirm: 'Remove only this local entry? Files and notes remain on disk.', libDuplicate: 'Path already registered or the same notebook ID exists at another path. For a moved notebook, use Relocate.', libMismatch: 'The notebook ID does not match the saved entry.', libConfigInvalid: 'Cannot read the notebook list. Original configuration retained; do not overwrite it.', libUnsupported: 'Unsupported notebook format.', libCurrentProtected: 'Switch notebooks before removing or relocating the current notebook.', libInUse: 'Notebook is in use by another process.', libUnavailable: 'Path missing, offline or inaccessible. Reconnect or relocate.', libInvalid: 'Choose a valid notebook, or an empty folder for a new notebook. Check the name and path.', libWriteFailed: 'Could not save the list. The active notebook is unchanged. A newly created notebook may already exist on disk; retry using Add existing notebook.',
@@ -75,7 +93,7 @@ globalSettings: "Global settings", librarySettings: "Notebook settings", globalS
   settings: 'Settings', autosave: 'Autosave', autosaveEnabled: 'Enable autosave', autosaveInterval: 'Interval (minutes)', intervalInvalid: 'Enter a whole number from 1 to 60.', autosaveHint: 'Applies to all notebooks. Default: on, every 5 minutes after the first edit. Further typing does not reset the timer. Unchanged notes create no revision. Manual save, switching notes and normal exit still save when autosave is off. Changes apply immediately.', settingsSaved: 'Settings saved', settingsFailed: 'Could not save settings. Previous settings retained.', saveSuccess: 'Saved successfully', savedIndexPending: 'Note saved; index needs rebuilding.', rebuilding: 'Rebuilding…', rebuildSuccess: 'Index rebuilt successfully', rebuildPartial: 'Index rebuild completed; some notebook items still need attention.', rebuildFailed: 'Index rebuild failed. Please retry.',
   tagline: 'Local notes. Clear thinking.', library: 'My notebook', all: 'All notes', pinned: 'Pinned', recent: 'Recent', trash: 'Trash',
   folders: 'Folders', welcome: 'Getting started', sample: 'Welcome to NotebookAid', sampleHint: 'A space for your next idea',
-  preview: "T06-A native rich text", previewHint: 'Local autosave · Markdown / HTML / TXT / Delta · encryption and backups are not implemented yet.',
+  preview: "T07 history and recycle bin", previewHint: 'Local autosave · Markdown / HTML / TXT / Delta · encryption and backups are not implemented yet.',
   save: 'Save', saving: 'Saving…', saved: 'Saved locally', unsaved: 'Unsaved changes', saveFailed: 'Operation failed', draftRetained: 'Current edits retained. Check the error before retrying.', retry: 'Retry save', chooseLibrary: 'Choose notebook', rebuild: 'Rebuild index', recoveryNotice: 'Notebook needs attention; original files retained.', emptyLibrary: 'Create your first note.', sourceEditing: 'Edit Markdown in Technical checks. Load it to refresh the editor; unsupported syntax stays read-only in rich text.',
   local: 'Local workspace', theme: 'Theme', language: 'Language', light: 'Light', dark: 'Dark', system: 'System',
   editor: 'Editor', diagnostics: 'Technical checks', title: 'Title', inMemory: 'Not saved · preview only',
@@ -96,6 +114,23 @@ export const languages: { code: Locale; label: string }[] = [
   { code: 'zh-CN', label: '简体中文' }, { code: 'zh-TW', label: '繁體中文（香港）' }
 ];
 const chinese: Record<MessageKey, string> = {
+  exitApp: "退出应用",
+  saveAndExit: "保存并退出",
+  discardAndExit: "放弃保存并退出",
+  confirmExit: "确认退出",
+  exitUnsaved: "有未保存的笔记，是否保存后退出？",
+  exitClean: "所有笔记均已保存，确认退出 NotebookAid？",
+  exitBlocked: "暂时无法检查保存状态，或仍有操作正在进行。请继续编辑，稍后重试退出。",
+
+  beautifySource: "美化源码",
+  minifySource: "最小化源码",
+  sourceFormatHint: "整理 HTML 或 Delta JSON；保留文字、行内空格和代码，可撤销。",
+  sourceFormatFailed: "无法格式化，请检查语法及 2 MiB 大小限制。原始源码未改变。",
+  tableHeaderRow: "设为表头行",
+  tableBodyRow: "设为正文行",
+  markdownTableHeader: "Markdown 表格固定以首行为表头。",
+  moreEditorTools: "更多编辑工具",
+  lifecycleComplete: lifecycleText('zh-CN', 'success'),
   deltaFormat: "Delta 原生富文本",
   deltaUpgrade: "创建或导入 Delta 将升级此笔记本至架构版本 5，并在旁边的 .delta-backups 中保存完整备份。旧程序无法打开版本 5。是否继续？",
   deltaInvalid: "Delta 文档无效或含不支持的结构。请根据下方详情修正 JSON 和属性后再保存。",
@@ -154,7 +189,7 @@ const chinese: Record<MessageKey, string> = {
   sourceProtected: '已保护源码，仍可正常保存。', sourceIssuesHint: '保存不需要删除内容。如需富文本编辑，请按下列说明调整，再点击“富文本”重新检查。显示首次可定位的位置及出现次数。', sourceIssuesStale: '源码已修改。以下是上次检查结果，请点击“富文本”重新检查。', issueLine: '首次行号：', issueElementIndex: '首次 DOM 元素序号：', issueCount: '出现次数：',
   issueTask: '任务列表：将 [ ]／[x] 标记改为普通列表文字。', issueNested: '列表超过 8 级缩进：减少层级，或保留源码模式。', issueImage: '图片：保留源码模式，或改为文字／链接。', issueTable: '表格：保留源码模式，或改为普通段落。', issueRule: '分隔线：移除分隔线，或改为普通文字。', issueCodeLanguage: '代码块语言：仅移除开头围栏后的语言标记，保留代码内容。', issueHeading: '标题级别：改为 H1–H3。', issueEmbeddedHtml: '内嵌 HTML：改为受支持的 Markdown 语法，或保留源码模式。', issueStrike: '删除线：移除 ~~ 标记。', issueLink: '链接地址：改为带 http:、https: 或 mailto: 的地址，或保留源码模式。', issueReference: '引用式链接定义：将引用改写为行内链接。', issueElement: 'HTML 元素：保留源码模式，或将此元素替换为支持的段落、标题、列表或链接。', issueAttribute: 'HTML 属性：富文本不能保留此属性；仅在不需要其样式或含义时移除。', issueDocument: '完整 HTML 文档：富文本仅支持正文片段；需要文档结构／head 信息时请保留源码模式。', issueComment: 'HTML 注释：移除注释后使用富文本，或保留源码模式。', issueLinkAttribute: '链接属性值：目前只支持 target="_blank" 及默认 rel="noopener noreferrer"。', issueRoundtrip: '转换校验未通过：编辑器改变了所列结构／格式。请保留源码模式，不能安全地自动删除。',
   sourceRefresh: '源码已修改，请先刷新富文本再编辑。',
-  htmlCleaned: '导入 HTML 已进行安全清理：已移除可执行内容、危险链接或资源加载内容。将保存清理后的 HTML，原文件未修改。', htmlPreview: '隔离预览（不加载外部资源）', newFormat: '新笔记格式', importNote: '导入笔记', richText: '富文本', sourceMode: '源码／纯文本', undo: '撤销', redo: '重做', exportFormat: '导出格式', exportCopy: '导出副本…', exportPreviewTitle: '导出预览', exportConfirm: '选择位置并导出', exportSuccess: '副本导出成功。', exportCancelled: '已取消导出。', exportFailed: '导出失败。请在程序和笔记本目录以外选择新文件名；不覆盖已有文件。', exportHint: '导出当前预览快照，不与笔记同步。同格式保留正文源码；转换可能省略未支持的格式和资源，请先核对预览。原始 HTML 在其他程序中打开时可能包含活动内容。仅接受新文件名，不覆盖已有文件。', formatPreserved: '当前以源码模式编辑，仍可正常保存。这不是保存失败：该内容含有富文本暂不支持的布局或属性，当前源码会保留，不会被富文本转换覆盖。修改下方源码后点击“保存”。',
+  htmlCleaned: '导入 HTML 已进行安全清理：已移除可执行内容、危险链接或资源加载内容。将保存清理后的 HTML，原文件未修改。', htmlPreview: '隔离预览（不加载外部资源）', newFormat: '新笔记格式', importNote: '导入笔记', richText: '富文本', sourceMode: '源码', undo: '撤销', redo: '重做', exportFormat: '导出格式', exportCopy: '导出副本…', exportPreviewTitle: '导出预览', exportConfirm: '选择位置并导出', exportSuccess: '副本导出成功。', exportCancelled: '已取消导出。', exportFailed: '导出失败。请在程序和笔记本目录以外选择新文件名；不覆盖已有文件。', exportHint: '导出当前预览快照，不与笔记同步。同格式保留正文源码；转换可能省略未支持的格式和资源，请先核对预览。原始 HTML 在其他程序中打开时可能包含活动内容。仅接受新文件名，不覆盖已有文件。', formatPreserved: '当前以源码模式编辑，仍可正常保存。这不是保存失败：该内容含有富文本暂不支持的布局或属性，当前源码会保留，不会被富文本转换覆盖。修改下方源码后点击“保存”。',
 globalSettings: "全局设置", librarySettings: "笔记本设置", globalSettingsHint: "语言和主题作用于整个应用。自动保存作为所有继承笔记本的默认值。", librarySettingsHint: "仅为此笔记本在本机的偏好，不随文件夹复制到其他电脑；未打开的笔记本也可配置。", inheritGlobal: "继承全局自动保存设置", restoreInheritance: "恢复继承全局", effectiveSettings: "实际生效设置", autosaveEvery: "每", minutesUnit: "分钟保存", autosaveDisabled: "定时自动保存已关闭", autosaveGlobalHint: "默认开启、5 分钟。继承笔记本跟随全局值，已覆盖的笔记本不受影响。输入 1–60 整数分钟，离开输入栏后生效。关闭定时保存仍保留手动、切换及正常退出保存。", preferencesFailed: "设置读取或保存失败，保留原值。若读取失败，暂停定时自动保存，仍可手动保存。请按错误码检查后重试；间隔须为 1–60 整数分钟。", notActiveLibrary: "非当前笔记本", libraryMaintenance: "笔记本维护", maintenanceHint: "请先打开此笔记本后再重建索引，不会操作另一个笔记本。",
 
   libTitle: '笔记本', libHint: '添加已有笔记本，或在空目录中创建新笔记本。点击“打开”切换，切换前会保存当前编辑。', libAdd: '添加已有笔记本', libCreate: '创建新笔记本', libRefresh: '刷新状态', libSelectFirst: '请选择可用笔记本，不会自动打开其他笔记本。', libCurrent: '当前笔记本', libLastOpened: '最近打开', libNeverOpened: '尚未打开', libAvailable: '可用', libOpen: '打开', libRename: '修改显示名称', libRelocate: '重新定位', libRemove: '从列表移除', libRemoveConfirm: '仅移除本机列表记录？磁盘上的笔记本和笔记会完整保留。', libDuplicate: '此路径已登记，或其他目录具有相同笔记本 ID，可能是副本。笔记本已移动时请使用“重新定位”。', libMismatch: '目标笔记本 ID 与原记录不一致，请选择原笔记本。', libConfigInvalid: '无法读取笔记本列表，原配置已保留，请勿覆盖原文件。', libUnsupported: '暂不支持此笔记本格式。', libCurrentProtected: '请先切换到其他笔记本，再移除或重新定位当前笔记本。', libInUse: '笔记本正被其他进程占用。', libUnavailable: '路径不存在、离线或无访问权限，请恢复连接或重新定位。', libInvalid: '请选择有效的已有笔记本；创建新笔记本需选择空目录。请检查名称与路径是否合法。', libWriteFailed: '列表保存失败，当前笔记本未切换。刚创建的目录可能已包含有效笔记本，重试时请添加已有笔记本。',
@@ -163,7 +198,7 @@ globalSettings: "全局设置", librarySettings: "笔记本设置", globalSettin
   settings: '设置', autosave: '自动保存', autosaveEnabled: '开启自动保存', autosaveInterval: '保存间隔（分钟）', intervalInvalid: '请输入 1–60 之间的整数。', autosaveHint: '适用于所有笔记本，默认开启、5 分钟。首次修改后开始计时，继续输入不会推迟保存；无修改不生成修订。关闭后仍可手动保存，切换笔记和正常退出时也会保存。设置即时生效。', settingsSaved: '设置已保存', settingsFailed: '设置保存失败，已保留原设置。', saveSuccess: '保存成功', savedIndexPending: '笔记已保存，索引需要重建。', rebuilding: '正在重建…', rebuildSuccess: '索引重建成功', rebuildPartial: '索引重建完成，笔记本仍有项目需要检查。', rebuildFailed: '索引重建失败，请重试。',
   tagline: '本地记录，从容思考。', library: '我的笔记本', all: '全部笔记', pinned: '置顶', recent: '最近使用', trash: '回收站',
   folders: '文件夹', welcome: '开始使用', sample: '欢迎使用 NotebookAid', sampleHint: '为下一个想法留一处空间',
-  preview: "T06-A 原生富文本", previewHint: '本地自动保存 · Markdown / HTML / TXT / Delta · 尚未实现加密与备份',
+  preview: "T07 历史与回收站", previewHint: '本地自动保存 · Markdown / HTML / TXT / Delta · 尚未实现加密与备份',
   save: '保存', saving: '保存中…', saved: '已保存到本地', unsaved: '尚未保存', saveFailed: '操作失败', draftRetained: '当前编辑已保留，请核对错误后重试。', retry: '重试保存', chooseLibrary: '选择笔记本', rebuild: '重建索引', recoveryNotice: '笔记本需要检查，原文件已保留。', emptyLibrary: '新建第一篇笔记。', sourceEditing: '请在“技术验证”中编辑 Markdown 源码，载入后刷新编辑器；未支持的语法在富文本中只读。',
   local: '本地工作区', theme: '主题', language: '语言', light: '浅色', dark: '深色', system: '跟随系统',
   editor: '编辑器', diagnostics: '技术验证', title: '标题', inMemory: '未保存 · 仅供预览', source: 'Markdown 源码',

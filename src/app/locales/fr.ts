@@ -1,6 +1,24 @@
+import { lifecycleText } from '../lifecycle-i18n';
 import type { MessageKey } from '../i18n';
 
 export const french: Record<MessageKey, string> = {
+  exitApp: "Quitter l’application",
+  saveAndExit: "Enregistrer et quitter",
+  discardAndExit: "Abandonner et quitter",
+  confirmExit: "Confirmer la fermeture",
+  exitUnsaved: "Des notes ne sont pas enregistrées. Enregistrer avant de quitter ?",
+  exitClean: "Toutes les notes sont enregistrées. Quitter NotebookAid ?",
+  exitBlocked: "Impossible de vérifier l’enregistrement ou une opération est en cours. Continuez à modifier et réessayez plus tard.",
+
+  beautifySource: "Formater la source",
+  minifySource: "Minifier la source",
+  sourceFormatHint: "Formater HTML ou Delta JSON. Texte, espaces en ligne et code préservés. Annulation possible.",
+  sourceFormatFailed: "Échec du formatage. Vérifiez la syntaxe et la limite de 2 Mio. La source reste inchangée.",
+  tableHeaderRow: "Définir comme en-tête",
+  tableBodyRow: "Définir comme ligne de contenu",
+  markdownTableHeader: "Markdown utilise toujours la première ligne comme en-tête.",
+  moreEditorTools: "Autres outils d’édition",
+  lifecycleComplete: lifecycleText('fr', 'success'),
   deltaFormat: "Texte enrichi Delta",
   deltaUpgrade: "Delta nécessite le schéma 5. Une sauvegarde complète sera créée à côté dans .delta-backups. Les anciennes versions ne peuvent pas ouvrir ce schéma. Continuer ?",
   deltaInvalid: "Document Delta invalide ou non pris en charge. Corrigez le JSON et les attributs selon les détails avant de sauvegarder.",
@@ -143,7 +161,7 @@ export const french: Record<MessageKey, string> = {
   "newFormat": "Format de la nouvelle note",
   "importNote": "Importer une note",
   "richText": "Texte enrichi",
-  "sourceMode": "Source / texte brut",
+  "sourceMode": "Source",
   "undo": "Annuler",
   "redo": "Rétablir",
   "exportFormat": "Format d’exportation",
@@ -254,7 +272,7 @@ export const french: Record<MessageKey, string> = {
   "welcome": "Premiers pas",
   "sample": "Bienvenue dans NotebookAid",
   "sampleHint": "Un espace pour votre prochaine idée",
-  "preview": "T06-A texte enrichi natif",
+  "preview": "T07 historique et corbeille",
   "previewHint": "Enregistrement local automatique · Markdown / HTML / TXT / Delta · chiffrement et sauvegardes à venir",
   "save": "Enregistrer",
   "saving": "Enregistrement…",

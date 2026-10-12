@@ -60,6 +60,15 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
     const button = this.button; if (!button || !this.label) return;
     const options = this.options();
     this.label.textContent = this.select.selectedOptions[0]?.label ?? '';
+    if (this.select.dataset['testid'] === 'export-format') {
+      const context = document.createElement('canvas').getContext('2d');
+      if (context) {
+        const style = getComputedStyle(button);
+        context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        const textWidth = Math.max(0, ...options.map(option => context.measureText(option.label).width));
+        button.style.width = `${Math.ceil(textWidth + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight) + 16 + (parseFloat(style.columnGap) || 8) + 2)}px`;
+      }
+    }
     button.disabled = this.select.disabled || !options.some((_option, index) => this.enabled(index));
     const name = this.select.getAttribute('aria-label') || this.select.closest('label')?.querySelector('span')?.textContent || this.label.textContent;
     button.setAttribute('aria-label', name || 'Select');

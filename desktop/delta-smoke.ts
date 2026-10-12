@@ -8,7 +8,7 @@ export async function smokeDelta(window: BrowserWindow, directory: string): Prom
   const run = (script: string) => window.webContents.executeJavaScript(script);
   const wait = () => new Promise(resolve => setTimeout(resolve, 120));
   const until = async (script: string) => { for (let i=0;i<120;i++) { if (await run(script)) return; await wait(); } writeFileSync(join(directory,'delta-dom.txt'),await run('document.body.innerHTML')); throw Error('Delta timeout: '+script); };
-  const click = async (id: string) => { await run(`document.querySelector('[data-testid=${id}]').click()`); await wait(); };
+  const click = async (id: string) => { await run(`{const el=document.querySelector('[data-testid=${id}]');if(el.closest('.export-controls')&&!el.getClientRects().length)document.querySelector('[data-testid=compact-export]').click();}`);await wait();await run(`document.querySelector('[data-testid=${id}]').click()`); await wait(); };
   const input = async (id: string, value: string, event='input') => { await run(`{const el=document.querySelector('[data-testid=${id}]');el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('${event}',{bubbles:true}));}`); await wait(); };
   if (process.argv.includes('--self-test-reopen')) {
     const expected=JSON.parse(readFileSync(join(directory,'delta-expected.json'),'utf8'));
@@ -21,12 +21,20 @@ export async function smokeDelta(window: BrowserWindow, directory: string): Prom
   await until("!document.querySelector('[data-testid=create-note]').disabled");
   await click('create-note');await click('create-delta');
   await until("document.querySelector('.format-badge').textContent.includes('DELTA')");
-  await run("document.querySelector('[data-select-trigger=export-format]').click()");
+  await run("{const el=document.querySelector('[data-select-trigger=export-format]');if(!el.getClientRects().length)document.querySelector('[data-testid=compact-export]').click();}");await wait();await run("document.querySelector('[data-select-trigger=export-format]').click()");
   await until("!!document.querySelector('.select-menu-export-format')");
   if (!await run("(()=>{const el=document.querySelector('.select-menu-export-format [data-value=delta] span');return el.getClientRects().length===1 && el.scrollWidth<=el.clientWidth && getComputedStyle(el).whiteSpace==='nowrap';})()")) throw Error('Delta export label wraps or overflows');
   await run("document.querySelector('.select-menu-export-format [data-value=markdown]').click()");
   const fixture=deltaSnapshot([{insert:'Delta heading'},{insert:'\n',attributes:{header:1}},{insert:'Task'},{insert:'\n',attributes:{list:'checked'}},{insert:'Nested'},{insert:'\n',attributes:{list:'bullet',indent:2}},{insert:'const count=1;'},{insert:'\n',attributes:{'code-block':'javascript'}},{insert:'Cell'},{insert:'\n',attributes:{table:'row-1','cell-header':'true'}},{insert:'\n'}]);
-  await click('source-mode');await input('body-source',fixture);await click('save-note');await click('rich-mode');
+  await click('source-mode');await input('body-source',fixture);
+  await click('format-source');
+  const pretty = await run("document.querySelector('[data-testid=body-source]').value");
+  if (!pretty.includes('\n  "ops"') || JSON.stringify(JSON.parse(pretty)) !== fixture) throw Error('Delta beautification changed data');
+  await click('format-source');
+  if (await run("document.querySelector('[data-testid=body-source]').value") !== fixture) throw Error('Delta minification mismatch');
+  await input('body-source','{ invalid'); await click('format-source');
+  if (!await run("document.querySelector('[role=alert].source-format-error') && document.querySelector('[data-testid=body-source]').value==='{ invalid'")) throw Error('Invalid Delta formatting was destructive');
+  await input('body-source',fixture);await click('save-note');await click('rich-mode');
   await until("!document.querySelector('[data-testid=format-warning]') && document.querySelector('.ql-editor table') && document.querySelector('.ql-editor [data-list=checked]')");
   await run("{const el=document.querySelector('.ql-editor p:last-child');el.textContent='Typed rich text';el.dispatchEvent(new InputEvent('input',{bubbles:true}));}");await wait();
   await click('save-note');await until("document.querySelector('[data-testid=save-status]').textContent.includes('已保存')");
@@ -53,5 +61,5 @@ export async function smokeDelta(window: BrowserWindow, directory: string): Prom
   const query=await run("window.notebookAid.library.query({text:'Delta heading'})");if(!query.ok||query.value.total!==2)throw Error('Delta text search failed');
   writeFileSync(join(directory,'delta-expected.json'),JSON.stringify({id:note.id,body:note.body}));
   await window.webContents.capturePage();await wait();writeFileSync(join(directory,'delta-editor.png'),(await window.webContents.capturePage()).toPNG());
-  writeFileSync(join(directory,'delta-report.json'),JSON.stringify({undoRedo:true,nativeCreate:true,richSnapshot:true,taskAndNestedLists:true,table:true,codeLanguage:true,image:true,exchange:true,search:true}));
+  writeFileSync(join(directory,'delta-report.json'),JSON.stringify({sourceFormatting:true,invalidSourcePreserved:true,undoRedo:true,nativeCreate:true,richSnapshot:true,taskAndNestedLists:true,table:true,codeLanguage:true,image:true,exchange:true,search:true}));
 }

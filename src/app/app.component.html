@@ -1,5 +1,5 @@
 <app-notifications [locale]="locale()" />
-<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()" [class.editor-fullscreen]="editorFullscreen()" [attr.inert]="notifications.drawerOpen() ? '' : null">
+<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()" [class.editor-fullscreen]="editorFullscreen()" [attr.inert]="notifications.drawerOpen() || workspace.exitLocked() ? '' : null">
   <aside class="sidebar">
     <div class="brand"><img class="brand-mark" src="assets/notebookaid-64.png" alt=""><strong>NotebookAid</strong></div>
     <p class="tagline">{{ t('tagline') }}</p>
@@ -47,17 +47,18 @@
     }
     <button class="nav-item" data-testid="organization-tab" [class.active]="tab() === 'organization'" (click)="tab.set('organization'); workspace.refresh()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('organize') : ''" [attr.aria-label]="t('organize')"><app-icon name="Tag" /><span class="sidebar-text">{{ t('organize') }}</span></button>
     <div class="sidebar-bottom">
-      <button class="nav-item unavailable-entry" aria-disabled="true" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('trash') : ''" [attr.aria-label]="t('trash')"><app-icon name="Trash2" /><span class="sidebar-text">{{ t('trash') }}</span></button>
+      <button class="nav-item" data-testid="trash-tab" [class.active]="tab() === 'trash'" (click)="tab.set('trash')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('trash') : ''" [attr.aria-label]="t('trash')"><app-icon name="Trash2" /><span class="sidebar-text">{{ t('trash') }}</span></button>
       <button class="nav-item" data-testid="diagnostics-tab" [class.active]="tab() === 'diagnostics'" (click)="tab.set('diagnostics')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('diagnostics') : ''" [attr.aria-label]="t('diagnostics')"><app-icon name="FlaskConical" /><span class="sidebar-text">{{ t('diagnostics') }}</span></button>
       <button class="nav-item" data-testid="libraries-tab" [class.active]="tab() === 'libraries'" (click)="showLibraries()" [disabled]="workspace.switching()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('chooseLibrary') : ''" [attr.aria-label]="t('chooseLibrary')"><app-icon name="BookOpen" /><span class="sidebar-text">{{ t('chooseLibrary') }}</span></button>
       <button class="nav-item" data-testid="settings-tab" [class.active]="tab() === 'settings'" (click)="tab.set('settings')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('settings') : ''" [attr.aria-label]="t('settings')"><app-icon name="Settings" /><span class="sidebar-text">{{ t('settings') }}</span></button>
+      <button class="nav-item" data-testid="exit-app" (click)="quit()" [appTooltip]="sidebarCollapsed() ? t('exitApp') : ''" [attr.aria-label]="t('exitApp')"><app-icon name="Power" /><span class="sidebar-text">{{ t('exitApp') }}</span></button>
       <button class="nav-item sidebar-collapse-toggle" data-testid="sidebar-toggle" (click)="toggleSidebar()" [disabled]="!prefs.ready() || prefs.busy()" [attr.aria-expanded]="!sidebarCollapsed()" [attr.aria-label]="t(sidebarCollapsed() ? 'expandSidebar' : 'collapseSidebar')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('expandSidebar') : ''"><app-icon [name]="sidebarCollapsed() ? 'PanelLeftOpen' : 'PanelLeftClose'" /><span class="sidebar-text">{{ t('collapseSidebar') }}</span></button>
-      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T05</span></div>
+      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T07</span></div>
     </div>
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="breadcrumb">{{ activeLibraryName() }}<span>/</span><b>{{ tab() === 'libraries' ? t('libTitle') : tab() === 'organization' ? t('organize') : tab() === 'editor' ? (workspace.folderPath(workspace.session()?.note?.folderId ?? null) || t('rootFolder')) : tab() === 'settings' ? t('settings') : t('diagnostics') }}</b></div>
+      <div class="breadcrumb">{{ activeLibraryName() }}<span>/</span><b>{{ tab() === 'trash' ? t('trash') : tab() === 'history' ? l('history') : tab() === 'libraries' ? t('libTitle') : tab() === 'organization' ? t('organize') : tab() === 'editor' ? (workspace.folderPath(workspace.session()?.note?.folderId ?? null) || t('rootFolder')) : tab() === 'settings' ? t('settings') : t('diagnostics') }}</b></div>
       <div class="preferences">
         <button class="notifications-bell icon-button" data-testid="notifications-bell" (click)="notifications.openHistory()" [attr.aria-label]="t('notifications') + ' · ' + notifications.unread()" [attr.aria-expanded]="notifications.drawerOpen()"><app-icon name="Bell" />@if (notifications.unread()) { <span class="notification-badge">{{ notifications.unread() }}</span> }</button>
         <select appSelect [attr.aria-label]="t('language')" data-testid="language" [ngModel]="locale()" (change)="setLocale($event)" [disabled]="prefs.busy() || !prefs.ready()">
@@ -74,6 +75,7 @@
     @if (notifications.storageFailed()) { <div class="library-warning" role="status">{{ t('noticeStorageFailed') }} <button class="secondary" (click)="notifications.reload()" [disabled]="notifications.busy()"><app-icon name="RefreshCw" />{{ t('noticeReload') }}</button></div> }
     @if (!prefs.ready() && prefs.error()) { <div class="library-warning" role="alert">{{ t('preferencesFailed') }} · {{ prefs.error() }}</div> }
     <main class="content">
+      @if (tab() === 'trash' || tab() === 'history') { <app-lifecycle [locale]="locale()" [noteId]="tab() === 'history' ? historyNoteId() : ''" (closed)="tab.set('editor')" /> }
       @if (tab() === 'organization') { <app-organization [locale]="locale()" /> }
       @if (tab() === 'libraries') { <app-libraries [locale]="locale()" /> }
       <app-settings [hidden]="tab() !== 'settings'" [locale]="locale()" />
@@ -93,13 +95,16 @@
         <div class="list-empty"><app-icon name="BookOpen" /><p>{{ t('about') }}</p></div>
       </aside>
       <section class="editor-pane" [hidden]="tab() !== 'editor'">
-        <div class="editor-heading"><span class="format-badge">{{ format() === 'text' ? 'TXT' : format().toUpperCase() }} · v{{ workspace.session()?.note?.version || 0 }}</span><span class="save-status" data-testid="save-status">{{ saveLabel() }}</span><button class="secondary fullscreen-toggle" data-testid="editor-fullscreen" (click)="toggleEditorFullscreen()" [disabled]="!workspace.session()" [attr.aria-pressed]="editorFullscreen()" [attr.aria-label]="t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff')" [title]="t(editorFullscreen() ? 'exitFullscreen' : 'enterFullscreen') + ' (Ctrl+Shift+F · Esc)'"><app-icon [name]="editorFullscreen() ? 'Minimize2' : 'Maximize2'" /><span>{{ t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff') }}</span></button><button class="primary" data-testid="save-note" (click)="workspace.manualSave()" [disabled]="!workspace.session() || workspace.saving()"><app-icon name="Save" />{{ t(workspace.saving() ? 'saving' : 'save') }}</button></div>
-        <input class="note-title" data-testid="note-title" [attr.aria-label]="t('title')" [(ngModel)]="title" [disabled]="!workspace.session() || workspace.switching()" (compositionstart)="workspace.setComposing(true)" (compositionend)="workspace.setComposing(false)" maxlength="300">
+        <ng-template #noteTitle><input class="note-title" data-testid="note-title" [attr.aria-label]="t('title')" [(ngModel)]="title" [disabled]="!workspace.session() || workspace.switching()" (compositionstart)="workspace.setComposing(true)" (compositionend)="workspace.setComposing(false)" maxlength="300"></ng-template>
+        <div class="editor-heading">@if (editorFullscreen()) { <ng-container [ngTemplateOutlet]="noteTitle" /> }<span class="format-badge">{{ format() === 'text' ? 'TXT' : format().toUpperCase() }} · v{{ workspace.session()?.note?.version || 0 }}</span><span class="save-status" data-testid="save-status">{{ saveLabel() }}</span><button class="secondary fullscreen-toggle" data-testid="editor-fullscreen" (click)="toggleEditorFullscreen()" [disabled]="!workspace.session()" [attr.aria-pressed]="editorFullscreen()" [attr.aria-label]="t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff')" [title]="t(editorFullscreen() ? 'exitFullscreen' : 'enterFullscreen') + ' (Ctrl+Shift+F · Esc)'"><app-icon [name]="editorFullscreen() ? 'Minimize2' : 'Maximize2'" /><span>{{ t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff') }}</span></button><button class="primary" data-testid="save-note" (click)="workspace.manualSave()" [disabled]="!workspace.session() || workspace.saving()"><app-icon name="Save" />{{ t(workspace.saving() ? 'saving' : 'save') }}</button></div>
+        @if (!editorFullscreen()) { <ng-container [ngTemplateOutlet]="noteTitle" /> }
         @if (workspace.session(); as session) {
           <div class="note-organization">
-            <button class="secondary" data-testid="pin-note" [attr.aria-pressed]="session.note.pinned" (click)="workspace.place({pinned: !session.note.pinned})" [disabled]="workspace.switching()"><app-icon name="Pin" />{{ t(session.note.pinned ? 'unpinNote' : 'pinNote') }}</button>
-            <label>{{ t('moveNote') }}<select appSelect data-testid="note-folder" [ngModel]="session.note.folderId || ''" (ngModelChange)="workspace.place({folderId: $event || null})" [disabled]="workspace.switching()"><option value="">{{ t('rootFolder') }}</option>@for (folder of workspace.folderRows(); track folder.id) { <option [value]="folder.id">{{ folder.path }}</option> }</select></label>
+            <label><app-icon name="Folder" />{{ t('moveNote') }}<select appSelect data-testid="note-folder" [ngModel]="session.note.folderId || ''" (ngModelChange)="workspace.place({folderId: $event || null})" [disabled]="workspace.switching()"><option value="">{{ t('rootFolder') }}</option>@for (folder of workspace.folderRows(); track folder.id) { <option [value]="folder.id">{{ folder.path }}</option> }</select></label>
             <button class="secondary note-tag-trigger" data-testid="note-tag-menu" cdkOverlayOrigin #tagOrigin="cdkOverlayOrigin" (click)="tagMenuOpen.set(!tagMenuOpen())" [attr.aria-expanded]="tagMenuOpen()" [class.open]="tagMenuOpen()" [disabled]="workspace.switching()"><app-icon name="Tag" />{{ t('tags') }}<span class="tag-count">{{ session.note.tagIds.length }}</span><app-icon name="ChevronDown" /></button>
+            <button class="secondary" data-testid="pin-note" [attr.aria-pressed]="session.note.pinned" (click)="workspace.place({pinned: !session.note.pinned})" [disabled]="workspace.switching()"><app-icon name="Pin" />{{ t(session.note.pinned ? 'unpinNote' : 'pinNote') }}</button>
+            <button class="secondary" data-testid="note-history" (click)="openHistory()" [disabled]="workspace.switching()"><app-icon name="History" />{{ l('history') }}</button>
+            <button class="secondary note-trash-button" data-testid="note-trash" (click)="trashCurrent()" [attr.aria-label]="l('move')" [title]="l('move')" [disabled]="workspace.switching()"><app-icon name="Trash2" />{{ l('move') }}</button>
             <div class="selected-note-tags" aria-live="polite">@for (tag of workspace.sortedTags(); track tag.id) { @if (session.note.tagIds.includes(tag.id)) { <span class="selected-note-tag" [attr.data-selected-tag]="tag.id"><span class="tag-dot" [style.background]="tag.color"></span>{{ tag.name }}</span> } }</div>
             <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="tagOrigin" [cdkConnectedOverlayOpen]="tagMenuOpen()" [cdkConnectedOverlayOffsetY]="8" [cdkConnectedOverlayPush]="true" (overlayOutsideClick)="tagMenuOpen.set(false)" (overlayKeydown)="closeTagMenu($event)" (detach)="tagMenuOpen.set(false)">
               <div cdkTrapFocus [cdkTrapFocusAutoCapture]="true" role="group" class="note-tag-menu" [attr.aria-label]="t('noteTags')">
@@ -118,17 +123,15 @@
               <label><input type="radio" name="editor-mode" data-testid="source-mode" [checked]="sourceMode() || warning()" (change)="selectEditorMode(true, $event)" [disabled]="!workspace.session() || workspace.switching()"><span><app-icon name="FileText" />{{ t('sourceMode') }}</span></label>
             </div>
           }
-        <app-attachments [locale]="locale()" (insertImage)="insertAttachmentImage($event)" (unlinked)="loadSource()" />
-        <div class="export-actions">
-          <select appSelect data-testid="export-format" [attr.aria-label]="t('exportFormat')" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set($event); exportPreview.set(null)"><option value="markdown">Markdown</option><option value="html">HTML</option><option value="text">TXT</option>@if (format() === 'delta') { <option value="delta">Delta (.nadelta)</option> }</select>
-          <button class="secondary" data-testid="prepare-export" (click)="prepareExport()" [disabled]="!workspace.session() || workspace.switching() || fileBusy()"><app-icon name="FileOutput" />{{ t('exportCopy') }}</button>
-        </div>
-        </div>
-        <div #toolbarHost class="compact-editor-toolbar" role="toolbar" [attr.aria-label]="t('editor')" [attr.inert]="workspace.switching() ? '' : null">
+          @if ((sourceMode() || warning()) && (format() === 'delta' || format() === 'html')) {
+            <button class="secondary source-format-toggle" data-testid="format-source" [attr.aria-pressed]="sourcePretty()" [title]="t('sourceFormatHint')" (click)="toggleSourceFormatting()" [disabled]="!workspace.session() || workspace.switching()"><app-icon [name]="sourcePretty() ? 'ChevronsLeftRight' : 'WrapText'" />{{ t(sourcePretty() ? 'minifySource' : 'beautifySource') }}</button>
+          }
+        <div #toolbarHost class="compact-editor-toolbar" [class.tools-open]="editorToolsOpen()" role="toolbar" [attr.aria-label]="t('editor')" [attr.inert]="workspace.switching() ? '' : null">
           <span class="ql-formats">
             <button class="editor-tool" data-testid="undo-body" [title]="t('undo')" [attr.aria-label]="t('undo')" (mousedown)="$event.preventDefault()" (click)="undo()" [disabled]="!canUndo() || workspace.switching()"><app-icon name="Undo2" /></button>
             <button class="editor-tool" data-testid="redo-body" [title]="t('redo')" [attr.aria-label]="t('redo')" (mousedown)="$event.preventDefault()" (click)="undo(true)" [disabled]="!canRedo() || workspace.switching()"><app-icon name="Redo2" /></button>
           </span>
+          <button class="editor-tool more-editor-tools" data-testid="more-editor-tools" [hidden]="sourceMode() || format() === 'text' || warning()" [attr.aria-label]="t('moreEditorTools')" [appTooltip]="t('moreEditorTools')" [attr.aria-expanded]="editorToolsOpen()" (click)="editorToolsOpen.set(!editorToolsOpen())"><app-icon name="Ellipsis" /></button>
           <span class="rich-tools" [hidden]="sourceMode() || format() === 'text' || warning()">
             <span class="ql-formats"><select class="ql-header" [attr.aria-label]="t('heading')"><option value="1"></option><option value="2"></option><option value="3"></option><option selected></option></select></span>
             <span class="ql-formats"><button class="ql-bold" [attr.aria-label]="t('bold')"></button><button class="ql-italic" [attr.aria-label]="t('italic')"></button></span>
@@ -140,11 +143,22 @@
             @if (inCodeBlock()) { <span class="code-language-control"><select appSelect data-testid="code-language" [attr.aria-label]="t('codeLanguage')" [ngModel]="selectedCodeLanguage()" (ngModelChange)="setCodeLanguage($event)">@for (language of codeLanguages; track language) { <option [value]="language">{{ language }}</option> }</select></span> }
           </span>
         </div>
+        <app-attachments [locale]="locale()" (insertImage)="insertAttachmentImage($event)" (unlinked)="loadSource()" />
+        <div class="export-actions" [class.export-open]="exportMenuOpen()"><button class="secondary compact-export-toggle" data-testid="compact-export" [attr.aria-label]="t('exportCopy')" [appTooltip]="t('exportCopy')" [attr.aria-expanded]="exportMenuOpen()" (click)="exportMenuOpen.set(!exportMenuOpen())"><app-icon name="FileOutput" /></button><div class="export-controls">
+          <select appSelect data-testid="export-format" [attr.aria-label]="t('exportFormat')" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set($event); exportPreview.set(null)"><option value="markdown">Markdown</option><option value="html">HTML</option><option value="text">TXT</option>@if (format() === 'delta') { <option value="delta">Delta (.nadelta)</option> }</select>
+          <button class="secondary" data-testid="prepare-export" (click)="prepareExport()" [disabled]="!workspace.session() || workspace.switching() || fileBusy()"><app-icon name="FileOutput" />{{ t('exportCopy') }}</button>
+        </div>
+
+        </div>
+        </div>
         <ng-template #tableMenu>
           <div cdkMenu class="editor-table-menu" [attr.aria-label]="t('tableTools')">
             <button cdkMenuItem data-testid="insert-table" (cdkMenuItemTriggered)="tableAction('insertTable')" [cdkMenuItemDisabled]="inTable()"><app-icon name="Table2" />{{ t('insertTable') }}</button>
             <button cdkMenuItem data-testid="table-row" (cdkMenuItemTriggered)="tableAction('insertRowBelow')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Plus" />{{ t('addRow') }}</button>
             <button cdkMenuItem data-testid="table-column" (cdkMenuItemTriggered)="tableAction('insertColumnRight')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Plus" />{{ t('addColumn') }}</button>
+            <button cdkMenuItem data-testid="table-header" (cdkMenuItemTriggered)="setTableHeader(true)" [cdkMenuItemDisabled]="!inTable() || format() === 'markdown'"><app-icon name="PanelTop" />{{ t('tableHeaderRow') }}</button>
+            <button cdkMenuItem data-testid="table-body" (cdkMenuItemTriggered)="setTableHeader(false)" [cdkMenuItemDisabled]="!inTable() || format() === 'markdown'"><app-icon name="Table2" />{{ t('tableBodyRow') }}</button>
+            @if (format() === 'markdown') { <p class="table-menu-hint muted">{{ t('markdownTableHeader') }}</p> }
             <button cdkMenuItem (cdkMenuItemTriggered)="tableAction('deleteRow')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Trash2" />{{ t('deleteRow') }}</button>
             <button cdkMenuItem (cdkMenuItemTriggered)="tableAction('deleteColumn')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Trash2" />{{ t('deleteColumn') }}</button>
             <button cdkMenuItem (cdkMenuItemTriggered)="tableAction('deleteTable')" [cdkMenuItemDisabled]="!inTable()"><app-icon name="Trash2" />{{ t('deleteTable') }}</button>
@@ -180,6 +194,7 @@
           <textarea class="body-source" data-testid="body-source" [attr.aria-label]="t('sourceMode')" [ngModel]="source()" (ngModelChange)="editSource($event)" [disabled]="!workspace.session() || workspace.switching()" (compositionstart)="compositionStart()" (compositionend)="compositionEnd()" spellcheck="false"></textarea>
         }
         @if (format() === 'html' && warning()) { <details class="html-preview"><summary>{{ t('htmlPreview') }}</summary><iframe sandbox="" [srcdoc]="htmlPreview()" [title]="t('htmlPreview')" referrerpolicy="no-referrer"></iframe></details> }
+        @if (sourceFormatError()) { <p role="alert" class="source-format-error">{{ t('sourceFormatFailed') }}</p> }
         <div class="editor-area" [hidden]="sourceMode() || format() === 'text' || warning()" [attr.inert]="workspace.switching() ? '' : null"><div #editorHost></div></div>
         @if (exportPreview(); as preview) {
           <section class="export-preview panel"><h3>{{ t('exportPreviewTitle') }}</h3><p class="muted">{{ t(format() === 'delta' ? 'deltaExportHint' : 'exportHint') }}</p>

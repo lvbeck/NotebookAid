@@ -1,3 +1,7 @@
+import { randomUUID } from 'node:crypto';
+import type { ExitCommand, ExitState } from '../shared/dialog';
+import { registerDialogs } from './app-dialog';
+import { lifecycleText, type LifecycleKey } from '../src/app/lifecycle-i18n';
 import { NativeImportCache } from './native-import';
 import { DeltaError } from '../shared/delta-document';
 import { validateNative } from '../core/delta-files';
@@ -21,6 +25,8 @@ import { exportAttachmentFile, imageType, isSvg } from '../core/attachments';
 import type { AttachmentRequest } from '../shared/attachments';
 
 export function registerLibrary(dataPath: string, window: () => BrowserWindow | null, authorize: (event: IpcMainInvokeEvent) => void, selfTest = false, localeChanged: (locale: Locale) => void = () => {}) {
+  const dialogs = registerDialogs(authorize);
+  const showConfirmations = !selfTest || process.env['NOTEBOOKAID_DIALOG_TEST'] === '1';
   let registry: LibraryRegistry | null = null;
   let settings: SettingsStore | null = null;
   const currentLocale = (): Locale => {
@@ -62,6 +68,32 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       catch (error) { return { ok: false, code: (error instanceof LibraryError || error instanceof DeltaError) ? error.code : 'WRITE_FAILED' }; }
     });
   };
+  const confirmLifecycle = async (key: LifecycleKey, action: () => unknown, upgrade = false, count?: number) => {
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE');
+    choosing = true;
+    try {
+      const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
+      let accepted: boolean;
+      if (!showConfirmations) accepted = !existsSync(join(dataPath, 'cancel-lifecycle'));
+      else {
+        const confirmLabel = lifecycleText(currentLocale(), key === 'cleanupWarning' ? 'clean' : key === 'confirmRestore' ? 'restore' : key === 'confirmMove' ? 'move' : key === 'confirmPurge' ? 'purge' : 'remove');
+        accepted = await dialogs.ask(target, { kind: 'warning', title: confirmLabel, message: lifecycleText(currentLocale(), key).replace('{count}', String(count ?? '')), detail: upgrade ? lifecycleText(currentLocale(), 'upgrade') : '', cancelLabel: translate(currentLocale(), 'cancelOperation'), confirmLabel });
+      }
+      return accepted ? action() : null;
+    } finally { choosing = false; }
+  };
+  handle('cleanHistory', (_owner, id, version, retain, op) => {
+    if (!Number.isSafeInteger(retain) || retain < 1) throw new LibraryError('INVALID_INPUT');
+    const count = Math.max(0, get().history(id).total - retain);
+    return confirmLifecycle('cleanupWarning', () => get().cleanHistory(id, version, retain, op), JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 6, count);
+  });
+  handle('history', (_owner, id, offset) => get().history(id, offset));
+  handle('revision', (_owner, id, revision) => get().revision(id, revision));
+  handle('trashNote', (_owner, id, version, op) => confirmLifecycle('confirmMove', () => get().trash(id, version, op)));
+  handle('restoreNote', (_owner, id, version, op) => get().restore(id, version, op));
+  handle('restoreRevision', (_owner, id, revision, version, op) => confirmLifecycle('confirmRestore', () => get().restore(id, version, op, revision)));
+  handle('purgeNote', async (_owner, id, version, op) => !!await confirmLifecycle('confirmPurge', () => { get().purge(id, version, op); return true; }));
+  handle('deleteOrganization', (_owner, kind, id, version) => confirmLifecycle('confirmRemove', () => get().deleteOrganization(kind, id, version), JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 6));
   handle('status', () => get().status());
   handle('previewImport', async (owner) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
@@ -117,9 +149,9 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       if (selfTest) path = await fileDialog();
       else { const result = await dialog.showOpenDialog(target, { properties: ['openFile'] }); path = result.canceled ? null : result.filePaths[0]; }
       if (!path) return null;
-      if (!selfTest && JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 4) {
-        const result = await dialog.showMessageBox(target, { type: 'info', title: 'NotebookAid', message: translate(currentLocale(), 'attachmentUpgrade'), buttons: [translate(currentLocale(), 'cancelOperation'), translate(currentLocale(), 'addAttachment')], defaultId: 0, cancelId: 0 });
-        if (result.response !== 1) return null;
+      if (showConfirmations && JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 4) {
+        const accepted = await dialogs.ask(target, { kind: 'info', title: translate(currentLocale(), 'addAttachment'), message: translate(currentLocale(), 'attachmentUpgrade'), cancelLabel: translate(currentLocale(), 'cancelOperation'), confirmLabel: translate(currentLocale(), 'addAttachment') });
+        if (!accepted) return null;
       }
       const library = get();
       const bytes = readAttachmentFile(path);
@@ -155,10 +187,10 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       }
       if (input?.primaryFormat === 'delta') {
         if (!original?.nativeImportToken) validateNative(input.body, input.nativeAttachments);
-        if (!selfTest && JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 5) {
+        if (showConfirmations && JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 5) {
           const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
-          const answer = await dialog.showMessageBox(target, { type: 'info', title: 'NotebookAid', message: translate(currentLocale(), 'deltaUpgrade'), buttons: [translate(currentLocale(), 'cancelOperation'), translate(currentLocale(), 'newNote')], defaultId: 0, cancelId: 0 });
-          if (answer.response !== 1) { nativeImports.clear(owner); throw new LibraryError('CANCELLED'); }
+          const accepted = await dialogs.ask(target, { kind: 'info', title: translate(currentLocale(), 'newNote'), message: translate(currentLocale(), 'deltaUpgrade'), cancelLabel: translate(currentLocale(), 'cancelOperation'), confirmLabel: translate(currentLocale(), 'newNote') });
+          if (!accepted) { nativeImports.clear(owner); throw new LibraryError('CANCELLED'); }
         }
       }
       const result = get().create(id, input);
@@ -236,23 +268,49 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   handle('rename', (_owner, id: string, name: string) => manager().rename(id, name));
   handle('remove', (_owner, id: string) => manager().remove(id));
   handle('relocate', (_owner, id: string) => chooseFor(path => manager().relocate(id, path)));
+  const exitState = (target: BrowserWindow, command: ExitCommand): Promise<ExitState | null> => new Promise(resolveState => {
+    if (target.isDestroyed() || target.webContents.isDestroyed() || target.webContents.isLoadingMainFrame()) { resolveState(null); return; }
+    const id = randomUUID();
+    const finish = (state: ExitState | null) => { clearTimeout(timer); ipcMain.removeListener('library:exit-result', listener); resolveState(state); };
+    const listener = (event: Electron.IpcMainEvent, responseId: unknown, value: unknown) => {
+      if (responseId !== id || event.sender !== target.webContents || event.senderFrame !== target.webContents.mainFrame) return;
+      const state = value as ExitState | null;
+      finish(state && typeof state.dirty === 'boolean' && typeof state.busy === 'boolean' && typeof state.saved === 'boolean' ? state : null);
+    };
+    const timer = setTimeout(() => finish(null), 15000);
+    ipcMain.on('library:exit-result', listener); target.webContents.send('library:flush-exit', id, command);
+  });
   return {
     locale: currentLocale,
-    release: (owner: string) => { nativeImports.clear(owner); if (pendingImport?.owner === owner) pendingImport = null; registry?.release(owner); },
-    close: () => { nativeImports.clear(); registry?.close(); registry = null; },
+    release: (owner: string) => { dialogs.cancel(); nativeImports.clear(owner); if (pendingImport?.owner === owner) pendingImport = null; registry?.release(owner); },
+    close: () => { dialogs.cancel(); nativeImports.clear(); registry?.close(); registry = null; },
     flush: async (): Promise<boolean> => {
-      const target = window(); if (!target || target.webContents.isDestroyed()) return true;
-      const saved = await new Promise<boolean>(resolveSaved => {
-        const listener = (event: Electron.IpcMainEvent, value: unknown) => {
-          if (event.sender !== target.webContents || event.senderFrame !== target.webContents.mainFrame) return;
-          clearTimeout(timer); ipcMain.removeListener('library:exit-result', listener); resolveSaved(value === true);
-        };
-        const timer = setTimeout(() => { ipcMain.removeListener('library:exit-result', listener); resolveSaved(false); }, 15000);
-        ipcMain.on('library:exit-result', listener); target.webContents.send('library:flush-exit');
-      });
-      if (saved) return true;
-      const result = await dialog.showMessageBox(target, { type: 'warning', title: 'NotebookAid', message: translate(currentLocale(), 'unsavedExit'), buttons: [translate(currentLocale(), 'keepEditing'), translate(currentLocale(), 'discardExit')], defaultId: 0, cancelId: 0, noLink: true });
-      return result.response === 1;
+      const target = window(); if (!target || target.webContents.isDestroyed()) return false;
+      const state = await exitState(target, 'save');
+      return !!state?.saved && !state.dirty && !state.busy;
+    },
+    confirmExit: async (): Promise<boolean> => {
+      const target = window(); if (!target || choosing) return false;
+      let accepted = false;
+      try {
+        const state = await exitState(target, 'inspect');
+        if (!state || state.busy) {
+          await dialogs.ask(target, { kind: 'warning', title: translate(currentLocale(), 'exitApp'), message: translate(currentLocale(), 'exitBlocked'), cancelLabel: translate(currentLocale(), 'cancelOperation'), confirmLabel: translate(currentLocale(), 'keepEditing') });
+          return false;
+        }
+        const answer = await dialogs.choose(target, {
+          kind: state.dirty ? 'warning' : 'info', title: translate(currentLocale(), 'exitApp'),
+          message: translate(currentLocale(), state.dirty ? 'exitUnsaved' : 'exitClean'),
+          cancelLabel: translate(currentLocale(), 'cancelOperation'),
+          confirmLabel: translate(currentLocale(), state.dirty ? 'saveAndExit' : 'confirmExit'),
+          discardLabel: state.dirty ? translate(currentLocale(), 'discardAndExit') : undefined
+        });
+        if (answer === false) return false;
+        if (answer === 'discard') { accepted = true; return true; }
+        const final = await exitState(target, state.dirty ? 'save' : 'inspect');
+        accepted = !!final && !final.busy && !final.dirty && (!state.dirty || final.saved);
+        return accepted;
+      } finally { if (!accepted) await exitState(target, 'resume'); }
     }
   };
 }

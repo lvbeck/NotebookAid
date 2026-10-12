@@ -7,7 +7,7 @@ import { copyTree, recoverImport } from './library-import';
 import type { Organization, OrganizationEdit, NotePlacement, PlacementRequest, NoteQuery } from '../shared/organization';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomUUID } from 'node:crypto';
-import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { rmSync, unlinkSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { EventEmitter } from 'node:events';
 import { formatExtensions, type NoteInput, type EditSession, type LibraryErrorCode, type LibraryStatus, type NoteDocument, type NoteSummary, type SaveRequest, type SaveResult } from '../shared/library';
@@ -20,7 +20,7 @@ type Head = { formatVersion: 1; id: string; revisionId: string; version: number;
 type Metadata = Omit<NoteDocument, 'body'> & { schemaVersion: 1; parentRevisionId: string | null; bodyHash: string; operationId: string; requestHash: string; visibleInThunderbird: true };
 type Journal = { schemaVersion: 1; operationId: string; requestHash: string; head: Head };
 type Session = { noteId: string; owner: string; token: string; generation: string };
-export type CommitStage = 'journal' | 'revision' | 'head' | 'index' | 'organization';
+export type CommitStage = 'journal' | 'revision' | 'head' | 'index' | 'organization' | 'purge-journal' | 'purge-moved' | 'history-floor' | 'history-pruned';
 
 export class NoteLibrary {
   readonly path: string;
@@ -55,7 +55,7 @@ export class NoteLibrary {
       if (!existsSync(manifestPath)) this.atomic(manifestPath, JSON.stringify({ schemaVersion: 1, libraryId: randomUUID(), createdAt: new Date().toISOString() }));
       recoverImport(this.path);
       const manifest = this.json(manifestPath) as { schemaVersion: number; libraryId: string };
-      if (![1, 2, 3, 4, 5].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      if (![1, 2, 3, 4, 5, 6].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       this.libraryId = manifest.libraryId;
       this.manifest = manifest;
       const organizationPath = this.safe('organization.json');
@@ -71,6 +71,8 @@ export class NoteLibrary {
           this.recent = records;
         } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
       }
+      this.recoverPurges();
+      this.recoverHistoryCleanup();
       this.rebuild();
       try { for (const note of this.catalog.values()) this.validatePlacement(note); } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
       this.scanRecovery();
@@ -227,7 +229,7 @@ export class NoteLibrary {
   query(input: NoteQuery = {}): { notes: NoteSummary[]; total: number } {
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw new LibraryError('INVALID_INPUT');
     const { text = '', tagIds = [], view = 'all', offset = 0, limit = 50 } = input;
-    if (typeof text !== 'string' || text.length > 300 || !Array.isArray(tagIds) || tagIds.length > 100 || !['all', 'pinned', 'recent'].includes(view) || !Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new LibraryError('INVALID_INPUT');
+    if (typeof text !== 'string' || text.length > 300 || !Array.isArray(tagIds) || tagIds.length > 100 || !['all', 'pinned', 'recent', 'trash'].includes(view) || !Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new LibraryError('INVALID_INPUT');
     for (const id of tagIds) this.id(id);
     const folders = new Set<string | null>();
     if (input.folderId !== undefined) {
@@ -237,11 +239,11 @@ export class NoteLibrary {
     }
     const terms = text.normalize('NFKC').toLowerCase().trim().split(/\s+/).filter(Boolean);
     const rows = [...this.catalog.values()].filter(note => {
-      if (note.deletedAt || (folders.size && !folders.has(note.folderId)) || !tagIds.every(id => note.tagIds.includes(id)) || (view === 'pinned' && !note.pinned) || (view === 'recent' && !this.recent[note.id])) return false;
+      if ((view === 'trash' ? !note.deletedAt : !!note.deletedAt) || (folders.size && !folders.has(note.folderId)) || !tagIds.every(id => note.tagIds.includes(id)) || (view === 'pinned' && !note.pinned) || (view === 'recent' && !this.recent[note.id])) return false;
       const content = `${note.title}\n${note.primaryFormat === 'delta' ? deltaText(note.body) : note.body}`.normalize('NFKC').toLowerCase();
       return terms.every(term => content.includes(term));
     });
-    rows.sort((a, b) => view === 'recent' ? this.recent[b.id].localeCompare(this.recent[a.id]) || a.id.localeCompare(b.id) : Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
+    rows.sort((a, b) => view === 'trash' ? b.deletedAt!.localeCompare(a.deletedAt!) || a.id.localeCompare(b.id) : view === 'recent' ? this.recent[b.id].localeCompare(this.recent[a.id]) || a.id.localeCompare(b.id) : Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
     return { total: rows.length, notes: rows.slice(offset, offset + limit).map(({ body: _body, revisionId: _revision, ...summary }) => ({ ...summary, tagIds: [...summary.tagIds] })) };
   }
   list(): NoteSummary[] {
@@ -301,6 +303,8 @@ export class NoteLibrary {
     if (journal.schemaVersion !== 1 || journal.operationId !== id || journal.requestHash !== requestHash) throw new LibraryError('INVALID_INPUT');
     this.id(journal.head.id); this.id(journal.head.revisionId);
     if (!existsSync(this.safe('notes', journal.head.id, 'head.json'))) return null;
+    const floor = this.historyFloor(journal.head.id);
+    if (floor && journal.head.version < floor.firstVersion) throw new LibraryError('INVALID_INPUT');
     let revision: string | null = this.head(journal.head.id).revisionId;
     const visited = new Set<string>();
     while (revision) {
@@ -309,7 +313,7 @@ export class NoteLibrary {
       visited.add(revision);
       if (revision === journal.head.revisionId) return { note: this.readHead(journal.head), saved: true, indexed: this.indexed };
       const metadata = this.json(this.safe('notes', journal.head.id, 'revisions', revision, 'metadata.json')) as Metadata;
-      revision = metadata.parentRevisionId;
+      revision = floor?.firstRevisionId === revision ? null : metadata.parentRevisionId;
     }
     return null;
   }
@@ -422,7 +426,174 @@ export class NoteLibrary {
     const replay = this.operation(operationId, hash); if (replay) return replay;
     const current = this.read(id);
     if (current.version !== expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+    if (current.deletedAt) throw new LibraryError('INVALID_INPUT');
     return this.commit({ ...current, deletedAt: new Date().toISOString() }, current, operationId, hash);
+  }
+  private historyFloor(id: string): { schemaVersion: 1; firstVersion: number; firstRevisionId: string; pending: boolean; operationId?: string; removed?: number; requestHash?: string } | null {
+    const file = this.safe('notes', id, 'history.json'); if (!existsSync(file)) return null;
+    const value = this.json(file) as { schemaVersion: 1; firstVersion: number; firstRevisionId: string; pending: boolean; operationId?: string; removed?: number; requestHash?: string };
+    const head = this.head(id);
+    if (this.manifest.schemaVersion < 6 || value.schemaVersion !== 1 || !Number.isSafeInteger(value.firstVersion) || value.firstVersion < 1 || value.firstVersion > head.version || !uuid.test(value.firstRevisionId) || typeof value.pending !== 'boolean' || (value.operationId !== undefined && (!uuid.test(value.operationId) || !/^[a-f0-9]{64}$/.test(value.requestHash ?? '') || !Number.isSafeInteger(value.removed) || value.removed! < 0)) || (value.pending && !value.operationId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+    return value;
+  }
+  private recoverHistoryCleanup(): void {
+    for (const id of readdirSync(this.safe('notes'))) if (uuid.test(id) && existsSync(this.safe('notes', id, 'head.json')) && this.historyFloor(id)?.pending) this.finishHistoryCleanup(id);
+  }
+  private finishHistoryCleanup(id: string): void {
+    const floor = this.historyFloor(id); if (!floor?.pending) return;
+    // Validate the retained chain before removing any old content.
+    for (const head of this.revisionHeads(id)) this.readHead(head);
+    const trash = this.safe('notes', id, 'history-trash');
+    if (existsSync(trash)) { this.plainTree(trash); rmSync(trash, { recursive: true }); }
+    mkdirSync(trash);
+    for (const revision of readdirSync(this.safe('notes', id, 'revisions'))) {
+      this.id(revision);
+      const root = this.safe('notes', id, 'revisions', revision);
+      const meta = this.json(this.safe('notes', id, 'revisions', revision, 'metadata.json')) as Metadata;
+      if (meta.id !== id || meta.revisionId !== revision || !Number.isSafeInteger(meta.version) || meta.version < 1) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      if (meta.version < floor.firstVersion) { this.plainTree(root); const removed = join(trash, revision); renameSync(root, removed); this.fault?.('history-pruned'); rmSync(removed, { recursive: true }); }
+    }
+    rmSync(trash, { recursive: true });
+    this.atomic(this.safe('notes', id, 'history.json'), JSON.stringify({ ...floor, pending: false }));
+  }
+  cleanHistory(id: string, expectedVersion: number, retain: number, operationId: string): number {
+    this.id(id); this.id(operationId);
+    if (!Number.isSafeInteger(retain) || retain < 1) throw new LibraryError('INVALID_INPUT');
+    if (this.sessions.has(id)) throw new LibraryError('NOTE_IN_USE');
+    const floor = this.historyFloor(id);
+    const requestHash = digest(JSON.stringify([expectedVersion, retain]));
+    if (floor?.operationId === operationId) { if (floor.requestHash !== requestHash) throw new LibraryError('INVALID_INPUT'); this.finishHistoryCleanup(id); return floor.removed!; }
+    if (floor?.pending) throw new LibraryError('LIBRARY_IN_USE');
+    const current = this.read(id); if (current.version !== expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+    const heads = this.revisionHeads(id); if (heads.length <= retain) return 0;
+    for (const head of heads) this.readHead(head);
+    for (const head of heads.slice(retain)) this.plainTree(this.safe('notes', id, 'revisions', head.revisionId));
+    this.enableLifecycle();
+    const first = heads[retain - 1], removed = heads.length - retain;
+    this.atomic(this.safe('notes', id, 'history.json'), JSON.stringify({ schemaVersion: 1, firstVersion: first.version, firstRevisionId: first.revisionId, pending: true, operationId, removed, requestHash })); this.fault?.('history-floor');
+    this.finishHistoryCleanup(id); this.scanRecovery(); return removed;
+  }
+  private revisionHeads(id: string): Head[] {
+    const current = this.head(id), floor = this.historyFloor(id), result: Head[] = [], visited = new Set<string>();
+    let revision: string | null = current.revisionId, version = current.version;
+    while (revision) {
+      this.id(revision);
+      if (visited.has(revision)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      visited.add(revision);
+      const file = this.safe('notes', id, 'revisions', revision, 'metadata.json');
+      if (statSync(file).size > 128 * 1024) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      const raw = readFileSync(file, 'utf8');
+      if (Buffer.byteLength(raw) > 128 * 1024) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      const meta = JSON.parse(raw) as Metadata;
+      if (meta.id !== id || meta.revisionId !== revision || meta.version !== version || (version === current.version && digest(raw) !== current.metadataHash)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      result.push({ formatVersion: 1, id, revisionId: revision, version, metadataHash: digest(raw) });
+      if (floor && version === floor.firstVersion) { if (revision !== floor.firstRevisionId) throw new LibraryError('INTEGRITY_CHECK_FAILED'); version--; break; }
+      revision = meta.parentRevisionId; version--;
+    }
+    if (version !== (floor ? floor.firstVersion - 1 : 0)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+    return result;
+  }
+  history(id: string, offset = 0) {
+    if (!Number.isSafeInteger(offset) || offset < 0) throw new LibraryError('INVALID_INPUT');
+    const heads = this.revisionHeads(id);
+    return { total: heads.length, revisions: heads.slice(offset, offset + 20).map(head => {
+      const { body, attachments, ...note } = this.readHead(head);
+      return { ...note, attachmentCount: attachments?.length ?? 0 };
+    }) };
+  }
+  revision(id: string, revision: string): NoteDocument {
+    this.id(revision);
+    const head = this.revisionHeads(id).find(row => row.revisionId === revision);
+    if (!head) throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
+    return this.readHead(head);
+  }
+  restore(id: string, expectedVersion: number, operationId: string, revision?: string): SaveResult {
+    this.id(id); this.id(operationId);
+    if (this.sessions.has(id)) throw new LibraryError('NOTE_IN_USE');
+    const hash = digest(JSON.stringify(['restore', id, expectedVersion, revision ?? null]));
+    const replay = this.operation(operationId, hash); if (replay) return replay;
+    const current = this.read(id);
+    if (current.version !== expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+    if ((revision && current.deletedAt) || (!revision && !current.deletedAt)) throw new LibraryError('INVALID_INPUT');
+    const source = revision ? this.revision(id, revision) : current;
+    // Verify resources before committing a restoration; missing files never become a successful restore.
+    for (const item of source.attachments ?? []) readAttachmentFile(this.safe('notes', id, 'attachments', item.id), item);
+    return this.commit({ ...current, title: source.title, body: source.body, primaryFormat: source.primaryFormat, attachments: source.attachments, deletedAt: null }, current, operationId, hash);
+  }
+  deleteOrganization(kind: 'folder' | 'tag', id: string, expectedVersion: number): Organization {
+    this.id(id);
+    if (!['folder', 'tag'].includes(kind)) throw new LibraryError('INVALID_INPUT');
+    if (expectedVersion !== this.structure.version) throw new LibraryError('VERSION_CONFLICT');
+    const next = this.organization();
+    if (!(kind === 'folder' ? next.folders : next.tags).some(row => row.id === id)) throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
+    if ((kind === 'folder' && next.folders.some(row => row.parentId === id)) || [...this.catalog.values()].some(note => kind === 'folder' ? note.folderId === id : note.tagIds.includes(id))) throw new LibraryError('NOTE_IN_USE');
+    if (kind === 'folder') next.folders = next.folders.filter(row => row.id !== id); else next.tags = next.tags.filter(row => row.id !== id);
+    this.enableLifecycle();
+    next.version++; this.validateStructure(next); this.fault?.('organization');
+    this.atomic(this.safe('organization.json'), JSON.stringify(next)); this.structure = next;
+    return this.organization();
+  }
+  private enableLifecycle(): void {
+    if (this.manifest.schemaVersion >= 6) return;
+    const backup = join(dirname(this.path), basename(this.path) + '.lifecycle-backups', randomUUID());
+    copyTree(this.path, backup);
+    this.atomic(this.safe('library.json'), JSON.stringify({ ...this.manifest, schemaVersion: 6 }));
+    this.manifest.schemaVersion = 6;
+  }
+  private plainTree(path: string): void {
+    if (lstatSync(path).isSymbolicLink()) throw new LibraryError('INVALID_INPUT');
+    if (lstatSync(path).isDirectory()) for (const name of readdirSync(path)) this.plainTree(join(path, name));
+  }
+  private finishPurge(operationId: string): void {
+    this.id(operationId);
+    const file = this.safe('purges', operationId + '.json');
+    const receipt = this.json(file) as { id: string; version: number; operationId: string; done: boolean };
+    this.id(receipt.id);
+    if (receipt.operationId !== operationId || !Number.isSafeInteger(receipt.version) || receipt.version < 1 || typeof receipt.done !== 'boolean') throw new LibraryError('INTEGRITY_CHECK_FAILED');
+    if (receipt.done) return;
+    const source = this.safe('notes', receipt.id), target = this.safe('purges', operationId);
+    if (existsSync(source)) {
+      const note = this.read(receipt.id);
+      if (note.version !== receipt.version || !note.deletedAt || existsSync(target)) throw new LibraryError('VERSION_CONFLICT');
+      this.plainTree(source); renameSync(source, target); this.fault?.('purge-moved');
+    }
+    if (existsSync(target)) { this.plainTree(target); rmSync(target, { recursive: true }); }
+    for (const name of readdirSync(this.safe('recovery'))) {
+      if (!/^[a-f0-9-]+\.json$/i.test(name)) continue;
+      const path = this.safe('recovery', name), journal = this.json(path) as Journal;
+      if (journal.head?.id === receipt.id) {
+        this.id(journal.head.revisionId);
+        const stage = this.safe('recovery', 'stage-' + journal.head.revisionId);
+        if (existsSync(stage)) { this.plainTree(stage); rmSync(stage, { recursive: true }); }
+        unlinkSync(path);
+      }
+    }
+    const recent = { ...this.recent }; delete recent[receipt.id];
+    this.atomic(this.safe('recent.json'), JSON.stringify(recent)); this.recent = recent;
+    this.catalog.delete(receipt.id);
+    try { this.index?.prepare('DELETE FROM notes WHERE id = ?').run(receipt.id); } catch { this.indexed = false; this.issues.add('INDEX_REBUILD_REQUIRED'); }
+    this.atomic(file, JSON.stringify({ ...receipt, done: true }));
+  }
+  private recoverPurges(): void {
+    const path = this.safe('purges'); if (!existsSync(path)) return;
+    for (const name of readdirSync(path)) if (/^[a-f0-9-]+\.json$/i.test(name)) this.finishPurge(name.slice(0, -5));
+  }
+  purge(id: string, expectedVersion: number, operationId: string): void {
+    this.id(id); this.id(operationId);
+    if (this.sessions.has(id)) throw new LibraryError('NOTE_IN_USE');
+    mkdirSync(this.safe('purges'), { recursive: true });
+    const file = this.safe('purges', operationId + '.json');
+    if (existsSync(file)) {
+      const receipt = this.json(file) as { id: string; version: number };
+      if (receipt.id !== id || receipt.version !== expectedVersion) throw new LibraryError('INVALID_INPUT');
+    } else {
+      const current = this.read(id);
+      if (!current.deletedAt) throw new LibraryError('INVALID_INPUT');
+      if (current.version !== expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+      this.plainTree(this.safe('notes', id));
+      this.atomic(file, JSON.stringify({ id, version: expectedVersion, operationId, done: false })); this.fault?.('purge-journal');
+    }
+    this.finishPurge(operationId);
   }
   private commit(input: NoteDocument, previous: NoteDocument | null, operationId: string, requestHash: string): SaveResult {
     const note: NoteDocument = { ...input, revisionId: randomUUID(), version: input.version + 1, contentVersion: previous ? previous.contentVersion + Number(previous.body !== input.body) : 1, updatedAt: new Date().toISOString() };
@@ -461,6 +632,7 @@ export class NoteLibrary {
     this.pendingRecovery = 0;
     const committed = new Set<string>();
     for (const note of this.documents()) {
+      const floor = this.historyFloor(note.id);
       let revision: string | null = note.revisionId;
       const visited = new Set<string>();
       try {
@@ -469,7 +641,7 @@ export class NoteLibrary {
           if (visited.has(revision)) throw new Error('Revision cycle');
           visited.add(revision); committed.add(`${note.id}/${revision}`);
           const metadata = this.json(this.safe('notes', note.id, 'revisions', revision, 'metadata.json')) as Metadata;
-          revision = metadata.parentRevisionId;
+          revision = floor?.firstRevisionId === revision ? null : metadata.parentRevisionId;
         }
       } catch { this.issues.add(`DAMAGED_HISTORY:${note.id}`); }
     }
@@ -480,7 +652,8 @@ export class NoteLibrary {
         const journal = this.json(this.safe('recovery', name)) as Journal;
         if (journal.schemaVersion !== 1 || journal.operationId + '.json' !== name) throw new Error('Invalid journal');
         this.id(journal.head.id); this.id(journal.head.revisionId);
-        if (!committed.has(`${journal.head.id}/${journal.head.revisionId}`)) this.pendingRecovery++;
+        const floor = existsSync(this.safe('notes', journal.head.id, 'head.json')) ? this.historyFloor(journal.head.id) : null;
+        if (!committed.has(`${journal.head.id}/${journal.head.revisionId}`) && !(floor && journal.head.version < floor.firstVersion)) this.pendingRecovery++;
       } catch { this.issues.add('RECOVERY_RECORD_DAMAGED'); }
     }
     for (const id of readdirSync(this.safe('notes'))) if (uuid.test(id) && !existsSync(this.safe('notes', id, 'head.json'))) this.pendingRecovery++;

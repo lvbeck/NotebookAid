@@ -7,7 +7,10 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   const run = (script: string) => window.webContents.executeJavaScript(script);
   const wait = (ms = 80) => new Promise(resolve => setTimeout(resolve, ms));
   const until = async (script: string) => { for (let i = 0; i < 100; i++) { if (await run(script)) return; await wait(); } throw Error('Editor UI timeout: ' + script); };
-  const click = async (id: string) => { await run(`document.querySelector('[data-testid=${id}]').click()`); await wait(); };
+  const click = async (id: string) => {
+    await run(`(() => {const target=document.querySelector('[data-testid=${id}]');if(target.closest('.rich-tools') && !target.getClientRects().length)document.querySelector('[data-testid=more-editor-tools]').click();if(target.closest('.export-controls') && !target.getClientRects().length)document.querySelector('[data-testid=compact-export]').click();})()`);
+    await wait(); await run(`document.querySelector('[data-testid=${id}]').click()`); await wait();
+  };
   const input = async (id: string, value: string, event = 'input') => { await run(`(() => { const e=document.querySelector('[data-testid=${id}]');e.value=${JSON.stringify(value)};e.dispatchEvent(new Event(${JSON.stringify(event)},{bubbles:true})); })()`); await wait(); };
   const source = (value: string) => input('markdown-source', value);
   const save = async () => { await click('save-note'); await until("document.querySelector('[data-testid=save-status]').textContent.includes('已保存')"); };
@@ -93,6 +96,7 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
     if (kind === 'language') {
       await run("(() => {const line=document.querySelector('.ql-code-block');const range=document.createRange();range.selectNodeContents(line);range.collapse(true);getSelection().removeAllRanges();getSelection().addRange(range);document.querySelector('.ql-editor').focus();})()");
       await until("!!document.querySelector('[data-testid=code-language]')");
+      if (!await run("document.querySelector('[data-select-trigger=code-language]').getClientRects().length > 0")) await click('more-editor-tools');
       await run("document.querySelector('[data-select-trigger=code-language]').click()"); await wait();
       await run("document.querySelector('.select-option[data-value=typescript]').click()"); await wait(1200);
       if (!(await body()).includes('```typescript')) throw Error('Contextual code language did not update: ' + JSON.stringify(await run("({source:document.querySelector('[data-testid=markdown-source]').value,html:document.querySelector('.ql-editor').innerHTML})")));
@@ -149,6 +153,26 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   if (!textCopy.includes('中文标题') || textCopy.includes('**粗体**')) throw Error('Markdown to TXT failed');
   await click('create-note'); await click('create-html');
   await until("document.querySelector('.format-badge').textContent.includes('HTML')");
+  const htmlFormatFixture = '<div><p>A <strong>B</strong> C</p><pre><code>  a\n b </code></pre></div>';
+  await source(htmlFormatFixture); await click('source-mode'); await click('format-source');
+  if (!(await body()).includes('<div>\n  <p>') || !(await body()).includes('<pre><code>  a\n b </code></pre>')) throw Error('HTML formatting changed text or did not indent');
+  await click('format-source'); if (await body() !== htmlFormatFixture) throw Error('HTML minification lost content');
+  await click('undo-body'); if (!(await body()).includes('<div>\n')) throw Error('Formatting undo failed');
+  await click('redo-body'); if (await body() !== htmlFormatFixture) throw Error('Formatting redo failed');
+  await source('<table><tbody><tr><td>Heading</td><td>Status</td></tr><tr><td>Body</td><td>Done</td></tr></tbody></table>'); await click('rich-mode');
+  const selectFirstCell = async () => { await run("{const cell=document.querySelector('.ql-editor td');const r=document.createRange();r.selectNodeContents(cell);r.collapse(true);getSelection().removeAllRanges();getSelection().addRange(r);document.querySelector('.ql-editor').focus();}"); await wait(); };
+  await selectFirstCell(); await click('table-menu'); await click('table-header');
+  if (!await run("document.querySelectorAll('.ql-editor tr:first-child td[data-cell-header=true]').length===2")) throw Error('Header row not applied');
+  if (!(await body()).includes('<thead>') || !(await body()).includes('<th>Heading</th>')) throw Error('HTML semantic header missing');
+  await selectFirstCell(); await click('table-menu'); await click('table-column');
+  if (!await run("document.querySelectorAll('.ql-editor tr:first-child td[data-cell-header=true]').length===3")) throw Error('New header column lost row semantics');
+  await save(); await click('load-source');
+  if (await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Header roundtrip lost');
+  await run("document.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))");await wait();await capture('table-header-dark.png');
+  await selectFirstCell(); await click('table-menu'); await click('table-body');
+  if (await run("!!document.querySelector('.ql-editor td[data-cell-header=true]')")) throw Error('Body row not applied');
+  if ((await body()).includes('<th>')) throw Error('HTML body conversion lost');
+  writeFileSync(join(directory, 'source-table-report.json'), JSON.stringify({ htmlFormat: true, protectedCode: true, formatUndoRedo: true, headerBody: true, semanticThead: true, headerSaveReload: true }));
   await source('<h1>HTML 标题</h1><p><strong>粗体</strong> 正文</p>'); await click('load-source');
   if (await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Basic HTML unexpectedly source-only');
   await run(`(() => {const e=document.querySelector('.ql-editor'); e.focus();const r=document.createRange();r.selectNodeContents(e);r.collapse(false);getSelection().removeAllRanges();getSelection().addRange(r);document.execCommand('insertText',false,' HTML编辑');})()`); await wait(150);

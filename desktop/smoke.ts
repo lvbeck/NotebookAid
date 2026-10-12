@@ -1,3 +1,6 @@
+import { smokeExit } from './exit-smoke';
+import { smokeDialogs } from './dialog-smoke';
+import { smokeLifecycle } from './lifecycle-smoke';
 import { smokeNativeCapacity } from './native-capacity-smoke';
 import { smokeDelta } from './delta-smoke';
 import { smokeI18n } from './i18n-smoke';
@@ -22,6 +25,15 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
     throw new Error('UI condition timed out: ' + expression);
   };
   await until("document.querySelector('app-root')?.dataset.ready === 'true'");
+  if (process.env['NOTEBOOKAID_EXIT_TEST']) { await smokeExit(window, directory); if(errors.length) throw Error(errors.join('; ')); return; }
+  if (process.env['NOTEBOOKAID_DIALOG_TEST'] === '1') { await smokeDialogs(window, directory); if(errors.length) throw Error(errors.join('; ')); return; }
+  if (process.env['NOTEBOOKAID_EDITOR_TEST'] === '1') {
+    await until("document.querySelector('[data-testid=create-note]')?.disabled === false");
+    await smokeEditor(window, directory);
+    if (errors.length) throw Error('Editor renderer errors: ' + errors.join('; '));
+    return;
+  }
+  if (process.env['NOTEBOOKAID_LIFECYCLE_TEST'] === '1') { await smokeLifecycle(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_NATIVE_CAPACITY_TEST']) { await smokeNativeCapacity(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_DELTA_TEST'] === '1') { await smokeDelta(window, directory); if (errors.length) throw Error('Delta renderer errors: ' + errors.join('; ')); return; }
   if (process.argv.includes('--self-test-reopen')) {

@@ -50,6 +50,41 @@ export class NoteWorkspace {
     } catch { if (epoch === this.queryEpoch) this.reportError('NOT_FOUND_OR_UNAVAILABLE', 'open'); }
     finally { if (epoch === this.queryEpoch) this.searching.set(false); }
   }
+  async lifecycleAction(action: 'trash' | 'restore' | 'clean', revision?: string, retain = 50): Promise<boolean> {
+    if (this.switching() || !this.session()) return false;
+    this.switching.set(true);
+    let reopen = '', success = false, endedSession = false;
+    try {
+      if (!await this.flush()) return false;
+      const session = this.session()!; reopen = session.note.id;
+      const ended = await this.api.end(session.token, session.generation);
+      if (!ended.ok) { this.reportError(ended.code); return false; }
+      endedSession = true;
+      const result = action === 'trash'
+        ? await this.api.trashNote(reopen, session.note.version, crypto.randomUUID())
+        : action === 'clean' ? await this.api.cleanHistory(reopen, session.note.version, retain, crypto.randomUUID())
+        : await this.api.restoreRevision(reopen, revision!, session.note.version, crypto.randomUUID());
+      if (!result.ok) this.reportError(result.code);
+      else if (result.value) { success = true; this.notify('lifecycleComplete', 'save'); if (action === 'clean') await this.refreshRegistry(); if (action === 'trash') reopen = ''; }
+      await this.refresh();
+    } catch { this.reportError('COMMIT_STATUS_UNKNOWN'); }
+    finally {
+      if (endedSession) { this.session.set(null); this.title.set(''); this.body.set(''); this.opened.update(value => value + 1); }
+      this.switching.set(false);
+      if (reopen) { const error = this.error(); await this.select(reopen); if (error) this.error.set(error); }
+    }
+    return success;
+  }
+  async deleteOrganization(kind: 'folder' | 'tag', id: string): Promise<boolean> {
+    if (this.organizationBusy() || this.switching() || !await this.flush()) return false;
+    this.organizationBusy.set(true); this.organizationError.set('');
+    try {
+      const result = await this.api.deleteOrganization(kind, id, this.organization().version);
+      if (!result.ok) { this.organizationError.set(result.code); return false; }
+      if (!result.value) return false;
+      this.organization.set(result.value); this.notify('lifecycleComplete', 'save'); await this.refreshRegistry(); await this.refresh(); return true;
+    } finally { this.organizationBusy.set(false); }
+  }
   async editOrganization(input: OrganizationEditInput): Promise<boolean> {
     if (this.organizationBusy() || this.switching()) return false;
     this.organizationBusy.set(true); this.organizationError.set('');
@@ -103,6 +138,7 @@ export class NoteWorkspace {
   readonly session = signal<EditSession | null>(null);
   readonly status = signal<LibraryStatus | null>(null);
   readonly dirty = signal(false);
+  readonly exitLocked = signal(false);
   readonly saving = signal(false);
   readonly switching = signal(false);
   readonly error = signal<LibraryErrorCode | ''>('');
@@ -124,13 +160,25 @@ export class NoteWorkspace {
   private createId: string | null = null;
   private createInput?: NoteInput;
   private composing = false;
+  private exitFocus: HTMLElement | null = null;
   private readonly api = window.notebookAid.library;
   constructor() {
     effect(() => {
       this.autosaveContext();
       untracked(() => { this.cancelTimer(); this.schedule(); });
     });
-    this.api.onExit(async () => { await this.preferences.idle(); const saved = await this.flush(); await this.notifications.idle(); return saved; });
+    this.api.onExit(async command => {
+      if (command === 'resume') { this.exitLocked.set(false); this.schedule(); requestAnimationFrame(() => this.exitFocus?.focus()); return { dirty: this.dirty(), busy: false, saved: false }; }
+      if (this.switching() || this.organizationBusy() || this.composing) return { dirty: true, busy: true, saved: false };
+      if (!this.exitLocked()) this.exitFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      this.exitLocked.set(true); this.cancelTimer();
+      await this.preferences.idle();
+      if (this.inflight) await this.inflight;
+      if (this.placementInflight) await this.placementInflight;
+      const saved = command === 'save' ? await this.flush() : false;
+      await this.notifications.idle();
+      return { dirty: this.dirty() || !!this.pending || !!this.pendingPlacement || !!this.createId, busy: false, saved };
+    });
   }
   private notify(message: NotificationCode, operation: NotificationOperation = 'settings'): void {
     void this.notifications.publish(message, operation, operation === 'settings' ? null : this.status()?.libraryId ?? null);
@@ -178,7 +226,7 @@ export class NoteWorkspace {
     if (!this.dirty()) this.cancelTimer(); else this.schedule();
   }
   private schedule(): void {
-    if (this.timer !== undefined || !this.autosaveEnabled() || !this.dirty() || this.composing || this.pending) return;
+    if (this.exitLocked() || this.timer !== undefined || !this.autosaveEnabled() || !this.dirty() || this.composing || this.pending) return;
     const generation = this.session()?.generation; const libraryId = this.status()?.libraryId; const epoch = this.timerEpoch;
     this.timer = setTimeout(() => { if (epoch !== this.timerEpoch) return; this.timer = undefined; if (!this.composing && generation === this.session()?.generation && libraryId === this.status()?.libraryId && this.autosaveEnabled()) void this.flush(); }, this.autosaveMinutes() * 60000);
   }

@@ -14,7 +14,7 @@ const hash = (value: string | Buffer) => createHash('sha256').update(value).dige
 const extensions: Record<string, string> = { markdown: 'md', html: 'html', text: 'txt', delta: 'nadelta' };
 const fail = (code: 'INVALID_INPUT' | 'INTEGRITY_CHECK_FAILED' | 'UNSUPPORTED_LIBRARY' | 'LIBRARY_IN_USE' | 'VERSION_CONFLICT' | 'DUPLICATE_LIBRARY' = 'INTEGRITY_CHECK_FAILED'): never => { throw new LibraryError(code); };
 type Revision = { metadata: any; body: string };
-type SnapshotNote = { id: string; head: any; revisions: Revision[]; fingerprint: string; blobs: { item: Attachment; path: string }[] };
+type SnapshotNote = { historyFloor?: { schemaVersion: 1; firstVersion: number; firstRevisionId: string; pending: false }; id: string; head: any; revisions: Revision[]; fingerprint: string; blobs: { item: Attachment; path: string }[] };
 interface Snapshot { path: string; manifest: any; organization: Organization; notes: SnapshotNote[]; fingerprint: string; }
 interface Receipt { source: string; note: string; fingerprint: string; target: string; }
 interface Plan { source: Snapshot; target: Snapshot; organization: Organization; notes: SnapshotNote[]; receipts: Receipt[]; preview: LibraryImportPreview; }
@@ -57,7 +57,7 @@ function snapshot(path: string): Snapshot {
   plainPath(path); path = realpathSync(path);
   if (existsSync(join(path, 'import-transaction.json'))) fail('LIBRARY_IN_USE');
   const manifest = json(join(path, 'library.json'));
-  if (![1, 2, 3, 4, 5].includes(manifest?.schemaVersion)) fail('UNSUPPORTED_LIBRARY');
+  if (![1, 2, 3, 4, 5, 6].includes(manifest?.schemaVersion)) fail('UNSUPPORTED_LIBRARY');
   if (!uuid.test(manifest.libraryId)) fail();
   // Future storage structures require an explicit importer, never silent omission.
   for (const name of ['attachments', 'security', 'keyring.json']) if (existsSync(join(path, name))) fail('UNSUPPORTED_LIBRARY');
@@ -71,6 +71,8 @@ function snapshot(path: string): Snapshot {
     if (!existsSync(join(root, 'head.json'))) fail();
     const head = json(join(root, 'head.json'));
     if (head.formatVersion !== 1 || head.id !== id || !uuid.test(head.revisionId) || !Number.isSafeInteger(head.version) || head.version < 1) fail();
+    const historyFloor = existsSync(join(root, 'history.json')) ? json(join(root, 'history.json')) : undefined;
+    if (historyFloor && (manifest.schemaVersion < 6 || historyFloor.schemaVersion !== 1 || !Number.isSafeInteger(historyFloor.firstVersion) || historyFloor.firstVersion < 1 || historyFloor.firstVersion > head.version || !uuid.test(historyFloor.firstRevisionId) || historyFloor.pending !== false)) fail();
     const blobs = new Map<string, { item: Attachment; path: string }>();
     const chain: Revision[] = []; let revision = head.revisionId, version = head.version; const seen = new Set<string>();
     while (revision !== null) {
@@ -79,7 +81,7 @@ function snapshot(path: string): Snapshot {
       if (version === head.version && hash(raw) !== head.metadataHash) fail();
       if (meta.schemaVersion !== 1 || meta.id !== id || meta.revisionId !== revision || meta.version !== version || !Object.hasOwn(extensions, meta.primaryFormat) || !uuid.test(meta.operationId) || !/^[a-f0-9]{64}$/.test(meta.requestHash)) fail();
       if (typeof meta.title !== 'string' || !meta.title.trim() || meta.title.length > 300 || meta.title.includes('\0') || !Number.isSafeInteger(meta.contentVersion) || meta.contentVersion < 1 || meta.contentVersion > meta.version || !Number.isFinite(Date.parse(meta.createdAt)) || !Number.isFinite(Date.parse(meta.updatedAt)) || (meta.deletedAt !== null && !Number.isFinite(Date.parse(meta.deletedAt)))) fail();
-      if ((meta.folderId !== null && !organization.folders.some(item => item.id === meta.folderId)) || !Array.isArray(meta.tagIds) || meta.tagIds.length > 100 || new Set(meta.tagIds).size !== meta.tagIds.length || meta.tagIds.some((tag: string) => !organization.tags.some(item => item.id === tag)) || typeof meta.pinned !== 'boolean' || meta.visibleInThunderbird !== true) fail('UNSUPPORTED_LIBRARY');
+      if ((meta.folderId !== null && (!uuid.test(meta.folderId) || ((manifest.schemaVersion < 6 || version === head.version) && !organization.folders.some(item => item.id === meta.folderId)))) || !Array.isArray(meta.tagIds) || meta.tagIds.length > 100 || new Set(meta.tagIds).size !== meta.tagIds.length || meta.tagIds.some((tag: string) => !uuid.test(tag) || ((manifest.schemaVersion < 6 || version === head.version) && !organization.tags.some(item => item.id === tag))) || typeof meta.pinned !== 'boolean' || meta.visibleInThunderbird !== true) fail('UNSUPPORTED_LIBRARY');
       const body = read(join(directory, `content.${extensions[meta.primaryFormat]}`), 2 * 1024 * 1024);
       if (hash(body) !== meta.bodyHash || body.includes('\0')) fail();
       if (meta.primaryFormat === 'delta') { if (manifest.schemaVersion < 5) fail(); parseDelta(body); }
@@ -94,10 +96,12 @@ function snapshot(path: string): Snapshot {
           if (!existing) { bytes += item.size; if (bytes > 256 * 1024 * 1024) fail('INVALID_INPUT'); readAttachmentFile(path, item); blobs.set(item.id, { item, path }); }
         }
       }
-      chain.push({ metadata: meta, body }); revision = meta.parentRevisionId; version--;
+      chain.push({ metadata: meta, body });
+      if (historyFloor && version === historyFloor.firstVersion) { if (revision !== historyFloor.firstRevisionId) fail(); version--; break; }
+      revision = meta.parentRevisionId; version--;
     }
-    if (version !== 0) fail();
-    notes.push({ id, head, revisions: chain, fingerprint: hash(JSON.stringify(chain)), blobs: [...blobs.values()] });
+    if (version !== (historyFloor ? historyFloor.firstVersion - 1 : 0)) fail();
+    notes.push({ ...(historyFloor ? { historyFloor: { schemaVersion: 1 as const, firstVersion: historyFloor.firstVersion, firstRevisionId: historyFloor.firstRevisionId, pending: false as const } } : {}), id, head, revisions: chain, fingerprint: hash(JSON.stringify(chain)), blobs: [...blobs.values()] });
   }
   return { path, manifest, organization, notes, fingerprint: hash(JSON.stringify({ manifest, organization, notes })) };
 }
@@ -146,7 +150,7 @@ export function planImport(sourcePath: string, targetPath: string): Plan {
     for (const note of source.notes) {
       if (receipts.some(row => row.source === source.manifest.libraryId && row.note === note.id && row.fingerprint === note.fingerprint && ids.has(row.target))) { skipped++; continue; }
       const id = ids.has(note.id) ? randomUUID() : note.id; if (id !== note.id) conflicts++; ids.add(id);
-      const revisions = note.revisions.map(row => ({ body: row.body, metadata: { ...row.metadata, id, folderId: row.metadata.folderId === null ? null : folderMap.get(row.metadata.folderId), tagIds: row.metadata.tagIds.map((tag: string) => tagMap.get(tag)) } }));
+      const revisions = note.revisions.map(row => ({ body: row.body, metadata: { ...row.metadata, id, folderId: row.metadata.folderId === null ? null : (folderMap.get(row.metadata.folderId) ?? null), tagIds: row.metadata.tagIds.map((tag: string) => tagMap.get(tag)).filter(Boolean) } }));
       const head = { ...note.head, id, metadataHash: hash(JSON.stringify(revisions[0].metadata)) };
       notes.push({ ...note, id, head, revisions }); receipts.push({ source: source.manifest.libraryId, note: note.id, fingerprint: note.fingerprint, target: id });
     }
@@ -168,7 +172,7 @@ export function recoverImport(path: string): boolean {
   if (!transaction || !uuid.test(transaction.id) || !Array.isArray(transaction.notes) || transaction.notes.length > 10000 || transaction.notes.some(id => !uuid.test(id)) || !transaction.originals || Object.keys(transaction.originals).sort().join() !== [...changedFiles].sort().join()) fail();
   if (Object.values(transaction.originals).some(value => value !== null && typeof value !== 'string') || typeof transaction.originals['library.json'] !== 'string') fail();
   const originalManifest = JSON.parse(transaction.originals['library.json']!);
-  if (![1, 2, 3, 4, 5].includes(originalManifest?.schemaVersion) || !uuid.test(originalManifest.libraryId)) fail();
+  if (![1, 2, 3, 4, 5, 6].includes(originalManifest?.schemaVersion) || !uuid.test(originalManifest.libraryId)) fail();
   if (transaction.rolledBack === true) { unlinkSync(file); return true; }
   for (const id of transaction.notes) {
     for (const target of [join(path, 'notes', id), join(path, 'recovery', `stage-import-${transaction.id}-${id}`)]) {
@@ -213,6 +217,7 @@ export function executeImport(plan: Plan, fault?: (stage: string) => void): Libr
         mkdirSync(stage); atomic(join(stage, 'import-owner'), id);
         for (const row of note.revisions) { const revision = join(stage, 'revisions', row.metadata.revisionId); mkdirSync(revision, { recursive: true }); atomic(join(revision, 'metadata.json'), JSON.stringify(row.metadata)); atomic(join(revision, `content.${extensions[row.metadata.primaryFormat]}`), row.body); }
         for (const blob of note.blobs) { const bytes = readAttachmentFile(blob.path, blob.item); const dir = join(stage, 'attachments'); mkdirSync(dir, { recursive: true }); const fd = openSync(join(dir, blob.item.id), 'wx'); try { writeFileSync(fd, bytes); fsyncSync(fd); } finally { closeSync(fd); } }
+        if (note.historyFloor) atomic(join(stage, 'history.json'), JSON.stringify(note.historyFloor));
         atomic(join(stage, 'head.json'), JSON.stringify(note.head)); renameSync(stage, root); fault?.('note');
       }
       atomic(join(path, 'organization.json'), JSON.stringify(plan.organization)); fault?.('organization');

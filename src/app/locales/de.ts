@@ -1,6 +1,24 @@
+import { lifecycleText } from '../lifecycle-i18n';
 import type { MessageKey } from '../i18n';
 
 export const german: Record<MessageKey, string> = {
+  exitApp: "Anwendung beenden",
+  saveAndExit: "Speichern und beenden",
+  discardAndExit: "Änderungen verwerfen und beenden",
+  confirmExit: "Beenden bestätigen",
+  exitUnsaved: "Es gibt ungespeicherte Notizen. Vor dem Beenden speichern?",
+  exitClean: "Alle Notizen sind gespeichert. NotebookAid beenden?",
+  exitBlocked: "Der Speicherstatus konnte nicht geprüft werden oder ein Vorgang läuft noch. Bitte weiter bearbeiten und später erneut versuchen.",
+
+  beautifySource: "Quelltext formatieren",
+  minifySource: "Quelltext minimieren",
+  sourceFormatHint: "HTML oder Delta-JSON formatieren. Text, Inline-Leerzeichen und Code bleiben erhalten. Rückgängig möglich.",
+  sourceFormatFailed: "Formatierung fehlgeschlagen. Syntax und 2-MiB-Grenze prüfen. Der Quelltext bleibt unverändert.",
+  tableHeaderRow: "Als Kopfzeile festlegen",
+  tableBodyRow: "Als Inhaltszeile festlegen",
+  markdownTableHeader: "Markdown verwendet immer die erste Zeile als Kopfzeile.",
+  moreEditorTools: "Weitere Bearbeitungswerkzeuge",
+  lifecycleComplete: lifecycleText('de', 'success'),
   deltaFormat: "Delta-Rich-Text",
   deltaUpgrade: "Delta erfordert Schema 5. Eine vollständige Sicherung wird daneben in .delta-backups gespeichert. Ältere Programme können Schema 5 nicht öffnen. Fortfahren?",
   deltaInvalid: "Ungültiges oder nicht unterstütztes Delta-Dokument. JSON und Attribute anhand der Details vor dem Speichern korrigieren.",
@@ -143,7 +161,7 @@ export const german: Record<MessageKey, string> = {
   "newFormat": "Format der neuen Notiz",
   "importNote": "Notiz importieren",
   "richText": "Rich-Text",
-  "sourceMode": "Quelltext / Klartext",
+  "sourceMode": "Quelltext",
   "undo": "Rückgängig",
   "redo": "Wiederholen",
   "exportFormat": "Exportformat",
@@ -254,7 +272,7 @@ export const german: Record<MessageKey, string> = {
   "welcome": "Erste Schritte",
   "sample": "Willkommen bei NotebookAid",
   "sampleHint": "Raum für Ihre nächste Idee",
-  "preview": "T06-A natives Rich-Text",
+  "preview": "T07 Verlauf und Papierkorb",
   "previewHint": "Automatisches lokales Speichern · Markdown / HTML / TXT / Delta · Verschlüsselung und Sicherung folgen später.",
   "save": "Speichern",
   "saving": "Wird gespeichert…",

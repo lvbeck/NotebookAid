@@ -17,10 +17,12 @@ export interface RuntimeInfo {
 }
 
 export interface PrototypeApi {
+  dialogs: import('./dialog').DialogApi;
   notifications: import('./notifications').NotificationApi;
   library: import('./library').LibraryApi;
   runtime(): Promise<RuntimeInfo>;
   probe(): Promise<ProbeResult>;
   hide(): Promise<void>;
+  editorFullscreen(enabled: boolean): Promise<void>;
   quit(): Promise<void>;
 }

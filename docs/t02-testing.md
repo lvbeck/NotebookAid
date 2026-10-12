@@ -59,3 +59,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Register-Bridge.ps1 -R
 ## 验证边界
 
 自动检查与实际用户验收分开记录。模拟 Native Messaging／Windows Job 测试不能替代上述真实 Thunderbird 关闭和重启测试；当前机器测试不能证明 Windows 10 实机支持。
+
+
+T07.5 behavior update (2026-10-12): the native close button now opens the unified exit confirmation rather than hiding the window. Use explicit Hide to tray to retain the background process. See t07-testing.md for current exit acceptance checks.

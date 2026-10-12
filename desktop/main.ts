@@ -34,6 +34,7 @@ let tray: Tray | null = null;
 let server: Server | null = null;
 let quitting = false;
 let exitPending = false;
+let editorWindowBounds: Electron.Rectangle | null = null;
 let storage: ReturnType<typeof registerLibrary>;
 let notifications: ReturnType<typeof registerNotifications>;
 const rendererErrors: string[] = [];
@@ -71,7 +72,7 @@ async function createWindow(show = true): Promise<BrowserWindow> {
   mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   mainWindow.webContents.session.setPermissionCheckHandler(() => false);
   mainWindow.webContents.session.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (_details, callback) => callback({ cancel: true }));
-  mainWindow.on('close', event => { if (!quitting) { event.preventDefault(); mainWindow?.hide(); } });
+  mainWindow.on('close', event => { if (!quitting) { event.preventDefault(); void quitByUser(); } });
   mainWindow.on('closed', () => { storage.release(owner); mainWindow = null; });
   await mainWindow.loadFile(rendererPath);
   if (show) mainWindow.show();
@@ -87,7 +88,7 @@ function authorize(event: Electron.IpcMainInvokeEvent): void {
 function updateTray(locale: Locale): void {
   tray?.setContextMenu(Menu.buildFromTemplate([
     { label: translate(locale, 'openApp'), click: () => { void createWindow(); } },
-    { type: 'separator' }, { label: translate(locale, 'quit'), click: quitByUser }
+    { type: 'separator' }, { label: translate(locale, 'quit'), click: () => { void quitByUser(); } }
   ]));
 }
 async function start(): Promise<void> {
@@ -102,6 +103,20 @@ async function start(): Promise<void> {
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });
   ipcMain.handle('prototype:sqlite', event => { authorize(event); return runSqliteProbe(dataPath); });
   ipcMain.handle('prototype:hide', event => { authorize(event); mainWindow?.hide(); });
+  ipcMain.handle('prototype:editor-fullscreen', (event, enabled: unknown) => {
+    authorize(event);
+    if (typeof enabled !== 'boolean') throw new Error('Invalid editor fullscreen state');
+    const window = mainWindow!;
+    if (enabled && !editorWindowBounds) {
+      editorWindowBounds = window.getNormalBounds();
+      window.maximize();
+    } else if (!enabled && editorWindowBounds) {
+      const bounds = editorWindowBounds;
+      editorWindowBounds = null;
+      window.unmaximize();
+      window.setBounds(bounds);
+    }
+  });
   ipcMain.handle('prototype:quit', event => { authorize(event); quitByUser(); });
   await startBridge();
   if (!background || selfTest) {
@@ -135,10 +150,12 @@ async function startBridge(): Promise<void> {
   writeFileSync(runtimeFile, JSON.stringify({ pipe: name, token: sessionToken, pid: process.pid }), { mode: 0o600 });
 }
 
-async function quitByUser(): Promise<void> {
+async function quitByUser(testShutdown = false): Promise<void> {
   if (exitPending) return;
   exitPending = true;
-  try { if (storage && !await storage.flush()) return;
+  try {
+    if (!testShutdown) await createWindow();
+    if (storage && !(testShutdown ? await storage.flush() : await storage.confirmExit())) return;
   writeFileSync(stoppedFile, JSON.stringify({ stoppedAt: new Date().toISOString() }));
   quitting = true;
   app.quit();
@@ -162,6 +179,6 @@ async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
     if (!process.argv.includes('--self-test-reopen')) await smokeHtmlImport(dataPath);
     await smokeLibrary(window, dataPath, rendererErrors);
-    await quitByUser();
+    await quitByUser(true);
   } catch (error) { writeFileSync(join(dataPath, 'smoke-error.txt'), String(error)); app.exit(1); }
 }

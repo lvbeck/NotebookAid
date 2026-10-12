@@ -1,6 +1,24 @@
+import { lifecycleText } from '../lifecycle-i18n';
 import type { MessageKey } from '../i18n';
 
 export const hongKong: Record<MessageKey, string> = {
+  exitApp: "結束應用程式",
+  saveAndExit: "儲存並結束",
+  discardAndExit: "放棄儲存並結束",
+  confirmExit: "確認結束",
+  exitUnsaved: "有尚未儲存的筆記，是否儲存後結束？",
+  exitClean: "所有筆記均已儲存，確認結束 NotebookAid？",
+  exitBlocked: "暫時無法檢查儲存狀態，或仍有操作正在進行。請繼續編輯，稍後再試。",
+
+  beautifySource: "美化原始碼",
+  minifySource: "最小化原始碼",
+  sourceFormatHint: "整理 HTML 或 Delta JSON；保留文字、行內空格及程式碼，可復原。",
+  sourceFormatFailed: "無法格式化，請檢查語法及 2 MiB 大小限制。原始碼未有更改。",
+  tableHeaderRow: "設為表頭列",
+  tableBodyRow: "設為內容列",
+  markdownTableHeader: "Markdown 表格固定以首列為表頭。",
+  moreEditorTools: "更多編輯工具",
+  lifecycleComplete: lifecycleText('zh-TW', 'success'),
   deltaFormat: "Delta 原生格式文字",
   deltaUpgrade: "建立或匯入 Delta 將此筆記本升級至架構版本 5，並在旁邊的 .delta-backups 儲存完整備份。舊版程式無法開啟版本 5。是否繼續？",
   deltaInvalid: "Delta 文件無效或包含不支援的結構。請按下方詳情修正 JSON 及屬性後再儲存。",
@@ -143,7 +161,7 @@ export const hongKong: Record<MessageKey, string> = {
   "newFormat": "新筆記格式",
   "importNote": "匯入筆記",
   "richText": "豐富文字",
-  "sourceMode": "原始碼／純文字",
+  "sourceMode": "原始碼",
   "undo": "復原",
   "redo": "取消復原",
   "exportFormat": "匯出格式",
@@ -254,7 +272,7 @@ export const hongKong: Record<MessageKey, string> = {
   "welcome": "開始使用",
   "sample": "歡迎使用 NotebookAid",
   "sampleHint": "為下一個想法留一處空間",
-  "preview": "T06-A 原生格式文字",
+  "preview": "T07 歷史與資源回收筒",
   "previewHint": "本機自動儲存 · Markdown / HTML / TXT / Delta · 尚未實作加密與備份",
   "save": "儲存",
   "saving": "正在儲存…",

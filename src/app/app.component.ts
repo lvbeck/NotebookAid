@@ -1,3 +1,5 @@
+import { LifecycleComponent } from './lifecycle.component';
+import { lifecycleText, type LifecycleKey } from './lifecycle-i18n';
 import { emptyDelta, parseDelta, deltaSnapshot, type DeltaOp } from '../../shared/delta-document';
 import { AttachmentsComponent } from './attachments.component';
 import { TooltipDirective } from './tooltip.directive';
@@ -11,6 +13,7 @@ import { isolatedHtmlDocument } from './html-preview';
 import { SelectDirective } from './select.directive';
 import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, signal, inject, effect, untracked, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgTemplateOutlet } from '@angular/common';
 import Quill from 'quill';
 import Delta from 'quill-delta';
 import hljs from 'highlight.js/lib/common';
@@ -19,6 +22,8 @@ import { codeLanguages, registerNoteFormats } from './editor-formats';
 import { NoteLink } from './note-link';
 import { cleanHtml, convertBody, markdownFromHtml, previewHtml, semanticHtml } from './note-codec';
 import { BodyHistory } from '../../shared/body-history';
+import { AppDialogs } from './app-dialog';
+import { formatSource } from '../../shared/source-format';
 import type { NoteFormat, NoteInput } from '../../shared/library';
 import { IconComponent } from './icon.component';
 import { languages, Locale, MessageKey, regionalLocale, translate } from './i18n';
@@ -33,10 +38,11 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
+  private readonly dialogs = inject(AppDialogs);
   readonly workspace = inject(NoteWorkspace);
   readonly notifications = inject(NotificationService);
   @ViewChild('editorHost', { static: true }) host!: ElementRef<HTMLElement>;
@@ -45,6 +51,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   @ViewChild('folderTrigger') folderTrigger?: CdkMenuTrigger;
   readonly sidebarCollapsed = computed(() => this.prefs.state().global.sidebarCollapsed ?? false);
   readonly editorFullscreen = signal(false);
+  readonly editorToolsOpen = signal(false);
+  readonly exportMenuOpen = signal(false);
   toggleSidebar(): void { this.folderTrigger?.close(); this.newNoteMenuOpen.set(false); void this.prefs.update({ sidebarCollapsed: !this.sidebarCollapsed() }); }
   toggleEditorFullscreen(): void {
     if (this.tab() !== 'editor' || !this.workspace.session()) return;
@@ -113,7 +121,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly locale = this.prefs.locale;
   readonly theme = this.prefs.theme;
   readonly ready = signal(false);
-  readonly tab = signal<'editor' | 'diagnostics' | 'settings' | 'libraries' | 'organization'>('editor');
+  l(key: LifecycleKey): string { return lifecycleText(this.locale(), key); }
+  readonly historyNoteId = signal('');
+  async openHistory(): Promise<void> { if (await this.workspace.flush()) { this.historyNoteId.set(this.workspace.session()?.note.id || ''); this.editorFullscreen.set(false); this.tab.set('history'); } }
+  async trashCurrent(): Promise<void> { if (await this.workspace.lifecycleAction('trash')) { this.editorFullscreen.set(false); this.tab.set('trash'); } else { requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-testid=note-trash]')?.focus()); } }
+  readonly tab = signal<'editor' | 'diagnostics' | 'settings' | 'libraries' | 'organization' | 'trash' | 'history'>('editor');
   readonly runtime = signal<RuntimeInfo | null>(null);
   readonly sqliteResult = signal('');
   readonly roundtripResult = signal('');
@@ -122,6 +134,18 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly warning = signal(false);
   readonly issues = signal<SourceIssue[]>([]);
   readonly sourceMode = signal(false);
+  readonly sourceFormatError = signal(false);
+  readonly sourcePretty = computed(() => {
+    const format = this.format(), source = this.workspace.body();
+    if (format !== 'html' && format !== 'delta') return false;
+    try { return formatSource(source, format, false) !== source; } catch { return false; }
+  });
+  toggleSourceFormatting(): void {
+    const format = this.format();
+    if (this.composing || this.workspace.switching() || !this.workspace.session() || (format !== 'html' && format !== 'delta')) return;
+    try { this.editSource(formatSource(this.source(), format, !this.sourcePretty())); }
+    catch { this.sourceFormatError.set(true); }
+  }
   readonly historyVersion = signal(0);
   readonly history = new BodyHistory();
   readonly newNoteMenuOpen = signal(false);
@@ -203,6 +227,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly compositionStart = () => { this.composing = true; this.workspace.setComposing(true); };
   readonly compositionEnd = () => { this.composing = false; this.record(); this.workspace.setComposing(false); };
   private readonly keyboard = (event: KeyboardEvent) => {
+    if (this.dialogs.opened || this.workspace.exitLocked()) return;
+    if (event.key === 'Escape' && (this.editorToolsOpen() || this.exportMenuOpen())) { this.editorToolsOpen.set(false); this.exportMenuOpen.set(false); event.preventDefault(); return; }
     if (!event.isComposing && event.ctrlKey && event.shiftKey && event.code === 'KeyF') { event.preventDefault(); if (!event.repeat) this.toggleEditorFullscreen(); return; }
     if (event.key === 'Escape' && this.selectedImage()) { this.selectedImage.set(null); event.preventDefault(); return; }
     if (event.key === 'Escape' && this.editorFullscreen() && !event.defaultPrevented && !document.querySelector('.cdk-overlay-pane:not(.notification-overlay):not(.sidebar-tooltip-overlay)')) { this.editorFullscreen.set(false); event.preventDefault(); return; }
@@ -213,7 +239,17 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       event.preventDefault(); event.stopImmediatePropagation(); this.undo(event.shiftKey || event.key.toLowerCase() === 'y');
     }
   };
+  private readonly closeEditorMenus = (event: PointerEvent) => {
+    if (!(event.target instanceof Element) || !event.target.closest('.editor-actions,.cdk-overlay-pane')) {
+      this.editorToolsOpen.set(false); this.exportMenuOpen.set(false);
+    }
+  };
   constructor() {
+    effect(() => {
+      const enabled = this.editorFullscreen();
+      this.editorToolsOpen.set(false); this.exportMenuOpen.set(false);
+      void window.notebookAid.editorFullscreen(enabled).catch(() => { this.editorFullscreen.set(false); });
+    });
     effect(onCleanup => {
       const image = this.selectedImage();
       if (!image) return;
@@ -231,11 +267,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
     effect(() => { if (this.tab() !== 'editor' || !this.workspace.session()) this.editorFullscreen.set(false); });
     effect(() => { this.tab(); this.tagMenuNote(); this.tagMenuOpen.set(false); });
+    effect(() => { this.tab(); this.sourceMode(); this.editorToolsOpen.set(false); this.exportMenuOpen.set(false); });
     effect(() => { this.theme(); this.locale(); this.applyTheme(); });
     effect(() => { if (this.workspace.libraryUnavailable()) this.tab.set('libraries'); });
     effect(() => {
       const ready = this.ready(); this.workspace.opened();
-      if (ready) untracked(() => { this.inTable.set(false); this.inCodeBlock.set(false); this.history.reset(this.source()); this.historyVersion.update(value => value + 1); this.sourceMode.set(false); this.exportPreview.set(null); this.fileMessage.set(''); this.loadSource(); });
+      if (ready) untracked(() => { this.sourceFormatError.set(false); this.inTable.set(false); this.inCodeBlock.set(false); this.history.reset(this.source()); this.historyVersion.update(value => value + 1); this.sourceMode.set(false); this.exportPreview.set(null); this.fileMessage.set(''); this.loadSource(); });
     });
   }
 
@@ -268,6 +305,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.host.nativeElement.addEventListener('compositionstart', this.compositionStart);
     this.host.nativeElement.addEventListener('compositionend', this.compositionEnd);
     window.addEventListener('keydown', this.keyboard, true);
+    document.addEventListener('pointerdown', this.closeEditorMenus);
     this.loadSource();
     this.editor.on('text-change', this.onEditorChange);
     this.editor.on('editor-change', () => this.updateEditorContext());
@@ -277,6 +315,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     window.notebookAid.runtime().then(value => this.runtime.set(value)).catch(() => this.sqliteResult.set(this.t('failed')));
   }
   ngOnDestroy(): void {
+    document.removeEventListener('pointerdown', this.closeEditorMenus);
     this.editor?.off('text-change', this.onEditorChange);
     this.media.removeEventListener('change', this.themeListener);
     this.host.nativeElement.removeEventListener('click', this.preventNavigation);
@@ -373,7 +412,17 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if (this.warning() || this.sourcePending() || this.workspace.switching() || !this.workspace.session()) return;
     this.editor.focus();
     const table = this.editor.getModule('table') as Table;
-    if (action === 'insertTable') table.insertTable(3, 3); else table[action]();
+    const headerRows = action === 'insertColumnLeft' || action === 'insertColumnRight'
+      ? Array.from(table.getTable()[1]?.domNode.closest('table')?.querySelectorAll('tr') ?? []).filter(row => row.children.length && Array.from(row.children).every(cell => cell.getAttribute('data-cell-header') === 'true')) : [];
+    if (action === 'insertTable') {
+      table.insertTable(3, 3);
+      const [, row] = table.getTable();
+      if (row) this.editor.formatLine(row.offset(this.editor.scroll), row.length(), 'cell-header', 'true', 'user');
+    } else table[action]();
+    headerRows.forEach(row => {
+      const blot = Quill.find(row);
+      if (blot && 'offset' in blot) this.editor.formatLine(blot.offset(this.editor.scroll), blot.length(), 'cell-header', 'true', 'user');
+    });
     if (this.format() === 'markdown') this.host.nativeElement.querySelectorAll('table').forEach(element => {
       const rows = Array.from(element.rows);
       rows.forEach((row, index) => Array.from(row.cells).forEach((cell, column) => {
@@ -391,6 +440,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.selectedCodeLanguage.set(typeof language === 'string' ? language : 'plain');
     this.inTable.set(!!(this.editor.getModule('table') as Table).getTable(range)[0]);
   }
+  setTableHeader(header: boolean): void {
+    if (this.format() === 'markdown' || this.warning() || this.sourcePending() || this.workspace.switching()) return;
+    this.editor.focus();
+    const [, row] = (this.editor.getModule('table') as Table).getTable();
+    if (!row) return;
+    this.editor.formatLine(row.offset(this.editor.scroll), row.length(), 'cell-header', header ? 'true' : false, 'user');
+    this.updateEditorContext();
+  }
   readonly codeLanguages = codeLanguages;
   readonly selectedCodeLanguage = signal('plain');
   setCodeLanguage(value: string): void {
@@ -405,6 +462,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
   }
   editSource(value: string): void {
+    this.sourceFormatError.set(false);
     this.workspace.updateBody(value); this.record(); this.sourcePending.set(true); this.editor.enable(false);
     this.roundtripResult.set(''); this.roundtripStatus.set('');
   }

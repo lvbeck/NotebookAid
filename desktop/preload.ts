@@ -2,6 +2,19 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { PrototypeApi } from '../shared/contracts';
 
 const api: PrototypeApi = {
+  dialogs: {
+    onRequest: callback => {
+      const listener = (_event: Electron.IpcRendererEvent, request: import('../shared/dialog').AppDialog) => callback(request);
+      ipcRenderer.on('app-dialog:request', listener);
+      return () => ipcRenderer.removeListener('app-dialog:request', listener);
+    },
+    onDismiss: callback => {
+      const listener = (_event: Electron.IpcRendererEvent, id: string) => callback(id);
+      ipcRenderer.on('app-dialog:dismiss', listener);
+      return () => ipcRenderer.removeListener('app-dialog:dismiss', listener);
+    },
+    respond: (id, accepted) => ipcRenderer.invoke('app-dialog:respond', id, accepted)
+  },
   notifications: {
     state: () => ipcRenderer.invoke('notifications:state'),
     publish: input => ipcRenderer.invoke('notifications:publish', input),
@@ -11,6 +24,14 @@ const api: PrototypeApi = {
     position: value => ipcRenderer.invoke('notifications:position', value)
   },
   library: {
+    cleanHistory: (id, version, retain, op) => ipcRenderer.invoke('library:cleanHistory', id, version, retain, op),
+    trashNote: (id, version, op) => ipcRenderer.invoke('library:trashNote', id, version, op),
+    restoreNote: (id, version, op) => ipcRenderer.invoke('library:restoreNote', id, version, op),
+    purgeNote: (id, version, op) => ipcRenderer.invoke('library:purgeNote', id, version, op),
+    history: (id, offset) => ipcRenderer.invoke('library:history', id, offset),
+    revision: (id, revision) => ipcRenderer.invoke('library:revision', id, revision),
+    restoreRevision: (id, revision, version, op) => ipcRenderer.invoke('library:restoreRevision', id, revision, version, op),
+    deleteOrganization: (kind, id, version) => ipcRenderer.invoke('library:deleteOrganization', kind, id, version),
     attachments: noteId => ipcRenderer.invoke('library:attachments', noteId),
     addAttachment: request => ipcRenderer.invoke('library:addAttachment', request),
     unlinkAttachment: (request, id) => ipcRenderer.invoke('library:unlinkAttachment', request, id),
@@ -42,7 +63,7 @@ const api: PrototypeApi = {
     save: request => ipcRenderer.invoke('library:save', request),
     rebuild: () => ipcRenderer.invoke('library:rebuild'),
     onExit: callback => {
-      const listener = async () => { let saved = false; try { saved = await callback(); } finally { ipcRenderer.send('library:exit-result', saved); } };
+      const listener = async (_event: Electron.IpcRendererEvent, id: string, command: import('../shared/dialog').ExitCommand) => { let state: import('../shared/dialog').ExitState | null = null; try { state = await callback(command); } finally { ipcRenderer.send('library:exit-result', id, state); } };
       ipcRenderer.on('library:flush-exit', listener);
       return () => ipcRenderer.removeListener('library:flush-exit', listener);
     }
@@ -50,6 +71,7 @@ const api: PrototypeApi = {
   runtime: () => ipcRenderer.invoke('prototype:runtime'),
   probe: () => ipcRenderer.invoke('prototype:sqlite'),
   hide: () => ipcRenderer.invoke('prototype:hide'),
+  editorFullscreen: enabled => ipcRenderer.invoke('prototype:editor-fullscreen', enabled),
   quit: () => ipcRenderer.invoke('prototype:quit')
 };
 contextBridge.exposeInMainWorld('notebookAid', api);

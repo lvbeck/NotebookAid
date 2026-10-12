@@ -40,3 +40,6 @@
 若要在 Thunderbird 中验证新版后台，请先退出旧后台。若旧目录已注册，先在旧目录运行 Register-Bridge.ps1 -Remove，再在新版目录运行 Register-Bridge.ps1。XPI 仍是 T02 桥接原型，只验证启动／状态／打开窗口，不能浏览笔记；主图标保持不变，XPI 0.2.4 的三个操作按钮增加 Lucide 图标。
 
 验收后在当前聊天反馈问题。2026-10-09 另行固定了 T03-A 通知中心、T03-B 多库列表、T03-C 分层设置方案；本指南描述的 0.3.0-t03.2 尚未包含这些功能，实施与逐项验收顺序见 [实施计划](implementation-plan.md)。T03 整体验收且明确“T03 通过，开始 T04”后才继续 T04。
+
+
+T07.5 behavior update (2026-10-12): the native close button now opens the unified exit confirmation rather than hiding the window. Use explicit Hide to tray to retain the background process. See t07-testing.md for current exit acceptance checks.

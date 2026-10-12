@@ -1,6 +1,6 @@
 # 实施计划与进度
 
-更新日期：2026-10-11。各任务须分别获得用户实施授权。
+更新日期：2026-10-12。各任务须分别获得用户实施授权。
 
 ## 执行规则
 
@@ -25,7 +25,7 @@
 | T05-A | 原生跨库导入、目标库升级、预览与备份回滚（R41） | 已批准 | 2026-10-11：多语言修正完成后验收 T05-A； 2026-10-11：“来源旧库保持不变，只升级目标库和导入的数据。开始T05A，完成后我再验收T05的其他项” |
 | T06 | 图片附件、重名与路径、生命周期和缺失处理 | 已批准 | 2026-10-11：用户明确“这个修改完成后，验收T05-A和T05完成，直接开始T06吧” |
 | T06-A | 可选 Delta 原生富文本笔记、版本化存储、受控导入导出与旧格式兼容（R40） | 已批准 | 2026-10-11：“T06-A验收通过，提交commit后开始T07。” |
-| T07 | 回收站、恢复、主动永久删除、历史版本及保留规则 | 待开发 | 无 |
+| T07 | 回收站、恢复、主动永久删除、历史版本及保留规则 | 已批准 | 2026-10-12：“验收T07，开始下一个任务” |
 | T08 | 主密码、逐笔记加密、恢复密钥、锁定、核心可见性过滤及残留边界 | 待开发 | 无 |
 | T09 | 手动／定期备份、完整性检查、恢复及存储目录迁移 | 待开发 | 无 |
 | T10 | Thunderbird Spaces、浏览搜索预览、删除、编辑定位、标签映射、事件与重连 | 待开发 | 无 |
@@ -436,3 +436,75 @@ T06-A.3 已完成构建及便携 Delta 专项／重启检查（output/delta-pack
 ## T06-A 用户验收（2026-10-11）
 
 用户明确：“T06-A验收通过，提交commit后开始T07。”验收版本 0.6.0-t06a.3；按此批准提交 T06-A，保留此前容量内存及间歇 EPERM 验证边界记录。提交后开始 T07。
+
+## T07 开工
+
+T06-A 已提交 1e67558。本轮实现笔记回收站、恢复、主动永久删除、历史查看及恢复；删除文件夹／标签仅允许空文件夹／未被笔记引用的标签，避免隐式批量改动正文与历史。历史保留规则向用户确认中；默认不自动永久清理。所有破坏操作在应用内明确确认，不操作用户真实笔记测试数据。
+
+
+## T07.1 交付与验证（2026-10-11）
+
+- 用户最终更正：“我点错了，应该选保留所有历史，并提供批量手动清理功能”。以此为准：默认全部保留，无自动 50 版本上限；手动指定最近 N 个保留版本，预览数量并确认后批量清理，至少保留当前版本。初始输入 50 可修改，不代表后台保留策略。
+- 完成回收站、单篇恢复／主动永久删除、历史源码预览／恢复、空文件夹及未使用标签删除；成功消息接入现有通知，默认已读。历史恢复保留当前组织归属，原有附件实体不由清理历史删除。
+- 首次历史清理或组织删除升级架构版本 6，先完整备份；历史保留边界独立记录，不改写保留版本的正文和版本号。清理及永久删除的已确认中断操作在重启时继续；跨笔记本导入覆盖历史边界与失效组织引用。
+- 构建通过；核心回归 85/85（output/t07-core-cleanup-final.txt），随后请求重放参数校验补充后 T07 专项 13/13；git diff --check 通过。首次回归中的旧 trash 非法值断言已更新；一次组织批量创建测试出现此前已记录的间歇 WRITE_FAILED，后续回归通过，未将此环境问题宣称已根治。
+- 便携完整 GUI 回归与重启通过（output/smoke-packaged/1791748549878，手动清理补充前）；最终便携 T07 专项与重启通过（output/lifecycle-packaged/1791749513131），覆盖历史恢复、手动清理及取消、回收站恢复、永久删除及取消、文件夹删除，以及删除笔记后编辑器清空／禁用。
+- 尚未用户验收；未验证真实硬件断电、长期大历史性能、Windows 10 实机；永久删除不是安全擦除。指南与回退见 [T07 测试](t07-testing.md)。T07 未提交，T08 未启动。
+
+T07.1 最终界面复查补充：移入回收站后清空并禁用旧编辑器；手动清理／删除组织项升级架构后立即刷新笔记本注册信息，设置页无需重启即可显示新架构版本。最终构建与便携专项复测通过。
+
+T07.1 最终部署完成：release/NotebookAid-0.7.0-t07.1-win-x64.zip；SHA-256 7d14801ee99e3fe803ef6ebd8b350342542e0d8793edcc534eadc2346aee610a。Prepare-TestPortable.ps1 已替换 C:\Softwares\NotebookAid-win32-x64，NotebookAid.exe 位于根目录，verified=true、backupCreated=false。此前同版本构建为交付前中间产物，以此哈希为准。等待用户验收，不提交 T07、不启动 T08。
+## T07.2 编辑布局与全屏联动（2026-10-11，待验收）
+
+用户确认预览：标签选择器与置顶、历史版本、移至回收站保持同一行，合并模式切换和 Quill 工具栏；进入全屏最大化窗口并将标题移入顶部固定保存栏，退出恢复普通窗口与原标题位置。已按此范围实现；窗口 IPC 验证调用来源和布尔参数，核心数据格式不变。
+
+- 构建通过；核心测试 85/85（output/t07-ui-tests-approved.txt）。沙箱内符号链接测试受 EPERM 限制，在授权测试环境重跑通过。
+- 最终打包版本专项及重启通过（output/lifecycle-packaged/1791753357123）：960/1300px 操作不换行、合并工具栏不溢出、更多工具和导出菜单、源码模式、窗口最大化与尺寸恢复、标题位置及编辑保留、快捷键和进入历史页自动退出；另覆盖原 T07 生命周期测试。首轮新增布局测试产生额外历史影响旧断言，修正测试标题复原后通过。
+- 版本 0.7.0-t07.2；T07 仍待用户验收，未提交、未启动 T08。测试步骤和回退参见 [T07 测试](t07-testing.md)。
+
+T07.2 最终完整便携 GUI 回归和进程重启通过（output/smoke-packaged/1791753503313），consoleErrors=[]；覆盖保存、源码转换、代码语言、图片附件及导出。原代码语言测试需先展开新收纳菜单，已适配真实交互后通过。宽窗口隐藏多余收纳按钮的样式复查已包含在该最终构建。首次压缩与测试实例同时运行发生文件占用，已等待测试正常退出后重新生成 ZIP。
+
+T07.2 部署完成：release/NotebookAid-0.7.0-t07.2-win-x64.zip，SHA-256 20e658cd36166a8ad6a0ff46c96f3266f86da537bf0bfd66fe78d3c56b1c2279。Prepare-TestPortable.ps1 已直接替换 C:\Softwares\NotebookAid-win32-x64，NotebookAid.exe 位于根目录，verified=true、backupCreated=false。保留 T07.1 ZIP 作为程序回退包；T07 待用户验收，未提交。
+
+## T07.3 源码格式化、任务列表与表格样式（2026-10-11，待验收）
+
+本轮按用户要求为 Delta 与 HTML 加入美化／最小化源码按钮及不同图标，保留撤销；格式化失败不覆盖原文。HTML 采用保守块间空白处理，保留行内文字、属性值、代码和 CSS 敏感空白，不承担清洗职责。任务列表改为主题勾选框；表格增加表头／正文行命令和默认表头，保存语义标记及 HTML thead/th。Markdown 保持首行表头约束。
+
+自动验证与部署结果完成后补充。T07 仍待用户验收，未提交，不启动 T08。
+
+T07.3 补充：模式名称统一缩短为“源码”，八种语言同步。新增列继承所在表头行标记；菜单关闭处理兼容非 Element 的事件目标。构建通过；核心串行回归 88/88（output/t07-source-tests-serial.txt），最终源码格式化单测 3/3。首轮并行核心回归的一次 WRITE_FAILED 已由组织专项及串行全量复测通过，但未确认底层暂时失败原因。开发版完整 GUI 与进程重启通过（output/smoke-development/1791754950213）。便携包完整回归中分别出现过测试笔记创建失败及新增截图事件触发的 target.closest 异常，已修正后者并以最终编辑器专项复测；最终结果见下。
+
+T07.3 最终便携专项通过：output/editor-packaged/1791755750249 覆盖 HTML 美化／最小化、代码内容保护、撤销重做、表头／正文切换、新增表头列继承、语义 thead 及保存重载，未出现 renderer errors；output/delta-packaged/1791755818323 覆盖 Delta 美化／最小化、无效源码保护、任务列表、表格、图片、原生交换及进程重启。源码格式化针对最终保护补充单测 3/3。未对最终版再次运行全部 GUI 流程，已运行受改动影响的编辑器和 Delta 专项。等待用户验收，尚未提交。
+
+T07.3 已部署：release/NotebookAid-0.7.0-t07.3-win-x64.zip，SHA-256 c8018d4fe034c13f73a974570f4780cbfe20c4f8de9d7f8ad0c6da030f058e77。Prepare-TestPortable.ps1 已清空旧测试程序并解压至 C:\Softwares\NotebookAid-win32-x64，NotebookAid.exe 位于根目录，verified=true、backupCreated=false。保留 T07.2 ZIP 可回退程序。T07 等待用户验收，未提交、未启动下一任务。
+
+### T07 acceptance correction: consistent dialogs (2026-10-12)
+
+User confirmed: unify application dialogs; keep native file pickers. Version 0.7.0-t07.4 replaces all four native message-box call sites with a shared CDK confirmation flow and fixes fullscreen metadata row vertical spacing. Pending trash confirmation preserves the visible note; cancelling returns focus to its action. T07 remains awaiting user acceptance; no commit or T08 authorization is inferred.
+
+T07.4 verification: build passed; confirmation broker unit tests 2/2 passed; final packaged dialog smoke passed at output/dialog-packaged/1791757246687 (upgrade cancel/confirm, unsaved-exit cancellation, four cancellation paths, focus trap/restore, invalid response token rejection, confirmed trash, light/dark screenshots). Fullscreen metadata geometry passed at normal widths 960/1300 and maximized layout. Packaged lifecycle regression plus process restart passed at output/lifecycle-packaged/1791757255137, covering history restoration/manual cleanup, trash/restore/purge, organization deletion and persistence. git diff --check passed. This round did not rerun the entire core suite or every language/native picker manually; existing localization strings are reused and native picker paths remain unchanged.
+
+T07.4 delivered: release/NotebookAid-0.7.0-t07.4-win-x64.zip, SHA-256 e105000c55cce91a2dcc1614ced75d84a8dfadf414192d8a345dea8fe29e4df5. Prepare-TestPortable.ps1 completed replacement at C:\Softwares\NotebookAid-win32-x64 with verified=true and backupCreated=false. The executable is directly at the target root. Retained T07.3 ZIP supports program rollback. Awaiting user acceptance; no commit or next task started.
+
+### T07.5 exit controls (2026-10-12)
+
+User requested a sidebar exit action and confirmation before sidebar/native window close, with Save and exit / Discard changes and exit / Cancel for unsaved notes, otherwise Confirm exit / Cancel. Implemented on the shared CDK dialog; tray exit uses the same flow. Autosave pauses during inspection/confirmation. Saving failure or inability to inspect never closes the application. The earlier close-to-tray default is superseded; explicit Hide to tray is retained. Eight UI languages updated, including Hong Kong Traditional Chinese. T07 remains awaiting acceptance and uncommitted.
+
+Development validation: build passed; dialog broker unit tests 3/3; real Electron clean/save/discard exit plus restart passed at output/exit-packaged/1791758277299. Native close cancellation, sidebar collapsed entry, duplicate close guard and save failure were covered. Initial test run used the title input before note creation finished; its wait condition was corrected and all scenarios then passed. Final packaged validation and deployment are recorded below when complete.
+
+T07.5 final packaged checks passed: output/exit-packaged/1791758383936 covers clean/save/discard real process exit and restart, sidebar collapsed entry, native close cancellation, duplicate-close guard, no saving before decision, and failed-save preservation. output/dialog-packaged/1791758393767 covers existing confirmation flows; output/lifecycle-packaged/1791758402202 covers history, recycle bin, organization deletion and restart. Build, dialog broker unit tests 3/3, locale completeness tests 2/2 and git diff --check passed. Full core suite was not rerun for this UI/exit protocol change. Tray routing is shared with the tested quit command; manual Windows tray/Alt+F4 and visual acceptance remain for the user.
+
+T07.5 delivery completed: release/NotebookAid-0.7.0-t07.5-win-x64.zip, SHA-256 78d6d5ba0431d270cd12ec5a3efd1815c45b5c61af2bd5a143e5628db510b06c. Prepare-TestPortable.ps1 replaced C:\Softwares\NotebookAid-win32-x64, verified=true, backupCreated=false; NotebookAid.exe is at the target root. Retained T07.4 ZIP is available for program rollback. Awaiting user acceptance; no commit or next task started.
+
+### T07.6 dialog heading alignment (2026-10-12)
+
+User reported misaligned/undersized title icons and then requested an info icon without a circular frame. Shared confirmation headings now use a centered 24 px flex icon container, explicit title line height and a non-shrinking close control. Informational dialogs use an unframed variant of the existing Lucide Info strokes; warning dialogs retain TriangleAlert. All application confirmations share this component. The notification drawer has no leading title icon and already uses a flex header. T07 remains awaiting acceptance; no commit or next task authorized.
+
+T07.6 validation: build and git diff --check passed. Packaged exit/restart scenarios passed at output/exit-packaged/1791790000211; packaged dialog regression passed at output/dialog-packaged/1791790009970. Screenshots were inspected for the unframed info heading and dark warning heading. No core logic changed; core tests were not rerun. Awaiting manual visual acceptance.
+
+T07.6 delivered: release/NotebookAid-0.7.0-t07.6-win-x64.zip, SHA-256 942cfa10627c66df33078da3f81790d36a808571bbca8d8ecc3296736556c1bb. Test portable directory updated with verified=true, backupCreated=false. Retained T07.5 ZIP is the program rollback package. Awaiting user acceptance; not committed.
+
+
+## T07 user acceptance (2026-10-12)
+
+User explicitly accepted T07: “验收T07，开始下一个任务”. Accepted delivery is 0.7.0-t07.6, including lifecycle/history, source formatting and table presentation, editor layout, shared dialogs and exit confirmation. Scoped source, tests and documentation will be committed locally on main; generated packages and test output are excluded. The user also authorizes starting the next planned task, T08. Earlier pending-acceptance entries remain historical records.

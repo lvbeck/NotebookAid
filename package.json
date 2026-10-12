@@ -1,8 +1,8 @@
 {
   "name": "notebookaid",
-  "version": "0.6.0-t06a.3",
+  "version": "0.7.0-t07.6",
   "private": true,
-  "description": "Local notes and writing assistant - T06-A native rich text preview",
+  "description": "Local notes and writing assistant - T07 history and recycle bin preview",
   "author": "Jin Lu <it@live.cn>",
   "license": "BSD-3-Clause",
   "main": "dist/runtime/desktop/main.js",

@@ -1,3 +1,4 @@
+import { lifecycleText, type LifecycleKey } from './lifecycle-i18n';
 import { NgTemplateOutlet } from '@angular/common';
 import { DragDropModule, type CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Component, Input, inject, signal, computed } from '@angular/core';
@@ -11,7 +12,7 @@ import { translate, type Locale, type MessageKey } from './i18n';
   selector: 'app-organization', standalone: true, imports: [NgTemplateOutlet, DragDropModule, FormsModule, IconComponent, SelectDirective],
   template: `
     <section class="organization-pane">
-      <h1>{{ t('organize') }}</h1><p class="muted">{{ t('organizationHint') }}</p>
+      <h1>{{ t('organize') }}</h1><p class="muted">{{ l('orgHint') }}</p>
       <div class="organization-grid">
         <article class="panel"><h2>{{ t('folders') }}</h2>
           <button class="secondary" data-testid="folder-new" (click)="newFolder()"><app-icon name="Plus" />{{ t('newFolder') }}</button>
@@ -35,6 +36,7 @@ import { translate, type Locale, type MessageKey } from './i18n';
           <label>{{ t('folderName') }}<input data-testid="folder-name" [(ngModel)]="folderName" maxlength="80"></label>
           <label>{{ t('parentFolder') }}<select appSelect data-testid="folder-parent" [(ngModel)]="parentId"><option value="">{{ t('topLevelFolder') }}</option>@for (folder of workspace.folderRows(); track folder.id) { <option [value]="folder.id">{{ folder.path }}</option> }</select></label>
           <button class="primary" data-testid="folder-save" (click)="saveFolder()" [disabled]="!folderName.trim() || workspace.organizationBusy() || workspace.switching()"><app-icon name="Save" />{{ t('save') }}</button>
+          @if (existing('folder')) { <button class="secondary" data-testid="folder-delete" [disabled]="workspace.organizationBusy() || workspace.switching()" (click)="remove('folder')"><app-icon name="Trash2" />{{ l('remove') }}</button> }
         </article>
         <article class="panel"><h2>{{ t('tags') }}</h2>
           <button class="secondary" data-testid="tag-new" (click)="newTag()"><app-icon name="Plus" />{{ t('newTag') }}</button>
@@ -46,18 +48,22 @@ import { translate, type Locale, type MessageKey } from './i18n';
           <label>{{ t('tagName') }}<input data-testid="tag-name" [(ngModel)]="tagName" maxlength="80"></label>
           <label>{{ t('tagColor') }}<span class="tag-color-control"><input type="color" data-testid="tag-color" [(ngModel)]="tagColor" [attr.aria-label]="t('tagColor')"><span class="tag-color-preview" [style.background-color]="tagColor" aria-hidden="true"></span><output data-testid="tag-color-value">{{ tagColor }}</output></span></label>
           <button class="primary" data-testid="tag-save" (click)="saveTag()" [disabled]="!tagName.trim() || workspace.organizationBusy() || workspace.switching()"><app-icon name="Save" />{{ t('save') }}</button>
+          @if (existing('tag')) { <button class="secondary" data-testid="tag-delete" [disabled]="workspace.organizationBusy() || workspace.switching()" (click)="remove('tag')"><app-icon name="Trash2" />{{ l('remove') }}</button> }
         </article>
       </div>
       @if (workspace.organizationError()) { <div role="alert" class="warning organization-failure" data-testid="organization-error"><p>{{ t('organizationInvalid') }} · {{ workspace.organizationError() }}</p><button class="secondary" data-testid="organization-retry" (click)="retry()" [disabled]="workspace.organizationBusy()"><app-icon name="RefreshCw" />{{ t('retryOperation') }}</button><button class="secondary" data-testid="organization-cancel" (click)="workspace.cancelOrganizationError()" [disabled]="workspace.organizationBusy()"><app-icon name="X" />{{ t('cancelOperation') }}</button></div> }
     </section>`
 })
 export class OrganizationComponent {
+  l(key: LifecycleKey): string { return lifecycleText(this.locale, key); }
+  existing(kind: 'folder' | 'tag'): boolean { return kind === 'folder' ? this.workspace.organization().folders.some(row => row.id === this.folderId) : this.workspace.organization().tags.some(row => row.id === this.tagId); }
+  async remove(kind: 'folder' | 'tag'): Promise<void> { this.lastAction = kind === 'folder' ? 'delete-folder' : 'delete-tag'; if (await this.workspace.deleteOrganization(kind, kind === 'folder' ? this.folderId : this.tagId)) { if (kind === 'folder') this.newFolder(); else this.newTag(); } }
   @Input() locale: Locale = 'zh-CN';
   readonly workspace = inject(NoteWorkspace);
   readonly orderDraft = signal<string[] | null>(null);
   private orderVersion = 0;
-  private lastAction: 'folder' | 'tag' | 'order' = 'folder';
-  retry(): void { if (this.lastAction === 'order') void this.saveOrder(); else if (this.lastAction === 'tag') void this.saveTag(); else void this.saveFolder(); }
+  private lastAction: 'folder' | 'tag' | 'order' | 'delete-folder' | 'delete-tag' = 'folder';
+  retry(): void { if (this.lastAction === 'delete-folder') void this.remove('folder'); else if (this.lastAction === 'delete-tag') void this.remove('tag'); else if (this.lastAction === 'order') void this.saveOrder(); else if (this.lastAction === 'tag') void this.saveTag(); else void this.saveFolder(); }
   readonly orderedRows = computed(() => {
     const rows = this.workspace.folderRows(), draft = this.orderDraft();
     if (!draft || this.orderVersion !== this.workspace.organization().version) return rows;

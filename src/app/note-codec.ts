@@ -26,6 +26,20 @@ export function cleanHtml(html: string): string {
       header.innerHTML = cell.innerHTML; cell.replaceWith(header); header.removeAttribute('data-cell-header');
     } else cell.removeAttribute('data-cell-header');
   });
+  tree.querySelectorAll('table').forEach(table => {
+    const rows = Array.from(table.querySelectorAll(':scope > tr, :scope > tbody > tr, :scope > thead > tr'));
+    const headers: Element[] = [];
+    for (const row of rows) {
+      if (!row.children.length || !Array.from(row.children).every(cell => cell.tagName === 'TH')) break;
+      headers.push(row);
+    }
+    if (headers.length) {
+      const head = tree.createElement('thead');
+      headers.forEach(row => head.appendChild(row));
+      table.insertBefore(head, table.querySelector(':scope > tbody, :scope > thead, :scope > tr'));
+    }
+    table.querySelectorAll(':scope > tbody, :scope > thead').forEach(section => { if (!section.children.length) section.remove(); });
+  });
   return tree.body.innerHTML;
 }
 export function markdownFromHtml(html: string): string {

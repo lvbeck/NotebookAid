@@ -1,6 +1,24 @@
+import { lifecycleText } from '../lifecycle-i18n';
 import type { MessageKey } from '../i18n';
 
 export const spanish: Record<MessageKey, string> = {
+  exitApp: "Salir de la aplicación",
+  saveAndExit: "Guardar y salir",
+  discardAndExit: "Descartar cambios y salir",
+  confirmExit: "Confirmar salida",
+  exitUnsaved: "Hay notas sin guardar. ¿Guardar antes de salir?",
+  exitClean: "Todas las notas están guardadas. ¿Salir de NotebookAid?",
+  exitBlocked: "No se pudo comprobar el estado de guardado o hay una operación en curso. Continúa editando e inténtalo más tarde.",
+
+  beautifySource: "Formatear código",
+  minifySource: "Minimizar código",
+  sourceFormatHint: "Formatea HTML o Delta JSON. Conserva texto, espacios en línea y código. Se puede deshacer.",
+  sourceFormatFailed: "No se pudo formatear. Comprueba la sintaxis y el límite de 2 MiB. El código no ha cambiado.",
+  tableHeaderRow: "Definir fila de encabezado",
+  tableBodyRow: "Definir fila de contenido",
+  markdownTableHeader: "Markdown siempre usa la primera fila como encabezado.",
+  moreEditorTools: "Más herramientas de edición",
+  lifecycleComplete: lifecycleText('es', 'success'),
   deltaFormat: "Texto enriquecido Delta",
   deltaUpgrade: "Delta requiere el esquema 5. Se guardará una copia completa al lado en .delta-backups. Las versiones anteriores no pueden abrirlo. ¿Continuar?",
   deltaInvalid: "Documento Delta no válido o no compatible. Corrija el JSON y los atributos según los detalles antes de guardar.",
@@ -143,7 +161,7 @@ export const spanish: Record<MessageKey, string> = {
   "newFormat": "Formato de la nueva nota",
   "importNote": "Importar nota",
   "richText": "Texto enriquecido",
-  "sourceMode": "Fuente / texto sin formato",
+  "sourceMode": "Código fuente",
   "undo": "Deshacer",
   "redo": "Rehacer",
   "exportFormat": "Formato de exportación",
@@ -254,7 +272,7 @@ export const spanish: Record<MessageKey, string> = {
   "welcome": "Primeros pasos",
   "sample": "Bienvenido a NotebookAid",
   "sampleHint": "Un espacio para su próxima idea",
-  "preview": "T06-A texto enriquecido nativo",
+  "preview": "T07 historial y papelera",
   "previewHint": "Guardado local automático · Markdown / HTML / TXT / Delta · cifrado y copias de seguridad aún no implementados",
   "save": "Guardar",
   "saving": "Guardando…",

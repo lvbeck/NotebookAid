@@ -1,4 +1,5 @@
 export const notificationTypes = {
+  lifecycleComplete: 'success',
   svgSanitized: 'warning',
   attachmentSaved: 'success', attachmentFailed: 'error',
   importComplete: 'success',

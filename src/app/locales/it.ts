@@ -1,6 +1,24 @@
+import { lifecycleText } from '../lifecycle-i18n';
 import type { MessageKey } from '../i18n';
 
 export const italian: Record<MessageKey, string> = {
+  exitApp: "Esci dall’app",
+  saveAndExit: "Salva ed esci",
+  discardAndExit: "Ignora modifiche ed esci",
+  confirmExit: "Conferma uscita",
+  exitUnsaved: "Ci sono note non salvate. Salvare prima di uscire?",
+  exitClean: "Tutte le note sono salvate. Uscire da NotebookAid?",
+  exitBlocked: "Impossibile verificare il salvataggio o operazione ancora in corso. Continua a modificare e riprova più tardi.",
+
+  beautifySource: "Formatta sorgente",
+  minifySource: "Minimizza sorgente",
+  sourceFormatHint: "Formatta HTML o Delta JSON. Testo, spazi in linea e codice restano invariati. È possibile annullare.",
+  sourceFormatFailed: "Formattazione non riuscita. Controllare sintassi e limite di 2 MiB. Sorgente invariata.",
+  tableHeaderRow: "Imposta riga di intestazione",
+  tableBodyRow: "Imposta riga del corpo",
+  markdownTableHeader: "Markdown usa sempre la prima riga come intestazione.",
+  moreEditorTools: "Altri strumenti di modifica",
+  lifecycleComplete: lifecycleText('it', 'success'),
   deltaFormat: "Testo formattato Delta",
   deltaUpgrade: "Delta richiede lo schema 5. Una copia completa verrà salvata accanto in .delta-backups. Le versioni precedenti non possono aprirlo. Continuare?",
   deltaInvalid: "Documento Delta non valido o non supportato. Correggere JSON e attributi secondo i dettagli prima di salvare.",
@@ -143,7 +161,7 @@ export const italian: Record<MessageKey, string> = {
   "newFormat": "Formato della nuova nota",
   "importNote": "Importa nota",
   "richText": "Testo formattato",
-  "sourceMode": "Sorgente / testo semplice",
+  "sourceMode": "Sorgente",
   "undo": "Annulla",
   "redo": "Ripeti",
   "exportFormat": "Formato di esportazione",
@@ -254,7 +272,7 @@ export const italian: Record<MessageKey, string> = {
   "welcome": "Per iniziare",
   "sample": "Benvenuto in NotebookAid",
   "sampleHint": "Uno spazio per la prossima idea",
-  "preview": "T06-A testo formattato nativo",
+  "preview": "T07 cronologia e cestino",
   "previewHint": "Salvataggio locale automatico · Markdown / HTML / TXT / Delta · crittografia e backup non ancora implementati",
   "save": "Salva",
   "saving": "Salvataggio…",

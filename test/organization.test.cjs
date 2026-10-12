@@ -95,7 +95,7 @@ test('search AND terms/tags, descendants, pinned ordering, page boundaries and r
     assert.equal(lib.query({ text: 'absent' }).total, 0);
     assert.equal(lib.query({ view: 'pinned' }).total, 1);
     lib.rebuild(); assert.equal(lib.query({ folderId: parent, tagIds: [first, second] }).total, 1);
-    for (const query of [{ limit: 999 }, { offset: -1 }, { tagIds: ['x'] }, { folderId: '__proto__' }, { text: [] }, { view: 'trash' }]) assert.throws(() => lib.query(query), invalid);
+    for (const query of [{ limit: 999 }, { offset: -1 }, { tagIds: ['x'] }, { folderId: '__proto__' }, { text: [] }, { view: 'unknown' }]) assert.throws(() => lib.query(query), invalid);
   } finally { lib.close(); }
 });
 
