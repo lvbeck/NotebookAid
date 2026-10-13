@@ -123,7 +123,7 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   const markdownTest = markdownFixture ? readFileSync(markdownFixture, 'utf8') : '- [x] Task\n\n- parent\n  - child\n\n![image](https://example.com/i.png)\n\n| a | b |\n|---|---|\n|1|2|\n\n---\n\n```python\nx = 1\n```';
   const markdownFile = join(directory, 'diagnostic-markdown.md'); writeFileSync(markdownFile, markdownTest);
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: markdownFile }));
-  await click('import-note'); await until("document.querySelector('[data-testid=note-title]').value === 'diagnostic-markdown'");
+  await click('import-note'); await click('import-note-file'); await until("document.querySelector('[data-testid=note-title]').value === 'diagnostic-markdown'");
   const issueKinds = await run("[...document.querySelectorAll('[data-issue]')].map(e=>e.dataset.issue)");
   for (const kind of ['issueRule']) if (!issueKinds.includes(kind)) throw Error('Missing Markdown diagnosis: ' + kind);
   if (issueKinds.includes('issueTask') || issueKinds.includes('issueNested')) throw Error('Supported lists still diagnosed as unsupported');
@@ -195,7 +195,7 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   const originalHtml = fixturePath ? readFileSync(fixturePath, 'utf8').replace(/^\ufeff/, '') : '<div class="row"><img src="/image.png" alt="Example"><p><a class="button" href="/products">More</a></p></div>';
   const fixtureFile = join(directory, 'imported-layout.html'); writeFileSync(fixtureFile, originalHtml);
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: fixtureFile }));
-  await click('import-note'); await until("document.querySelector('[data-testid=note-title]').value === 'imported-layout'");
+  await click('import-note'); await click('import-note-file'); await until("document.querySelector('[data-testid=note-title]').value === 'imported-layout'");
   const importedHtml = (await run('window.notebookAid.library.list()')).value.find((note: any) => note.title === 'imported-layout');
   const cleanedHtml = (await run(`window.notebookAid.library.begin(${JSON.stringify(importedHtml.id)})`)).value.note.body;
   const htmlIssues = await run("document.querySelector('[data-testid=format-warning]').textContent");
@@ -223,7 +223,7 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   const unsafe = '<script>window.__unsafe=1</script><img src="https://example.com/tracker" onerror="window.__unsafe=2"><iframe src="file:///C:/secret"></iframe><p style="background:url(https://example.com/bg)">原文</p>';
   const imported = join(directory, 'unsafe.html'); writeFileSync(imported, unsafe);
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: imported }));
-  await click('import-note'); await until("document.querySelector('[data-testid=note-title]').value === 'unsafe'");
+  await click('import-note'); await click('import-note-file'); await until("document.querySelector('[data-testid=note-title]').value === 'unsafe'");
   const cleanedUnsafe = await body();
   if (/<script|<iframe|onerror|url\(/i.test(cleanedUnsafe) || !await run("!window.__unsafe && !document.querySelector('.ql-editor iframe,.ql-editor script')")) throw Error('Unsafe HTML was rendered or raw source lost');
   await input('export-format', 'html', 'change'); await click('prepare-export');

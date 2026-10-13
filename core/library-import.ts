@@ -8,6 +8,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, mkdirSync, copyFileSync, writeFileSync, openSync, fsyncSync, closeSync, renameSync, unlinkSync, rmSync } from 'node:fs';
 import { join, dirname, basename, resolve, relative, sep, isAbsolute } from 'node:path';
 import { LibraryError } from './library';
+import { validateTaskSource } from '../shared/task-source';
 import { maxNoteMetadataBytes } from '../shared/library';
 import type { Organization } from '../shared/organization';
 import type { LibraryImportPreview, LibraryImportResult } from '../shared/library-import';
@@ -62,7 +63,7 @@ function snapshot(path: string, security?: NotebookSecurity): Snapshot {
   plainPath(path); path = realpathSync(path);
   if (existsSync(join(path, 'import-transaction.json'))) fail('LIBRARY_IN_USE');
   const manifest = json(join(path, 'library.json'));
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(manifest?.schemaVersion)) fail('UNSUPPORTED_LIBRARY');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(manifest?.schemaVersion)) fail('UNSUPPORTED_LIBRARY');
   if (!uuid.test(manifest.libraryId)) fail();
   // Future storage structures require an explicit importer, never silent omission.
   for (const name of ['attachments', 'security']) if (existsSync(join(path, name))) fail('UNSUPPORTED_LIBRARY');
@@ -87,6 +88,7 @@ function snapshot(path: string, security?: NotebookSecurity): Snapshot {
       if (version === head.version && hash(raw) !== head.metadataHash) fail();
       if (meta.generatedSummary !== undefined) { if (manifest.schemaVersion < 8) fail(); try { validateSummary(meta.generatedSummary); } catch { fail(); } }
       if (meta.generatedTranslation !== undefined) { if (manifest.schemaVersion < 9) fail(); try { validateTranslation(meta.generatedTranslation); } catch { fail(); } }
+      if(meta.taskSource!==undefined){if(manifest.schemaVersion<10)fail();try{validateTaskSource(meta.taskSource);}catch{fail();}}
       if (meta.schemaVersion !== 1 || meta.id !== id || meta.revisionId !== revision || meta.version !== version || !Object.hasOwn(extensions, meta.primaryFormat) || !uuid.test(meta.operationId) || !/^[a-f0-9]{64}$/.test(meta.requestHash)) fail();
       if (typeof meta.title !== 'string' || !meta.title.trim() || meta.title.length > 300 || meta.title.includes('\0') || !Number.isSafeInteger(meta.contentVersion) || meta.contentVersion < 1 || meta.contentVersion > meta.version || !Number.isFinite(Date.parse(meta.createdAt)) || !Number.isFinite(Date.parse(meta.updatedAt)) || (meta.deletedAt !== null && !Number.isFinite(Date.parse(meta.deletedAt)))) fail();
       if ((meta.folderId !== null && (!uuid.test(meta.folderId) || ((manifest.schemaVersion < 6 || version === head.version) && !organization.folders.some(item => item.id === meta.folderId)))) || !Array.isArray(meta.tagIds) || meta.tagIds.length > 100 || new Set(meta.tagIds).size !== meta.tagIds.length || meta.tagIds.some((tag: string) => !uuid.test(tag) || ((manifest.schemaVersion < 6 || version === head.version) && !organization.tags.some(item => item.id === tag))) || typeof meta.pinned !== 'boolean' || typeof meta.visibleInThunderbird !== 'boolean') fail('UNSUPPORTED_LIBRARY');
@@ -181,7 +183,7 @@ export function recoverImport(path: string): boolean {
   if (!transaction || !uuid.test(transaction.id) || !Array.isArray(transaction.notes) || transaction.notes.length > 10000 || transaction.notes.some(id => !uuid.test(id)) || !transaction.originals || Object.keys(transaction.originals).sort().join() !== [...changedFiles].sort().join()) fail();
   if (Object.values(transaction.originals).some(value => value !== null && typeof value !== 'string') || typeof transaction.originals['library.json'] !== 'string') fail();
   const originalManifest = JSON.parse(transaction.originals['library.json']!);
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(originalManifest?.schemaVersion) || !uuid.test(originalManifest.libraryId)) fail();
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(originalManifest?.schemaVersion) || !uuid.test(originalManifest.libraryId)) fail();
   if (transaction.rolledBack === true) { unlinkSync(file); return true; }
   for (const id of transaction.notes) {
     for (const target of [join(path, 'notes', id), join(path, 'recovery', `stage-import-${transaction.id}-${id}`)]) {

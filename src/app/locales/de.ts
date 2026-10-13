@@ -277,7 +277,7 @@ export const german: Record<MessageKey, string> = {
   "welcome": "Erste Schritte",
   "sample": "Willkommen bei NotebookAid",
   "sampleHint": "Raum für Ihre nächste Idee",
-  "preview": "T12 KI-Schreiben",
+  "preview": "T13 Tasks-ICS-Import",
   "previewHint": "Lokales Speichern · optionale Verschlüsselung · manuelle und tägliche Sicherungen",
   "save": "Speichern",
   "saving": "Wird gespeichert…",

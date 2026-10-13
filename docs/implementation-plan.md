@@ -31,8 +31,8 @@
 | T10 | Thunderbird Spaces、浏览搜索预览、删除、编辑定位、标签映射、事件与重连 | 已批准 | 2026-10-12：用户明确“验收T10，开始下个任务” |
 | T11 | ChatGPT 订阅登录、Gemini／Claude API Key、模型与连接管理 | 已批准 | 2026-10-12：用户明确账户标签修改完成后验收 T11 并开始 T12；修正已完成并交付 |
 | T12 | AI 辅助写作、翻译保存、编辑格式、手动摘要及版本冲突处理 | 已批准 | 2026-10-13：用户明确“验收T12，开始T13，完成后打包并更新测试目录，等我验收”； 2026-10-12：用户明确“好的，修改完成后验收T11，开始T12”；T11 修正交付并提交 c731b10 后开工，T12 检查通过不等于验收 |
-| T13 | Tasks ICS 导入预览、字段映射、日期时区、去重与异常报告 | 待开发 | 无 |
-| T14 | 八语言、主题、快捷键、可访问性、缩放及统一异常体验 | 待开发 | 无 |
+| T13 | Tasks ICS 导入预览、字段映射、日期时区、去重与异常报告 | 已批准 | 2026-10-13：用户明确“验收T12，开始T13，完成后打包并更新测试目录，等我验收” |
+| T14 | 八语言、主题、快捷键、可访问性、缩放及统一异常体验 | 已授权，开发中 | 2026-10-13：用户明确“验收T13，开始T14，完成后打包并更新测试目录，等我验收。” |
 | T15-A | Windows 桌面新建笔记入口：ShellNew 可行性验证、单实例新建、本地化文字与图标、注册及撤销（R39） | 待开发，安排在 T14 后、T15 发布验收前 | 新需求已记录，待逐项授权 |
 | T15 | Windows x64 安装包与 XPI、桥接注册、升级恢复、真实环境发布验收及许可清单 | 待开发 | 无 |
 
@@ -785,3 +785,39 @@ T12.5 已更新测试目录 C:\Softwares\NotebookAid-win32-x64，verified=true�
 ### T12 验收记录（2026-10-13）
 
 用户明确“验收T12，开始T13，完成后打包并更新测试目录，等我验收”。T12 及其 T12.1–T12.5 修改已获批准；准备提交对应已交付源代码、测试和文档至本地 main，不包含生成包、依赖、测试输出或凭据，不推送。
+
+### T13 Tasks ICS 导入（2026-10-13，开发中）
+
+T12 已验收提交至本地 main：af9fcf0，未推送。复用现有导入按钮，提供笔记文件／Tasks ICS 两个菜单项；统一 CDK 映射预览、逐项选择、异常报告。VTODO 转换为所选文件夹内的普通 TXT 笔记（默认未分类），日期-only／浮动／UTC／TZID 保留语义；重复模板与例外明确保留文字而不展开。相同 UID／例外及字段快照跳过，来源更新另建副本，不覆盖本地编辑；先完整备份再逐笔记原子提交，持久操作记录支持中断重试。新增 core/tasks.ts、shared/tasks.ts 和独立 tasks-imports.json 版本 1，不升级笔记本架构；字段映射、限制及回退见 t13-testing.md。新增锁定 ical.js 2.2.1（MPL-2.0），框架及其他依赖未升级。
+
+核心专项 10/10 通过，包含进程在 head 发布后中断、重试不重复、完整备份恢复去重记录、未知时间区保留与字段错误报告。开发版 CDK 界面及重启通过 output/tasks-packaged/1791889465300，覆盖预览只读、取消、失效 token／来源拒绝、重复跳过、来源更新副本保留本地编辑、普通文件导入菜单、浅深主题及去重记录重启。初次测试的重复 close 清理、数字属性选择器及异步加载等待已修正，没有因测试调整放宽业务校验。最终便携验证及部署待完成；T13 未验收，不提交、不开始 T14。
+
+T13 最终便携界面及进程重启通过 output/tasks-packaged/1791889872673，浅深主题截图已检查；应用 Passkey 门禁回归通过 output/passkey-packaged/1791889879677，Tasks 预览 IPC 在应用锁定时按预期拒绝，使用虚拟签名器，未实测实体 iPhone。本轮生产构建、34 项 Tasks／备份／核心检查通过，不使用 AI，也未测试用户自己的 Thunderbird 导出文件。
+
+T13 最终主题适配包验证及进程重启通过 output/tasks-packaged/1791890144429，八语言菜单、提示和错误文案静态检查通过；ASAR 核心、IPC、前端与构建产物一致，ical.js 2.2.1 完整源码／发行文件及 MPL-2.0 许可证已验证。导入功能交付完成，测试目录部署待执行；T13 待用户验收，不提交，不开始 T14。
+
+T13 0.13.0-t13.0 已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64：verified=true、backupCreated=false、bridgeManifestsRestored=2。ZIP release/NotebookAid-0.13.0-t13.0-win-x64.zip，SHA-256 f5e60537da61493e8ad0b7d7a2a22187c8d5488039d3ad3d4c3a42fd2cdd8020；T12.5 ZIP 保留用于回退。未修改用户真实笔记、凭据、Thunderbird 配置或注册表。T13 待用户验收，未提交，T14 未开始。
+
+T13 验收修正：按用户要求增加目标文件夹选择，默认未分类，包含所有已定义子文件夹；仅点击选择 ICS 文件时打开系统选择器。核心校验目标文件夹及组织版本，避免过期预览写入错误位置。版本 0.13.0-t13.1，待用户验收。
+
+T13.1 最终便携包与重启验证通过 output/tasks-packaged/1791895928816；41 项串行测试通过。ZIP NotebookAid-0.13.0-t13.1-win-x64.zip SHA256 d520c56e86a8093c4f2a4a1bafd27572f6d29886a6ddbcf367211e38068e0ae5。Prepare-TestPortable.ps1 检测到运行进程停止部署，等待用户完全退出后更新测试目录，未强制终止。待用户验收。
+
+用户确认已完全退出后，T13.1 已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64：verified=true、backupCreated=false、bridgeManifestsRestored=2，ZIP SHA256 d520c56e86a8093c4f2a4a1bafd27572f6d29886a6ddbcf367211e38068e0ae5。T13 待用户验收，未提交，未启动 T14。
+
+T13.2 当前任务修正（待用户验收）：用户批准 Tasks 来源字段和进度预览，追加批量清空文件夹要求。独立来源元数据需要架构 10，先备份后升级，核对旧版导入条目后可转换；批量清空支持未分类／完整子路径、默认不含子目录、回收／永久删除、确认数量和删除勾选、统一进度和备份。95 项相关回归及开发 Electron UI／重启通过，使用隔离夹具。T13 未验收，未提交，T14 未开始。
+
+T13.2 最终验证：97 个不同相关核心测试（95 项综合回归加新增 80 条任务及损坏范围保护，两项均通过）；受最终更改影响的 Tasks／批量操作 20 项复核通过。最终便携 UI／重启 output/tasks-packaged/1791899403735 通过，应用门禁 output/passkey-packaged/1791899403346 通过；实体设备未测试。最终 ASAR 与构建一致、八语言标签完整。等待打包交付与用户验收，不提交当前任务。
+
+T13.2 已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64：verified=true、backupCreated=false、bridgeManifestsRestored=2。保留 ZIP release/NotebookAid-0.13.0-t13.2-win-x64.zip，SHA256 139f6525705a35171a52d6ced1996b04d7d5b02be1e7270f74888ddef0f218e4。当前任务待用户验收，未提交，T14 未开始；架构 10 回退须使用升级前完整笔记本备份并恢复到另一目录。
+
+T13.3 验收修正：用户删除 Tasks 导入笔记后希望显式重新导入。新增默认关闭的强制重新导入 checkbox，允许选择重复条目，在所选文件夹创建独立新笔记；保留原笔记、回收站和历史记录。记录格式 2 保留旧行并增加 force 副本操作记录；未知提交按未完成操作重试。当前任务待验收，不提交、不开始 T14。
+
+T13.3 用户纠正删除语义：永久删除时应清理对应 Tasks 导入记录，普通重导按新增处理；回收站保留记录，强制选项用于显式副本。用户另明确授权清理当前真实笔记本现有记录：核验 43 条均关联已永久删除的笔记，应用已退出，取得 SQLite 排他锁，备份记录文件后原子清空，现存笔记目录未变；备份在用户目录 NotebookAid.tasks-record-backups。未清理其他笔记本。
+
+T13.3 最终便携 UI／重启通过 output/tasks-packaged/1791901420769，包内运行时／前端与构建一致，八语言强制选项完整；48 项相关回归通过。已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64，verified=true、backupCreated=false、bridgeManifestsRestored=2。ZIP SHA256 455a4adb7f0c33f4d2ea369050dbbe4a7f7ee07592d0b02a106c7ea970eca10b。用户真实任务文件未执行导入，真实数据仅清理已授权的 43 条无效记录。当前 T13 待验收，未提交，T14 未开始。
+
+T13.4 验收修正：用户要求恢复密钥建议打印文件名包含对应笔记本名称。保存 PDF 从主进程当前笔记本显示名称生成安全文件名，打印文档标题同步设置。T13 仍待验收，未提交，T14 未开始。
+
+T13.4 最终验证：文件名边界检查与 9 项加密核心回归通过；开发版 output/security-packaged/1791902804355 和便携包 output/security-packaged/1791902894946 的恢复密钥 PDF／模拟打印及重启检查通过。真实打印驱动未测试；旧安全夹具的架构预期改用最新版本常量。ASAR 恢复打印相关运行时与构建一致。用户确认退出后 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64，verified=true、backupCreated=false、bridgeManifestsRestored=2；ZIP SHA256 5d0bbf35b8f551588922bb31690a5c5132cc7b0976ddd8707cd12838704f398f。T13 待用户验收，未提交，T14 未开始。
+
+2026-10-13 用户明确“验收T13，开始T14，完成后打包并更新测试目录，等我验收。”据此批准 T13 及其交付修正，准备提交本地 main；T14 已授权开发，完成后仍须独立验收，未授权 T15-A。

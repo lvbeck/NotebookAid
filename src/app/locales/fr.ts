@@ -277,7 +277,7 @@ export const french: Record<MessageKey, string> = {
   "welcome": "Premiers pas",
   "sample": "Bienvenue dans NotebookAid",
   "sampleHint": "Un espace pour votre prochaine idée",
-  "preview": "T12 rédaction IA",
+  "preview": "T13 importation Tasks ICS",
   "previewHint": "Enregistrement local · chiffrement facultatif · sauvegardes manuelles et quotidiennes",
   "save": "Enregistrer",
   "saving": "Enregistrement…",

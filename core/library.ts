@@ -1,3 +1,5 @@
+import {validateTasksLedger,type TasksLedger} from '../shared/task-receipts';
+import { validateTaskSource, type TaskSource } from '../shared/task-source';
 import { NotebookSecurity } from './security';
 import { validateSummary, validateTranslation, type GeneratedTranslation, type GeneratedSummary } from '../shared/writing';
 import { validateAppearance } from './notebook-appearance';
@@ -67,7 +69,7 @@ export class NoteLibrary {
       if (!existsSync(manifestPath)) this.atomic(manifestPath, JSON.stringify({ schemaVersion: 1, libraryId: randomUUID(), createdAt: new Date().toISOString() }));
       recoverImport(this.path);
       const manifest = this.json(manifestPath) as { schemaVersion: number; libraryId: string };
-      if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       this.libraryId = manifest.libraryId;
       this.manifest = manifest;
       this.security = new NotebookSecurity(this.path, this.libraryId, stage => this.fault?.(stage as CommitStage));
@@ -237,6 +239,7 @@ export class NoteLibrary {
       if (meta.attachments !== undefined) validateAttachments(meta.attachments);
       if (meta.generatedSummary !== undefined) { if (this.manifest.schemaVersion < 8) throw new Error(); validateSummary(meta.generatedSummary); }
       if (meta.generatedTranslation !== undefined) { if (this.manifest.schemaVersion < 9) throw new Error(); validateTranslation(meta.generatedTranslation); }
+      if(meta.taskSource!==undefined){if(this.manifest.schemaVersion<10)throw Error();validateTaskSource(meta.taskSource);}
       this.validateContent(meta.title, ''); this.validatePlacement(meta, false);
       if (!Number.isSafeInteger(meta.contentVersion) || meta.contentVersion < 1 || !uuid.test(meta.operationId) || (meta.parentRevisionId !== null && !uuid.test(meta.parentRevisionId))) throw new Error();
       if (meta.contentVersion > meta.version || !Number.isFinite(Date.parse(meta.createdAt)) || !Number.isFinite(Date.parse(meta.updatedAt)) || (meta.deletedAt !== null && !Number.isFinite(Date.parse(meta.deletedAt))) || (meta.version === 1) !== (meta.parentRevisionId === null)) throw new Error();
@@ -244,7 +247,7 @@ export class NoteLibrary {
       const body = this.text(bodyPath, maxBody);
       if (digest(body) !== meta.bodyHash) throw new Error();
       if (meta.primaryFormat === 'delta') { if (this.manifest.schemaVersion < 5) throw new Error(); parseDelta(body); }
-      return { encrypted: this.security.encrypted(meta.id), visibleInThunderbird: meta.visibleInThunderbird !== false, id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body, folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned, ...(meta.attachments ? { attachments: meta.attachments } : {}), ...(meta.generatedSummary ? { generatedSummary: meta.generatedSummary } : {}), ...(meta.generatedTranslation ? { generatedTranslation: meta.generatedTranslation } : {}) };
+      return { encrypted: this.security.encrypted(meta.id), visibleInThunderbird: meta.visibleInThunderbird !== false, id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body, folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned, ...(meta.attachments ? { attachments: meta.attachments } : {}), ...(meta.generatedSummary ? { generatedSummary: meta.generatedSummary } : {}), ...(meta.generatedTranslation ? { generatedTranslation: meta.generatedTranslation } : {}), ...(meta.taskSource ? {taskSource:meta.taskSource} : {}) };
     } catch (error) { if (error instanceof LibraryError && error.code === 'NOTEBOOK_LOCKED') throw error; throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
   }
   private documents(): NoteDocument[] {
@@ -383,10 +386,10 @@ export class NoteLibrary {
       return terms.every(term => content.includes(term));
     });
     rows.sort((a, b) => view === 'trash' ? b.deletedAt!.localeCompare(a.deletedAt!) || a.id.localeCompare(b.id) : view === 'recent' ? this.recent[b.id].localeCompare(this.recent[a.id]) || a.id.localeCompare(b.id) : Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
-    return { total: rows.length, notes: rows.slice(offset, offset + limit).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, ...summary }) => ({ ...summary, tagIds: [...summary.tagIds] })) };
+    return { total: rows.length, notes: rows.slice(offset, offset + limit).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, taskSource: _taskSource, ...summary }) => ({ ...summary, tagIds: [...summary.tagIds] })) };
   }
   list(): NoteSummary[] {
-    return this.documents().filter(note => !note.deletedAt).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, ...summary }) => summary)
+    return this.documents().filter(note => !note.deletedAt).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, taskSource: _taskSource, ...summary }) => summary)
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
   }
   rebuild(): LibraryStatus {
@@ -462,16 +465,17 @@ export class NoteLibrary {
     }
     return null;
   }
-  create(operationId: string, input?: NoteInput): SaveResult {
+  create(operationId: string, input?: NoteInput, taskSource?: TaskSource): SaveResult {
     this.id(operationId);
     if (input !== undefined && (!input || typeof input !== 'object' || !Object.hasOwn(formatExtensions, input.primaryFormat))) throw new LibraryError('INVALID_INPUT');
+    if(taskSource!==undefined){try{validateTaskSource(taskSource);}catch{throw new LibraryError('INVALID_INPUT');}if(this.manifest.schemaVersion<10)throw new LibraryError('VERSION_CONFLICT');}
     const initial = input ?? { title: 'Untitled', body: '', primaryFormat: 'markdown' as const };
     this.validateContent(initial.title, initial.body);
     if (initial.primaryFormat === 'delta') validateNative(initial.body, initial.nativeAttachments);
     else if (initial.nativeAttachments) throw new LibraryError('INVALID_INPUT');
     const placement: NotePlacement = { folderId: initial.folderId ?? null, tagIds: [], pinned: false }; this.validatePlacement(placement);
     if (placement.folderId) this.enableOrganization();
-    const hash = digest(input === undefined ? 'create' : JSON.stringify(['create', initial.primaryFormat, initial.title, initial.body, ...(initial.nativeAttachments ? [initial.nativeAttachments.map(({data,...item}) => item)] : []), ...(placement.folderId ? [placement.folderId] : [])]));
+    const hash = digest(input === undefined ? 'create' : JSON.stringify(['create', initial.primaryFormat, initial.title, initial.body, ...(initial.nativeAttachments ? [initial.nativeAttachments.map(({data,...item}) => item)] : []), ...(placement.folderId ? [placement.folderId] : []), ...(taskSource ? [taskSource] : [])]));
     const replay = this.operation(operationId, hash); if (replay) return replay;
     const now = new Date().toISOString(), id = randomUUID();
     let attachments;
@@ -483,8 +487,19 @@ export class NoteLibrary {
         for (const item of initial.nativeAttachments!) { const fd = openSync(this.safe('notes', id, 'attachments', item.id), 'wx'); try { writeFileSync(fd, Buffer.from(item.data, 'base64')); fsyncSync(fd); } finally { closeSync(fd); } }
       }
     }
-    return this.commit({ ...(attachments ? { attachments } : {}), id, revisionId: '', title: initial.title, body: initial.body, primaryFormat: initial.primaryFormat, version: 0, contentVersion: 0, createdAt: now, updatedAt: now, deletedAt: null, ...placement }, null, operationId, hash);
+    return this.commit({ ...(attachments ? { attachments } : {}), ...(taskSource?{taskSource}:{}), id, revisionId: '', title: initial.title, body: initial.body, primaryFormat: initial.primaryFormat, version: 0, contentVersion: 0, createdAt: now, updatedAt: now, deletedAt: null, ...placement }, null, operationId, hash);
   }
+  enableTaskSources(): void {
+    if(this.manifest.schemaVersion>=10)return;
+    this.fault?.('schema');this.atomic(this.safe('library.json'),JSON.stringify({...this.manifest,schemaVersion:10}));this.manifest.schemaVersion=10;
+  }
+  migrateTaskSource(id:string,expectedVersion:number,source:TaskSource,legacyBody:string,body:string,operationId:string,owner?:string):SaveResult {
+    this.id(id);this.id(operationId);try{validateTaskSource(source);}catch{throw new LibraryError('INVALID_INPUT');}
+    const current=this.read(id);if(this.sessions.has(id)&&this.sessions.get(id)!.owner!==owner)throw new LibraryError('NOTE_IN_USE');
+    if(current.version!==expectedVersion||current.taskSource||current.deletedAt||current.primaryFormat!=='text'||current.body!==legacyBody||this.manifest.schemaVersion<10)throw new LibraryError('VERSION_CONFLICT');
+    return this.commit({...current,body,taskSource:source},current,operationId,digest(JSON.stringify(['task-source',id,expectedVersion,source,body])));
+  }
+  assertNotesAvailable(ids:string[]):void {for(const id of ids){this.id(id);if(this.sessions.has(id))throw new LibraryError('NOTE_IN_USE');}}
   save(request: SaveRequest, owner: string): SaveResult {
     if (!request || typeof request !== 'object') throw new LibraryError('INVALID_INPUT');
     this.id(request.noteId); this.id(request.operationId); this.validateContent(request.title, request.body);
@@ -666,7 +681,7 @@ export class NoteLibrary {
     if (!Number.isSafeInteger(offset) || offset < 0) throw new LibraryError('INVALID_INPUT');
     const heads = this.revisionHeads(id);
     return { total: heads.length, revisions: heads.slice(offset, offset + 20).map(head => {
-      const { body, attachments, generatedSummary, generatedTranslation, ...note } = this.readHead(head);
+      const { body, attachments, generatedSummary, generatedTranslation, taskSource, ...note } = this.readHead(head);
       return { ...note, attachmentCount: attachments?.length ?? 0 };
     }) };
   }
@@ -687,7 +702,7 @@ export class NoteLibrary {
     const source = revision ? this.revision(id, revision) : current;
     // Verify resources before committing a restoration; missing files never become a successful restore.
     for (const item of source.attachments ?? []) this.checkedAttachment(id, item).fill(0);
-    return this.commit({ ...current, title: source.title, body: source.body, primaryFormat: source.primaryFormat, attachments: source.attachments, generatedSummary: source.generatedSummary, generatedTranslation:source.generatedTranslation, deletedAt: null }, current, operationId, hash);
+    return this.commit({ ...current, title: source.title, body: source.body, primaryFormat: source.primaryFormat, attachments: source.attachments, generatedSummary: source.generatedSummary, generatedTranslation:source.generatedTranslation, taskSource:source.taskSource, deletedAt: null }, current, operationId, hash);
   }
   deleteOrganization(kind: 'folder' | 'tag', id: string, expectedVersion: number): Organization {
     this.id(id);
@@ -714,13 +729,21 @@ export class NoteLibrary {
     if (lstatSync(path).isSymbolicLink()) throw new LibraryError('INVALID_INPUT');
     if (lstatSync(path).isDirectory()) for (const name of readdirSync(path)) this.plainTree(join(path, name));
   }
+  private taskReceipts():TasksLedger|null {
+    const path=this.safe('tasks-imports.json');if(!existsSync(path))return null;
+    try{const value=JSON.parse(this.text(path,4*1024*1024));validateTasksLedger(value,this.libraryId);return value;}catch{throw new LibraryError('INTEGRITY_CHECK_FAILED');}
+  }
+  private removeTaskReceipts(noteId:string):void {
+    const ledger=this.taskReceipts();if(!ledger)return;const rows=ledger.rows.filter(row=>row.noteId!==noteId);if(rows.length===ledger.rows.length)return;
+    this.atomic(this.safe('tasks-imports.json'),JSON.stringify({...ledger,rows}));
+  }
   private finishPurge(operationId: string): void {
     this.id(operationId);
     const file = this.safe('purges', operationId + '.json');
     const receipt = this.json(file) as { id: string; version: number; operationId: string; done: boolean };
     this.id(receipt.id);
     if (receipt.operationId !== operationId || !Number.isSafeInteger(receipt.version) || receipt.version < 1 || typeof receipt.done !== 'boolean') throw new LibraryError('INTEGRITY_CHECK_FAILED');
-    if (receipt.done) return;
+    if(receipt.done)return;
     const source = this.safe('notes', receipt.id), target = this.safe('purges', operationId);
     if (existsSync(source)) {
       const note = this.read(receipt.id);
@@ -742,6 +765,7 @@ export class NoteLibrary {
     this.atomic(this.safe('recent.json'), JSON.stringify(recent)); this.recent = recent;
     this.catalog.delete(receipt.id);
     try { this.index?.prepare('DELETE FROM notes WHERE id = ?').run(receipt.id); } catch { this.indexed = false; this.issues.add('INDEX_REBUILD_REQUIRED'); }
+    this.removeTaskReceipts(receipt.id);
     this.atomic(file, JSON.stringify({ ...receipt, done: true }));
   }
   private recoverPurges(): void {
@@ -754,6 +778,7 @@ export class NoteLibrary {
     }
   }
   purge(id: string, expectedVersion: number, operationId: string): void {
+    this.taskReceipts();
     this.id(id); this.id(operationId);
     if (this.sessions.has(id)) throw new LibraryError('NOTE_IN_USE');
     mkdirSync(this.safe('purges'), { recursive: true });

@@ -1,4 +1,7 @@
+import { planFolderBulk,executeFolderBulk,type FolderBulkPlan } from '../core/folder-bulk';
 import { randomUUID } from 'node:crypto';
+import { planTasks, executeTasksAsync, tasksRows, TasksError, type TasksPlan } from '../core/tasks';
+import type { TasksResult } from '../shared/tasks';
 import { printRecovery } from './recovery-print';
 import { BackupStore, pathsOverlap, verifyBackup } from '../core/backups';
 import { backupText } from '../src/app/backup-i18n';
@@ -46,6 +49,32 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   };
   const nativeImports = new NativeImportCache();
   let choosing = false;
+  let batchBusy=false;
+  let pendingFolder:{owner:string;token:string;plan:FolderBulkPlan;expires:number}|null=null;
+  let pendingTasks:{owner:string;token:string;plan:TasksPlan;expires:number}|null=null;
+  const tasksTimer=setInterval(()=>{if(!batchBusy&&pendingTasks&&Date.now()>pendingTasks.expires)pendingTasks=null;},1000);tasksTimer.unref();
+  const taskHandle=(name:string,callback:(event:IpcMainInvokeEvent,...args:any[])=>unknown)=>ipcMain.handle('tasks:'+name,async(event,...args):Promise<TasksResult<unknown>>=>{
+    authorize(event);
+    try{return{ok:true,value:await callback(event,...args)};}catch(e){return{ok:false,code:e instanceof TasksError||e instanceof LibraryError?e.code:(e as NodeJS.ErrnoException).code==='ENOSPC'?'DISK_FULL':['EACCES','EPERM'].includes((e as NodeJS.ErrnoException).code??'')?'ACCESS_DENIED':'WRITE_FAILED'};}
+  });
+  taskHandle('preview',async event=>{
+    if(choosing)throw new LibraryError('LIBRARY_IN_USE');choosing=true;pendingTasks=null;
+    try{
+      const library=get(),target=window();if(!target)throw new LibraryError('INVALID_INPUT');
+      let path:string|null;
+      if(selfTest&&existsSync(join(dataPath,'tasks-dialog.json'))){const value=JSON.parse(readFileSync(join(dataPath,'tasks-dialog.json'),'utf8')).path;path=value===null?null:resolve(value);if(path&&!path.startsWith(resolve(dataPath)+sep))throw new LibraryError('INVALID_INPUT');}
+      else{const result=await dialog.showOpenDialog(target,{properties:['openFile'],filters:[{name:'Tasks iCalendar',extensions:['ics']}]});path=result.canceled?null:result.filePaths[0]??null;}
+      authorize(event);if(!path)return null;if(library!==get())throw new LibraryError('VERSION_CONFLICT');
+      const plan=planTasks(library,path),token=randomUUID();pendingTasks={owner:String(event.sender.id),token,plan,expires:Date.now()+10*60000};
+      return{token,file:basename(path),libraryId:library.libraryId,rows:tasksRows(plan),ignored:plan.ignored};
+    }finally{choosing=false;}
+  });
+  taskHandle('cancel',(event,token:unknown)=>{if(pendingTasks?.owner===String(event.sender.id)&&token===pendingTasks.token)pendingTasks=null;return null;});
+  taskHandle('confirm',async(event,token:unknown,indices:number[],folderId:unknown=null,force:unknown=false)=>{
+    if(choosing)throw new LibraryError('LIBRARY_IN_USE');
+    const pending=pendingTasks;if(!pending||pending.owner!==String(event.sender.id)||typeof token!=='string'||token!==pending.token||Date.now()>pending.expires||pending.plan.library!==get())throw new TasksError('ICS_PREVIEW_EXPIRED');
+    choosing=true;try{batchBusy=true;const result=await executeTasksAsync(pending.plan,indices,folderId,String(event.sender.id),value=>{if(!event.sender.isDestroyed())event.sender.send('tasks:progress',{...value,token:pending.token});},()=>{authorize(event);if(event.sender.isDestroyed()||pendingTasks!==pending||pending.plan.library!==get())throw new LibraryError('CANCELLED');if(pending.plan.library.status().security?.configured&&!pending.plan.library.status().security?.unlocked)throw new LibraryError('NOTEBOOK_LOCKED');},force);pendingTasks=null;return result;}finally{choosing=false;batchBusy=false;}
+  });
   let backupStore: BackupStore | null = null;
   const backups = () => backupStore ??= new BackupStore(dataPath);
   const startedAt = Date.now(), backupRetries = new Map<string, number>();
@@ -80,10 +109,16 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   const handle = (name: string, callback: (owner: string, ...args: any[]) => unknown) => {
     ipcMain.handle(`library:${name}`, async (event, ...args): Promise<Result<unknown>> => {
       authorize(event);
-      try { return { ok: true, value: await callback(String(event.sender.id), ...args) }; }
+      try { if(batchBusy&&!['status','list','query','organization','registry','end'].includes(name))throw new LibraryError('LIBRARY_IN_USE');return { ok: true, value: await callback(String(event.sender.id), ...args) }; }
       catch (error) { return { ok: false, code: (error instanceof LibraryError || error instanceof DeltaError) ? error.code : (error as NodeJS.ErrnoException).code === 'ENOSPC' ? 'DISK_FULL' : ['EACCES','EPERM'].includes((error as NodeJS.ErrnoException).code ?? '') ? 'ACCESS_DENIED' : 'WRITE_FAILED', ...(error instanceof LibraryError && error.details ? { details: error.details } : {}) }; }
     });
   };
+  ipcMain.handle('folder-bulk:preview',async(event,folderId,includeChildren)=>{authorize(event);try{if(choosing)throw new LibraryError('LIBRARY_IN_USE');const plan=planFolderBulk(get(),folderId,includeChildren),token=randomUUID();pendingFolder={owner:String(event.sender.id),token,plan,expires:Date.now()+600000};return{ok:true,value:{token,folderId:plan.folderId,includeChildren:plan.includeChildren,count:plan.notes.length}};}catch(e){return{ok:false,code:e instanceof LibraryError?e.code:'WRITE_FAILED'};}});
+  ipcMain.handle('folder-bulk:cancel',(event,token)=>{authorize(event);if(!batchBusy&&pendingFolder?.owner===String(event.sender.id)&&pendingFolder.token===token)pendingFolder=null;});
+  ipcMain.handle('folder-bulk:confirm',async(event,token,mode)=>{authorize(event);try{
+    if(choosing)throw new LibraryError('LIBRARY_IN_USE');const pending=pendingFolder;if(!pending||pending.owner!==String(event.sender.id)||pending.token!==token||Date.now()>pending.expires||pending.plan.library!==get())throw new LibraryError('VERSION_CONFLICT');
+    choosing=true;batchBusy=true;try{const value=await executeFolderBulk(pending.plan,mode,progress=>{if(!event.sender.isDestroyed())event.sender.send('folder-bulk:progress',{...progress,token:pending.token});},()=>{authorize(event);if(event.sender.isDestroyed()||pendingFolder!==pending||pending.plan.library!==get())throw new LibraryError('CANCELLED');});pendingFolder=null;return{ok:true,value};}finally{choosing=false;batchBusy=false;}
+  }catch(e){return{ok:false,code:e instanceof LibraryError?e.code:'WRITE_FAILED'};}});
   const maintenancePath = async (purpose: 'directory' | 'backup' | 'target', defaultPath?: string): Promise<string | null> => {
     const title = backupText(currentLocale(), purpose === 'backup' ? 'sourceTitle' : purpose === 'target' ? 'targetTitle' : 'backupDirectoryTitle');
     if (selfTest && existsSync(join(dataPath, 'backup-dialog.json'))) {
@@ -137,13 +172,13 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       if (Object.values(backups().state().policies).some(p => p.directory && pathsOverlap(target, p.directory))) throw new LibraryError('PATH_OVERLAP');
       const windowTarget = window(); if (!windowTarget) throw new LibraryError('INVALID_INPUT');
       if (!await dialogs.ask(windowTarget, { kind: 'warning', title: backupText(currentLocale(), action), message: backupText(currentLocale(), original ? 'restoreOriginalWarning' : 'switchWarning'), detail: backup ? backupText(currentLocale(), 'sourceTitle') + ': ' + backup + '\n' + backupText(currentLocale(), 'targetTitle') + ': ' + target : target, cancelLabel: translate(currentLocale(), 'cancelOperation'), confirmLabel: backupText(currentLocale(), action) })) return null;
-      nativeImports.clear(); clearImport(); return manager().maintenance(id, action, target, backup ?? undefined);
+      pendingTasks=null; nativeImports.clear(); clearImport(); return manager().maintenance(id, action, target, backup ?? undefined);
     } finally { choosing = false; }
   });
   handle('security', async (_owner, request: import('../shared/security').SecurityRequest) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
     choosing = true;
-    try { const result = await get().securityCommand(request); lastActivity = Date.now(); nativeImports.clear(); clearImport(); return result; }
+    try { const result = await get().securityCommand(request); lastActivity = Date.now(); pendingTasks=null; nativeImports.clear(); clearImport(); return result; }
     finally { choosing = false; }
   });
   handle('securityPreference', (_owner, value) => get().setSecurityPreference(value));
@@ -153,7 +188,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     if (!state?.configured || !state.unlocked) throw new LibraryError('NOTEBOOK_LOCKED');
     const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
     choosing = true;
-    try { return await printRecovery(target, mode, key, currentLocale(), selfTest && process.env['NOTEBOOKAID_SECURITY_TEST'] === '1' ? dataPath : undefined); }
+    try { return await printRecovery(target, mode, key, currentLocale(), manager().currentName(), selfTest && process.env['NOTEBOOKAID_SECURITY_TEST'] === '1' ? dataPath : undefined); }
     finally { choosing = false; }
   });
   handle('upgradeLibrary', async (_owner, id: string, expected: number) => {
@@ -415,7 +450,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       return (limit < 1 ? image.resize({ width: Math.max(1, Math.round(size.width * limit)), height: Math.max(1, Math.round(size.height * limit)), quality: 'good' }) : image).toDataURL();
     } finally { choosing = false; }
   });
-  handle('activate', (_owner, id: string) => { if (choosing) throw new LibraryError('LIBRARY_IN_USE'); clearImport(); nativeImports.clear(); return manager().activate(id); });
+  handle('activate', (_owner, id: string) => { if (choosing) throw new LibraryError('LIBRARY_IN_USE'); pendingTasks=null;pendingFolder=null; clearImport(); nativeImports.clear(); return manager().activate(id); });
   handle('register', (_owner, mode: 'existing' | 'create') => {
     if (mode !== 'existing' && mode !== 'create') throw new LibraryError('INVALID_INPUT');
     return chooseFor(path => manager().add(path, mode));
@@ -444,7 +479,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       let reloaded = false;
       try {
         const state = await exitState(target, 'save');
-        if (state?.saved && !state.dirty && !state.busy) { get().lockSecurity(); nativeImports.clear(); clearImport(); target.webContents.send('library:locked'); if (applicationLock?.enabled()) { reloaded = true; applicationLock.lock(); } }
+        if (state?.saved && !state.dirty && !state.busy) { get().lockSecurity(); pendingTasks=null; nativeImports.clear(); clearImport(); target.webContents.send('library:locked'); if (applicationLock?.enabled()) { reloaded = true; applicationLock.lock(); } }
       } finally { lastActivity = Date.now(); if (!reloaded) await exitState(target, 'resume'); locking = false; }
     })();
   }, 5000);
@@ -468,15 +503,15 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     })();
   }, selfTest && process.env['NOTEBOOKAID_BACKUP_TEST'] === '1' ? 1000 : 60000); backupTimer.unref();
   return {
-    writingContext: () => ({ library: get(), locale: currentLocale() }),
+    writingContext: () => {if(batchBusy)throw new LibraryError('LIBRARY_IN_USE');return {library:get(),locale:currentLocale()};},
     writingEnabled: () => !!settings && settings.get().global.aiEnabled !== false,
     confirmWriting: (message: string) => { const target = window(); return target ? dialogs.ask(target, {kind:'warning',title:translate(currentLocale(),'about'),message,cancelLabel:translate(currentLocale(),'cancelOperation'),confirmLabel:securityText(currentLocale(),'confirm')}) : Promise.resolve(false); },
-    addonContext: () => { const library = get(); return { library, name: manager().currentName(), unlocked: true, locale: currentLocale(), theme: settings?.get().global.theme ?? 'system' }; },
+    addonContext: () => { if(batchBusy)throw new LibraryError('LIBRARY_IN_USE');const library = get(); return { library, name: manager().currentName(), unlocked: true, locale: currentLocale(), theme: settings?.get().global.theme ?? 'system' }; },
     locale: currentLocale,
     theme: () => { try { return (settings ?? (existsSync(join(dataPath, 'settings.json')) ? new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }) : null))?.get().global.theme ?? 'system'; } catch { return 'system' as const; } },
-    lock: () => { nativeImports.clear(); clearImport(); if (registry?.state().activeId) get().lockSecurity(); },
-    release: (owner: string) => { dialogs.cancel(); nativeImports.clear(owner); clearImport(); registry?.release(owner); if (registry?.state().activeId) registry.get().lockSecurity(); },
-    close: () => { clearInterval(autoLock); clearInterval(backupTimer); clearImport(); dialogs.cancel(); nativeImports.clear(); registry?.close(); registry = null; },
+    lock: () => { pendingFolder=null;pendingTasks=null; nativeImports.clear(); clearImport(); if (registry?.state().activeId) get().lockSecurity(); },
+    release: (owner: string) => { if(pendingFolder?.owner===owner)pendingFolder=null; if(pendingTasks?.owner===owner)pendingTasks=null; dialogs.cancel(); nativeImports.clear(owner); clearImport(); registry?.release(owner); if (registry?.state().activeId) registry.get().lockSecurity(); },
+    close: () => { pendingFolder=null;pendingTasks=null; clearInterval(tasksTimer); clearInterval(autoLock); clearInterval(backupTimer); clearImport(); dialogs.cancel(); nativeImports.clear(); registry?.close(); registry = null; },
     flush: async (): Promise<boolean> => {
       const target = window(); if (!target || target.webContents.isDestroyed()) return false;
       const state = await exitState(target, 'save');

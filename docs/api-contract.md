@@ -112,3 +112,13 @@ T06-A capacity correction: native file import retains attachment payloads in the
 ai:request 仅主 renderer 主 frame、应用解锁状态可用。白名单 action 为 state、login（可选 fresh）、cancel、key（仅 Gemini/Claude）、check、select、account、disconnect、usage。返回非敏感连接摘要、账户标签及模型清单或固定错误码；不返回 Key/token，不接受自定义网络地址或笔记内容。写操作串行；异步登录、刷新及模型获取完成前再次验证 renderer 权限。官方固定 HTTPS API，由主进程请求，拒绝重定向，20 秒网络超时／2 MiB 响应上限／10 页模型上限。OAuth 127.0.0.1 回调 3 分钟超时，state、nonce、PKCE 和签名验证，不复用其他应用 client ID 或授权。见 t11-testing.md。
 
 T11.1：login 和 account 在已验证凭据保存后获取 ChatGPT 模型目录；目录失败返回 ok=true 的连接状态及 warning，同时在连接摘要保留固定错误码。后台续期由主进程串行调度，锁屏／退出时禁止提交令牌，暂时失败退避，撤销授权不循环重试；不扩大 renderer 或 addon 权限。界面提供商切换仅改变显示面板。
+
+## T13 桌面 Tasks API
+
+PrototypeApi.tasks 提供 preview()/confirm(token,indices,folderId?)/cancel(token)。来源只由主进程原生单文件选择器取得，不接受 renderer 路径或解析结果。主进程解析后仅返回显示字段，保留计划在内存；token 绑定 webContents、当前核心实例、源文件摘要和目标版本／导入记录快照，十分钟过期。只有用户点击选择文件才调用 preview()；确认重验文件及目标（含组织版本），校验目标文件夹、索引范围和去重，folderId 默认为 null（未分类），允许所有已定义子文件夹，先备份再调用统一核心写入。报告含 imported/skipped/failed/invalid/unselected、逐项失败码及备份路径。应用门禁先校验，笔记本锁定拒绝；owner 释放／锁定／退出清理，取消旧 token 不影响新计划。此 API 不开放给 Native Messaging。
+
+T13.2：TasksApi.onProgress 接收 token 绑定的 BatchProgress（backup/process/done，processed/total/succeeded/skipped/failed）；confirm 以异步逐项调度执行，备份阶段不定进度，批次运行期间阻止并发写入和切库。报告增加 converted。FolderBulkApi.preview(folderId,includeChildren)/confirm(token,trash|delete)/cancel/onProgress，范围由主进程核心解析，验证目标和版本、已解锁状态及编辑占用，备份后逐项回收或永久删除。预览默认只含当前文件夹未回收的笔记，null 只代表未分类，不代表全库。
+
+T13.3 Tasks.confirm(token,indices,folderId?,force?) 的 force 必须为 boolean，默认 false。true 不跳过已导入条目、不执行旧正文转换，而是备份后新建独立笔记。无效索引、变更的来源或目标仍拒绝。强制操作记录使用独立操作 ID，未完成记录按同一来源／字段快照复用，正常去重规则保留。
+
+永久删除收尾同步清理 noteId 匹配的记录，完成标记在清理之后发布；中断恢复复用 purge journal。计划读取时忽略笔记目录不存在的历史记录，preview 不写入，confirm 在完整备份后清理旧行并按新增导入。

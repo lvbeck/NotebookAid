@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { PrototypeApi } from '../shared/contracts';
 
 const api: PrototypeApi = {
+  folderBulk:{preview:(folderId,includeChildren)=>ipcRenderer.invoke('folder-bulk:preview',folderId,includeChildren),confirm:(token,mode)=>ipcRenderer.invoke('folder-bulk:confirm',token,mode),cancel:token=>ipcRenderer.invoke('folder-bulk:cancel',token),onProgress:callback=>{const listener=(_event:Electron.IpcRendererEvent,value:import('../shared/batch').BatchProgress)=>callback(value);ipcRenderer.on('folder-bulk:progress',listener);return()=>ipcRenderer.removeListener('folder-bulk:progress',listener);}},
+  tasks: {preview:()=>ipcRenderer.invoke('tasks:preview'),confirm:(token,indices,folderId,force)=>ipcRenderer.invoke('tasks:confirm',token,indices,folderId,force),cancel:token=>ipcRenderer.invoke('tasks:cancel',token),onProgress:callback=>{const listener=(_event:Electron.IpcRendererEvent,value:import('../shared/batch').BatchProgress)=>callback(value);ipcRenderer.on('tasks:progress',listener);return()=>ipcRenderer.removeListener('tasks:progress',listener);}},
   ai: { request: input => ipcRenderer.invoke('ai:request', input) },
   writing: { request: input => ipcRenderer.invoke('writing:request', input) },
   onAddonChanged: callback => { const listener = () => callback(); ipcRenderer.on('prototype:addon-changed', listener); return () => ipcRenderer.removeListener('prototype:addon-changed', listener); },

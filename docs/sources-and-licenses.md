@@ -79,3 +79,7 @@ T01 只定义验证任务，不宣称上述能力已经通过。
 新增锁定 jose 6.2.2（MIT，Filip Skokan），用于 OpenAI OIDC JWT 签名／issuer／audience／expiry 校验，随程序保留 JOSE-LICENSE.txt 及模块 LICENSE.md。ChatGPT、Gemini、Claude 的官方接口依据见 t11-testing.md；未引入供应商收费 SDK 或自定义密码算法。安装审计仍有既有 low 告警，未进行无关依赖升级。
 
 T12 复用已安装 parse5 8.0.1（MIT）作为明确的运行依赖，在主进程提取 HTML 文字；marked 18.1.0（MIT）同时打包到主进程用于 Markdown 文字提取。保留 PARSE5-LICENSE.txt、MARKED-LICENSE.txt 和包内传递依赖 entities 的许可证，未升级框架。官方文字推理依据：[OpenAI 订阅模型与推理](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)、[订阅预览限制](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)、[Gemini generateContent](https://ai.google.dev/api/generate-content)、[Claude Messages](https://platform.claude.com/docs/en/api/messages/create)。自动验证使用模拟响应，未进行真实收费请求。
+
+## T13 iCalendar 解析
+
+新增锁定 ical.js 2.2.1，MPL-2.0；来自 https://github.com/kewisch/ical.js，使用官方提供的 CommonJS 构建及类型声明，未修改库文件。随程序打包完整依赖目录（含 lib 源码、dist、README、LICENSE），并另附 ICAL-LICENSE.txt，保留源代码与许可证。语义依据 RFC 5545 https://www.rfc-editor.org/rfc/rfc5545；应用只映射 VTODO 支持字段，不执行外部 URI、提醒或自动展开重复规则。不进行无关依赖升级。

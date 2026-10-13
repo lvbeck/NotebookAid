@@ -22,6 +22,7 @@ Copy-Item -LiteralPath (Join-Path $workspace 'docs/t07-testing.md') -Destination
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t10-testing.md') -Destination (Join-Path $packageRoot 'T10-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t11-testing.md') -Destination (Join-Path $packageRoot 'T11-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t12-testing.md') -Destination (Join-Path $packageRoot 'T12-TESTING.md') -Force
+Copy-Item -LiteralPath (Join-Path $workspace 'docs/t13-testing.md') -Destination (Join-Path $packageRoot 'T13-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t09-testing.md') -Destination (Join-Path $packageRoot 'T09-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t09-restore-testing.md') -Destination (Join-Path $packageRoot 'T09-RESTORE-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t09-appearance-testing.md') -Destination (Join-Path $packageRoot 'T09-APPEARANCE-TESTING.md') -Force

@@ -19,7 +19,7 @@ test('summary survives complete backup, restore and native notebook import',asyn
  const {createBackup,restoreBackup}=require('../dist/runtime/core/backups'),{planImport,executeImport}=require('../dist/runtime/core/library-import');
  const backup=createBackup(path.join(f.root,'book'),path.join(f.root,'copies'));restoreBackup(backup.path,path.join(f.root,'restored'),f.lib.libraryId);
  const restored=new NoteLibrary(path.join(f.root,'restored'));try{assert.deepEqual(restored.read(f.note.id).generatedSummary,summary)}finally{restored.close()}
- const target=new NoteLibrary(path.join(f.root,'target'));try{executeImport(planImport(path.join(f.root,'book'),target.path));target.reloadImported();assert.deepEqual(target.read(f.note.id).generatedSummary,summary);assert.equal(JSON.parse(fs.readFileSync(path.join(target.path,'library.json'))).schemaVersion,9)}finally{target.close()}
+ const target=new NoteLibrary(path.join(f.root,'target'));try{executeImport(planImport(path.join(f.root,'book'),target.path));target.reloadImported();assert.deepEqual(target.read(f.note.id).generatedSummary,summary);assert.equal(JSON.parse(fs.readFileSync(path.join(target.path,'library.json'))).schemaVersion,10)}finally{target.close()}
 });
 test('saved translations load offline without inference, and source changes prevent applying cached results',async t=>{
  const f=fixture(t);f.lib.end(f.session.token,f.session.generation,'owner');f.lib.upgradeSchema(1);

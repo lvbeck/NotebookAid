@@ -1,4 +1,9 @@
+import { TaskSourceComponent } from './task-source.component';
+import { FolderBulkDialog } from './folder-bulk-dialog';
+import { batchText } from './batch-i18n';
 import { PasskeyComponent } from './passkey.component';
+import { TasksDialog } from './tasks-dialog';
+import { tasksText } from './tasks-i18n';
 import { Dialog } from '@angular/cdk/dialog';
 import { WritingDialog, type WritingDialogData } from './writing-dialog';
 import { writingText } from './writing-i18n';
@@ -45,10 +50,23 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
+  tasksLabel():string{return tasksText(this.locale(),'menu');}
+  async importTasks():Promise<void>{
+    this.newNoteMenuOpen.set(false);
+    if(this.workspace.switching()||!this.workspace.status()||!await this.workspace.flush())return;
+    const libraryId=this.workspace.status()!.libraryId;
+    await this.workspace.refresh();
+    if(this.workspace.status()?.libraryId!==libraryId)return;
+    this.writingDialogs.open(TasksDialog,{data:{locale:this.locale(),folders:()=>this.workspace.folderRows(),current:()=>this.workspace.status()?.libraryId===libraryId&&(!this.workspace.status()?.security?.configured||!!this.workspace.status()?.security?.unlocked),refresh:async()=>{await this.workspace.refresh();await this.workspace.refreshSelected();}},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'860px',maxWidth:'calc(100vw - 32px)',ariaLabel:this.tasksLabel(),restoreFocus:true,disableClose:true});
+  }
+  bulkLabel():string{return batchText(this.locale(),'bulkTitle');}
+  async openFolderBulk():Promise<void>{if(this.workspace.switching()||!this.workspace.status()||!await this.workspace.flush())return;await this.workspace.refresh();const libraryId=this.workspace.status()!.libraryId;
+    this.writingDialogs.open(FolderBulkDialog,{data:{locale:this.locale(),folderId:this.workspace.query().folderId??null,folders:()=>this.workspace.folderRows(),current:()=>this.workspace.status()?.libraryId===libraryId&&(!this.workspace.status()?.security?.configured||!!this.workspace.status()?.security?.unlocked),prepare:()=>this.workspace.releaseSelection(),refresh:async()=>{await this.workspace.refresh();}},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'760px',maxWidth:'calc(100vw - 32px)',ariaLabel:this.bulkLabel(),restoreFocus:true,disableClose:true});
+  }
   private readonly writingDialogs = inject(Dialog);
   writingLabel(): string { return writingText(this.locale(), 'title'); }
   formatLabel(key:'underline'|'strike'|'color'|'background'):string{return writingText(this.locale(),key);}

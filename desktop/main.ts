@@ -3,6 +3,7 @@ import { registerAi } from './ai-ipc';
 import { registerWriting } from './writing-ipc';
 import { smokeAi } from './ai-smoke';
 import { smokeWriting } from './writing-smoke';
+import { smokeTasks } from './tasks-smoke';
 import { smokeAddon } from './addon-smoke';
 import { AddonService } from '../core/addon';
 import type { AddonRequest, DesktopNoteTarget } from '../shared/addon';
@@ -237,6 +238,8 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if (process.env['NOTEBOOKAID_TASKS_TEST'] === '1') { await smokeTasks(window,dataPath);await quitByUser(true);return; }
+
     if (process.env['NOTEBOOKAID_WRITING_TEST'] === '1') { await smokeWriting(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_AI_TEST'] === '1') { await smokeAi(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_ADDON_TEST'] === '1') { await smokeAddon(window, dataPath); await quitByUser(true); return; }

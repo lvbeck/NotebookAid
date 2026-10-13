@@ -146,3 +146,13 @@ Native exchange capacity uses the same 50 / 20 MiB / 200 MiB attachment limits a
 `library.json.schemaVersion=9` 增加可选 `generatedTranslation`，沿用摘要的 text/sourceContentVersion/sourceRevisionId/createdAt/provider/model，并保存 targetLanguage/scope/sourceMode/sourceHash/instruction。sourceHash 是实际源文本、范围、源码模式及补充要求的 SHA-256；用于本地缓存有效性，不替代修订完整性校验。每篇笔记保存最近一次翻译，增加 version，不增加 contentVersion。缓存读取不访问提供商，正文或范围不匹配时只读展示过期结果。翻译随元数据历史、加密、备份及跨库导入保留，列表／索引不回传翻译文字，单篇导出不包含翻译。元数据读取与提交上限统一为 512 KiB，其他清单保持原上限。核心支持架构 1–9，安全设置不会降级架构，旧程序拒绝不支持的架构。
 
 Delta version 1 支持 underline/strike=true、color/background=#RRGGBB，禁止其他颜色输入。HTML 允许行内文字标签的 color/background-color，保存时规范为 span，颜色使用六位十六进制或 0–255 RGB；Markdown 保留受限制行内 HTML 的下划线、删除线和颜色，其他 CSS 不进入富文本编辑。
+
+## T13 Tasks ICS 导入记录
+
+任务映射为原有 TXT 修订，目录默认未分类，不升级笔记本架构。根目录 tasks-imports.json 版本 1，绑定 libraryId，rows 保存 identity/fingerprint/operationId/noteId；标识和字段快照为 SHA-256，操作和笔记标识为 UUID。写前先持久化 noteId=null 的计划操作，再通过 NoteLibrary.create 发布原有修订，最后原子保存完成笔记 ID。中断后同快照按原操作 ID 重试，不重复创建，也不覆盖后来本地编辑。完成记录即使笔记删除也跳过同一来源。记录只保存哈希和 ID，不保存任务文字／源路径；单库最多 10,000 条，上限 4 MiB，损坏保留并拒绝继续。完整备份保留记录；原生跨库导入仅导入笔记，不合并去重表。批次先完整备份，不覆盖既有笔记；报告明确部分成功，取消预览不写入。
+
+T13.2：library.json 架构 10 新增修订 metadata.taskSource={version:1,uid,fields}。只读来源字段由受信 Tasks 核心写入，正文保存 DESCRIPTION，普通 renderer 创建和保存请求不能覆盖此字段；修订、还原、加密、完整备份和原生跨笔记本导入保持它。list/query/history 摘要不包含 taskSource。新写入需先完整备份再升级清单；旧 schema 1–9 均可读取。原 Tasks 导入记录和快照哈希不变。
+
+T13.3 tasks-imports.json 格式 2 与格式 1 兼容读，原行保持 identity/fingerprint/operationId/noteId；新强制行增加 force=true。普通行的来源快照唯一，强制行以来源快照加 operationId 区分多次显式副本。首次强制前完整备份，旧应用回退须恢复备份中的旧记录。笔记本清单仍为架构 10。
+
+永久删除收尾在 purge journal 标记完成前清理 noteId 匹配的 Tasks 记录，未完成清理可随 purge recovery 重试；回收站不清理。预览兼容忽略旧版指向不存在笔记目录的记录，确认导入前备份后持久清理。

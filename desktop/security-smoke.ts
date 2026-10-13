@@ -3,6 +3,8 @@ import { NoteLibrary } from '../core/library';
 import type { BrowserWindow } from 'electron';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { recoveryFileName } from '../shared/recovery-document';
+import { latestNotebookSchemaVersion } from '../shared/library';
 export async function smokeSecurity(window: BrowserWindow, directory: string): Promise<void> {
   const run = (script: string) => window.webContents.executeJavaScript(script);
   const until = async (script: string) => { for (let i = 0; i < 160; i++) { if (await run(script)) return; await new Promise(resolve => setTimeout(resolve, 100)); } throw Error('Security UI timeout: ' + script); };
@@ -38,7 +40,7 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
   await click('schema-upgrade'); await click('dialog-confirm');
   await until("!document.querySelector('[data-testid=schema-upgrade]') && !!document.querySelector('[data-testid=schema-latest]')");
   const upgraded = (await run('window.notebookAid.library.registry()')).value.entries.find((item: { current: boolean }) => item.current);
-  if (upgraded.schemaVersion !== 7) throw Error('Schema upgrade did not reach latest');
+  if (upgraded.schemaVersion !== latestNotebookSchemaVersion) throw Error('Schema upgrade did not reach latest');
   await run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
   await window.webContents.capturePage().then(image => writeFileSync(join(directory, 'schema-upgrade.png'), image.toPNG()));
   await click('organization-tab');
@@ -70,6 +72,8 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
   await click('note-security'); await click('note-encrypt'); await until("!!document.querySelector('[data-testid=security-password]')");
   await fill('security-password', password); await fill('security-repeat', password); await checkVisibility('security-password'); await checkVisibility('security-repeat'); await click('security-submit'); await until("!!document.querySelector('[data-testid=recovery-key]')");
   const recovery = await run("document.querySelector('[data-testid=recovery-key]').value"); if (!/^NA1-/.test(recovery)) throw Error('Recovery key not shown');
+  const notebookName = (await run('window.notebookAid.library.registry()')).value.entries.find((item: { current: boolean }) => item.current).name;
+  const recoveryPdf = join(directory, recoveryFileName(notebookName));
   const invalidPrint = await run("window.notebookAid.library.printRecovery('pdf', '<script>invalid</script>')");
   if (invalidPrint.ok || invalidPrint.code !== 'INVALID_INPUT') throw Error('Invalid recovery print accepted');
   await click('recovery-print'); await until("!!document.querySelector('[data-testid=recovery-preview]')");
@@ -78,7 +82,7 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
   await click('recovery-print'); await click('recovery-preview-print'); await until("!document.querySelector('[data-testid=recovery-preview-print]').disabled");
   if (await run("!!document.querySelector('[data-testid=recovery-preview] [role=alert]')")) throw Error('Simulated recovery print failed');
   await click('recovery-preview-pdf'); await until("!document.querySelector('[data-testid=recovery-preview-pdf]').disabled");
-  const previewPdf = join(directory, 'recovery-test.pdf');
+  const previewPdf = recoveryPdf;
   try { if (readFileSync(previewPdf).subarray(0,5).toString() !== '%PDF-') throw Error('Preview PDF missing'); }
   finally { unlinkSync(previewPdf); }
   await run(`document.querySelector('[data-testid=recovery-key]').value='TEST RECOVERY KEY'; const frame=document.querySelector('[data-testid=recovery-preview] iframe');frame.srcdoc=frame.srcdoc.replace(/NA1-(?:[a-f0-9]{8}-){7}[a-f0-9]{8}/gi,'NA1-'+Array(8).fill('00000000').join('-'));`);
@@ -96,7 +100,7 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
   await click('recovery-preview-cancel'); await until("!document.querySelector('[data-testid=recovery-preview]') && !document.querySelector('[data-testid=recovery-print]').disabled");
   await run(`document.querySelector('[data-testid=recovery-key]').value=${JSON.stringify(recovery)}`);
   await click('recovery-pdf'); await until("!document.querySelector('[data-testid=recovery-pdf]').disabled");
-  const pdfPath = join(directory, 'recovery-test.pdf');
+  const pdfPath = recoveryPdf;
   try { if (readFileSync(pdfPath).subarray(0,5).toString() !== '%PDF-') throw Error('Recovery PDF missing'); }
   finally { unlinkSync(pdfPath); }
   if (await run("!!document.querySelector('[data-testid=security-dialog] [role=alert]')")) throw Error('Recovery PDF UI failed');

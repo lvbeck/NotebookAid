@@ -290,6 +290,8 @@ export class NoteWorkspace {
     if (success && this.dirty()) return this.flush();
     return success;
   }
+  async refreshSelected():Promise<void>{const session=this.session();if(!session||this.dirty())return;const r=await this.api.begin(session.note.id);if(r.ok&&this.session()?.note.id===session.note.id){this.session.set(r.value);this.title.set(r.value.note.title);this.body.set(r.value.note.body);this.opened.update(value=>value+1);}}
+  async releaseSelection():Promise<boolean>{if(!await this.flush())return false;const session=this.session();if(session){const r=await this.api.end(session.token,session.generation);if(!r.ok){this.reportError(r.code);return false;}}this.session.set(null);this.title.set('');this.body.set('');this.dirty.set(false);this.opened.update(value=>value+1);return true;}
   async select(id: string): Promise<void> {
     if (this.switching() || id === this.session()?.note.id) return;
     this.switching.set(true);

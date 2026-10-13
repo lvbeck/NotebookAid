@@ -277,7 +277,7 @@ export const hongKong: Record<MessageKey, string> = {
   "welcome": "開始使用",
   "sample": "歡迎使用 NotebookAid",
   "sampleHint": "為下一個想法留一處空間",
-  "preview": "T12 AI 寫作",
+  "preview": "T13 Tasks ICS 匯入",
   "previewHint": "本機自動儲存 · 支援選擇性加密 · 手動及每日備份",
   "save": "儲存",
   "saving": "正在儲存…",

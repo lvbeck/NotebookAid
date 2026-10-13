@@ -53,7 +53,7 @@ export async function smokeDelta(window: BrowserWindow, directory: string): Prom
   const out=join(tmpdir(),'notebookaid-export-'+basename(directory));mkdirSync(out,{recursive:true});const native=join(out,'native.nadelta');
   writeFileSync(join(directory,'note-file-dialog.json'),JSON.stringify({path:native}));await click('confirm-export');await until("document.querySelector('[data-testid=file-message]').textContent.includes('导出')");
   const exported=JSON.parse(readFileSync(native,'utf8'));if(exported.attachments.length!==1)throw Error('Native attachment missing');
-  await click('import-note');await until("document.querySelectorAll('.note-card').length===2");
+  await click('import-note'); await click('import-note-file');await until("document.querySelectorAll('.note-card').length===2");
   await until("document.querySelector('.ql-editor img')?.naturalWidth===80 && !document.querySelector('[data-testid=format-warning]')");
   notes=(await run('window.notebookAid.library.list()')).value;
   note=(await run(`window.notebookAid.library.begin('${notes[0].id}')`)).value.note;
