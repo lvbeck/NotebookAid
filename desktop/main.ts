@@ -6,6 +6,7 @@ import { smokeAi } from './ai-smoke';
 import { smokeWriting } from './writing-smoke';
 import { smokeOnboarding } from './onboarding-smoke';
 import { smokeUi } from './ui-smoke';
+import { smokeContext } from './context-smoke';
 import { smokeTasks } from './tasks-smoke';
 import { smokeAddon } from './addon-smoke';
 import { AddonService } from '../core/addon';
@@ -121,6 +122,10 @@ async function start(): Promise<void> {
   const protectedCaller = (event: Electron.IpcMainInvokeEvent) => { authorize(event); if (!passkeys.gate.unlocked) throw Error('APP_LOCKED'); };
   storage = registerLibrary(dataPath, () => mainWindow, protectedCaller, selfTest, updateTray, { enabled: () => passkeys.gate.enabled && passkeys.gate.unlocked, lock: () => { passkeys.gate.lock(); mainWindow?.webContents.reload(); } }, authorize);
   notifications = registerNotifications(dataPath, protectedCaller, selfTest);
+  ipcMain.handle('prototype:edit-command',(event,action:unknown)=>{
+    protectedCaller(event);if(typeof action!=='string'||!['cut','copy','paste','selectAll'].includes(action))throw Error('INVALID_INPUT');
+    event.sender[action as 'cut'|'copy'|'paste'|'selectAll']();
+  });
   ipcMain.handle('prototype:passkeys', async (event, action: unknown) => {
     authorize(event); let error: string | undefined;
     try {
@@ -243,6 +248,7 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if(process.env['NOTEBOOKAID_CONTEXT_TEST']==='1'){await smokeContext(window,dataPath);await quitByUser(true);return;}
     if (process.env['NOTEBOOKAID_ONBOARDING_TEST'] === '1') { await smokeOnboarding(window,dataPath);await quitByUser(true);return; }
     if (process.env['NOTEBOOKAID_UI_TEST'] === '1') { await smokeUi(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_TASKS_TEST'] === '1') { await smokeTasks(window,dataPath);await quitByUser(true);return; }

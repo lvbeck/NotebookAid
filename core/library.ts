@@ -489,6 +489,20 @@ export class NoteLibrary {
     }
     return this.commit({ ...(attachments ? { attachments } : {}), ...(taskSource?{taskSource}:{}), id, revisionId: '', title: initial.title, body: initial.body, primaryFormat: initial.primaryFormat, version: 0, contentVersion: 0, createdAt: now, updatedAt: now, deletedAt: null, ...placement }, null, operationId, hash);
   }
+  duplicate(request:import('../shared/attachments').AttachmentRequest,owner:string,title:string):SaveResult {
+    const current=this.attachmentSession(request,owner);this.validateContent(title,current.body);
+    const hash=digest(JSON.stringify(['duplicate',request.noteId,request.expectedVersion,title]));
+    const replay=this.operation(request.operationId,hash);if(replay)return replay;
+    if(current.deletedAt||current.version!==request.expectedVersion)throw new LibraryError('VERSION_CONFLICT');
+    for(const item of current.attachments??[])this.checkedAttachment(current.id,item).fill(0);
+    const id=randomUUID(),directory=this.safe('notes',id),now=new Date().toISOString();mkdirSync(directory);
+    try {
+      if(current.encrypted)this.security.initializeEncryptedNote(id);
+      if(current.attachments?.length){mkdirSync(this.safe('notes',id,'attachments'));for(const item of current.attachments){const bytes=this.checkedAttachment(current.id,item);try{const fd=openSync(this.safe('notes',id,'attachments',item.id),'wx');try{writeFileSync(fd,this.security.encode(bytes,`notes/${id}/attachments/${item.id}`,!!current.encrypted));fsyncSync(fd);}finally{closeSync(fd);}}finally{bytes.fill(0);}}}
+      const {generatedSummary,generatedTranslation,...source}=current;
+      return this.commit({...source,id,title,revisionId:'',version:0,contentVersion:0,createdAt:now,updatedAt:now,pinned:false},null,request.operationId,hash);
+    }catch(error){if(!existsSync(this.safe('recovery',request.operationId+'.json'))&&!existsSync(this.safe('notes',id,'head.json'))){this.plainTree(directory);rmSync(directory,{recursive:true});}throw error;}
+  }
   enableTaskSources(): void {
     if(this.manifest.schemaVersion>=10)return;
     this.fault?.('schema');this.atomic(this.safe('library.json'),JSON.stringify({...this.manifest,schemaVersion:10}));this.manifest.schemaVersion=10;

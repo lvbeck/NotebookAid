@@ -158,6 +158,7 @@ export class NoteWorkspace {
   private inflight: Promise<boolean> | null = null;
   private pending: SaveRequest | null = null;
   private createId: string | null = null;
+  private duplicatePending?:{request:import('../../shared/attachments').AttachmentRequest;title:string};
   private createInput?: NoteInput;
   private composing = false;
   private exitFocus: HTMLElement | null = null;
@@ -169,6 +170,7 @@ export class NoteWorkspace {
     this.session.set(null); this.title.set(''); this.body.set(''); this.notes.set([]); this.results.set([]); this.total.set(0);
     this.query.set({ view: 'all', offset: 0, limit: 30 }); this.pending = null; this.pendingPlacement = null;
     this.createInput = undefined; this.createId = null; this.dirty.set(false); this.opened.update(value => value + 1);
+    this.duplicatePending=undefined;
   }
   async securityChange<T>(action: () => Promise<Result<T>>, reopen = true): Promise<Result<T> | null> {
     if (this.switching() || this.organizationBusy() || !await this.flush()) return null;
@@ -216,6 +218,7 @@ export class NoteWorkspace {
   }
   async manualSave(): Promise<void> {
     if (!this.session()) return;
+    if(this.duplicatePending?.request.noteId===this.session()!.note.id){await this.duplicateNote(this.duplicatePending.title);return;}
     const libraryId = this.status()?.libraryId ?? null;
     const hadChanges = this.dirty();
     if (await this.flush()) {
@@ -325,6 +328,19 @@ export class NoteWorkspace {
     } catch { this.reportError('WRITE_FAILED', 'open'); }
     finally { this.switching.set(false); }
     if (input) await this.create({ ...input, folderId: this.query().folderId ?? null });
+  }
+  async duplicateNote(title:string):Promise<void>{
+    if(this.switching()||!this.session())return;
+    this.switching.set(true);let id:string|undefined;
+    try{
+      if(!await this.flush())return;const session=this.session()!;
+      if(!this.duplicatePending||this.duplicatePending.request.noteId!==session.note.id||this.duplicatePending.title!==title)this.duplicatePending={title,request:{noteId:session.note.id,token:session.token,generation:session.generation,expectedVersion:session.note.version,operationId:crypto.randomUUID()}};
+      const result=await this.api.duplicate(this.duplicatePending.request,title);
+      if(!result.ok){if(result.code!=='COMMIT_STATUS_UNKNOWN')this.duplicatePending=undefined;this.reportError(result.code,'create');return;}
+      this.duplicatePending=undefined;id=result.value.note.id;await this.refresh();this.notify('noteCreated','create');
+    }catch{this.reportError('COMMIT_STATUS_UNKNOWN','create');}
+    finally{this.switching.set(false);}
+    if(id)await this.select(id);
   }
   async create(input?: NoteInput): Promise<void> {
     if (this.switching()) return;

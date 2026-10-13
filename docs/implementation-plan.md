@@ -35,6 +35,7 @@
 | T14 | 八语言、主题、快捷键、可访问性、缩放及统一异常体验 | 已批准 | 2026-10-13：用户明确“验收T14，暂时不进行下个任务”；已提交 11bca74 |
 | T14-A | 新手引导：聚光灯、进度、完成抑制与设置控制 | 已批准 | 2026-10-13：用户明确“验收新手引导和应用菜单” |
 | T14-B | 顶部应用菜单、许可证／隐私／关于及备份提示对齐 | 已批准 | 2026-10-13：用户明确“验收新手引导和应用菜单” |
+| T14-C | 卡片与编辑区右键菜单、独立复制及原生剪贴板 | 用户已批准 | 用户确认 Markdown 可正常编辑，明确“验收T14-C右键菜单，暂时不进行下个任务”；不开始 T15-A |
 | T15-A | Windows 桌面新建笔记入口：ShellNew 可行性验证、单实例新建、本地化文字与图标、注册及撤销（R39） | 待开发，安排在 T14 后、T15 发布验收前 | 新需求已记录，待逐项授权 |
 | T15 | Windows x64 安装包与 XPI、桥接注册、升级恢复、真实环境发布验收及许可清单 | 待开发 | 无 |
 
@@ -865,3 +866,19 @@ T14 已依用户明确验收提交本地 main：11bca74。T14-A 为单独授权�
 ZIP SHA256 81ec6fb4cf56f457945e518ad6202e58077318ce74f5a17a4e6b3e19f0038f64 已保留。Prepare-TestPortable.ps1 检测到 NotebookAid 或原生辅助进程仍在运行并安全停止；未更新测试目录、未强制终止进程。已请用户完全退出后继续部署。T14-A／T14-B 仍待验收，未提交或开始下一任务。
 
 用户确认“已完全退出，请继续更新”后，0.14.2-menu.2 已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64：verified=true、backupCreated=false、bridgeManifestsRestored=2。部署 ZIP SHA256 81ec6fb4cf56f457945e518ad6202e58077318ce74f5a17a4e6b3e19f0038f64。等待用户验收；未提交或开始下一任务。回退可完全退出后恢复保留的 0.14.2-menu.1 ZIP，设置无需修改。
+
+2026-10-13 用户明确“验收新手引导和应用菜单”，T14-A／T14-B 已批准并提交本地 main：6136373（Add onboarding guide and application information menu），未推送。随后用户直接授权右键菜单，作为 T14-C 单独实施，不开始 T15-A。
+
+T14-C 0.14.3-context.0 已实现：卡片重命名、独立复制、确认后移入回收站、移动至全部文件夹／子文件夹、添加现有标签；TXT／源码及 Quill 编辑区提供剪切、复制、粘贴、全选，全部带 Lucide 图标及文字。使用现有 CDK 菜单／弹窗与本地核心，复制保留正文、附件、放置、Tasks 来源及加密／隐藏状态；新加密副本直接使用现有 NotebookSecurity 编码落盘，无明文中间副本。输入法组合输入、切换、锁定和旧选区有检查；复制操作保留操作 ID，以现有重试入口重放未知提交状态。
+
+32 项核心／附件／加密／复制检查最终通过（一次目录链接夹具沙箱 EPERM 后，允许重跑 14 项核心全部通过）；开发专项 output/context-packaged/1791925774351 与最终便携专项 output/context-packaged/1791925846559 通过，涵盖五项卡片操作、嵌套文件夹、标签、删除取消／确认及四种格式的四项原生编辑命令。剪贴板在内存快照并恢复，没有跳过测试或记录原内容。最终界面及重启 output/ui-packaged/1791925853677 通过，八语言字典完整；菜单截图已查看，前端五个文件和六个相关 Runtime 同构建逐字节一致。实体鼠标、输入法、Narrator、多显示器及复杂外部剪贴板仍需用户验收。
+
+0.14.3-context.0 已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64，verified=true、backupCreated=false、bridgeManifestsRestored=2。ZIP SHA256 7121595ed4473c4f48a122678919d90019ca04dcd6171eb9b77b3243731846d4 已保留，退出后可恢复 0.14.2-menu.2 ZIP 回退，无需改变笔记架构或设置。T14-C 待用户验收，尚未提交，未开始下一任务。
+
+T14-C 验收修正 0.14.3-context.1：用户报告旧 Markdown 笔记只显示源码。合成示例复现内联 HTML（删除线／下划线／颜色）的边界空格被 Turndown 重复添加，触发无损往返检查。修正自定义 HTML 规则的空白处理，不绕过格式校验、不修改真实笔记、不在打开时重写源码。新增原文保存、重新打开、嵌套列表／粗体／删除线及富文本编辑回归。当前任务仍待验收，未开始下一任务。
+
+0.14.3-context.1 构建、四项格式核心、开发及最终便携编辑器回归通过，最终编辑器 output/editor-packaged/1791926819954、右键专项 output/context-packaged/1791926820980 通过。格式核心链接夹具沙箱 EPERM 后允许重跑通过；新增插入文字断言因不换行空格表示调整，未放宽源内容／格式保护。前端五文件及三个相关 Runtime 与 ASAR 一致。验证只使用隔离合成笔记，原用户笔记仍待人工复测。
+
+修正版 ZIP SHA256 d1a56fab934be09c08c3cd50d8931eef0ae28b8002c250693901b84dfa1a2011 已保留；Prepare-TestPortable.ps1 已更新 C:\Softwares\NotebookAid-win32-x64，verified=true、backupCreated=false、bridgeManifestsRestored=2。等待用户复测原 Markdown 笔记及 T14-C 右键菜单；未提交，未开始下一任务。
+
+用户随后明确确认：“Markdown笔记现在可以正常编辑了，验收T14-C右键菜单，暂时不进行下个任务。”据此 T14-C（含 Markdown 验收修正）已批准，按项目规则将本任务源码、测试及文档提交本地 main；不推送，不开始 T15-A 或其他新任务。当前测试版本仍为 0.14.3-context.1。

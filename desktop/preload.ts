@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { PrototypeApi } from '../shared/contracts';
 
 const api: PrototypeApi = {
+  editCommand:action=>ipcRenderer.invoke('prototype:edit-command',action),
   uiZoom: percent => ipcRenderer.invoke('prototype:ui-zoom', percent),
   folderBulk:{preview:(folderId,includeChildren)=>ipcRenderer.invoke('folder-bulk:preview',folderId,includeChildren),confirm:(token,mode)=>ipcRenderer.invoke('folder-bulk:confirm',token,mode),cancel:token=>ipcRenderer.invoke('folder-bulk:cancel',token),onProgress:callback=>{const listener=(_event:Electron.IpcRendererEvent,value:import('../shared/batch').BatchProgress)=>callback(value);ipcRenderer.on('folder-bulk:progress',listener);return()=>ipcRenderer.removeListener('folder-bulk:progress',listener);}},
   tasks: {preview:()=>ipcRenderer.invoke('tasks:preview'),confirm:(token,indices,folderId,force)=>ipcRenderer.invoke('tasks:confirm',token,indices,folderId,force),cancel:token=>ipcRenderer.invoke('tasks:cancel',token),onProgress:callback=>{const listener=(_event:Electron.IpcRendererEvent,value:import('../shared/batch').BatchProgress)=>callback(value);ipcRenderer.on('tasks:progress',listener);return()=>ipcRenderer.removeListener('tasks:progress',listener);}},
@@ -78,6 +79,7 @@ const api: PrototypeApi = {
     status: () => ipcRenderer.invoke('library:status'),
     list: () => ipcRenderer.invoke('library:list'),
     create: (operationId, input) => ipcRenderer.invoke('library:create', operationId, input),
+    duplicate:(request,title)=>ipcRenderer.invoke('library:duplicate',request,title),
     importFile: () => ipcRenderer.invoke('library:importFile'),
     exportFile: input => ipcRenderer.invoke('library:exportFile', input),
     begin: noteId => ipcRenderer.invoke('library:begin', noteId),

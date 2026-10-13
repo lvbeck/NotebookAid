@@ -111,6 +111,10 @@ export class NotebookSecurity {
     });
   }
   encrypted(id: string): boolean { return existsSync(this.path('notes', id, 'security.json')); }
+  initializeEncryptedNote(id:string):void {
+    if(!uuid.test(id)||existsSync(this.path('notes',id,'head.json')))throw new LibraryError('INVALID_INPUT');
+    this.requireKey();this.write(this.path('notes',id,'security.json'),JSON.stringify({version:1}));
+  }
   encryptedIds(): string[] { return readdirSync(this.path('notes')).filter(id => uuid.test(id) && this.encrypted(id)); }
   private requireKey(): Buffer { if (!this.key) throw new LibraryError('NOTEBOOK_LOCKED'); return this.key; }
   read(path: string, max: number, logical?: string): Buffer {

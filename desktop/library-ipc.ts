@@ -271,6 +271,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   });
   handle('query', (_owner, input) => get().query(input));
   handle('list', () => get().list());
+  handle('duplicate',(owner,request:AttachmentRequest,title:string)=>get().duplicate(request,owner,title));
   handle('attachments', (_owner, noteId: string) => get().attachmentList(noteId));
   handle('unlinkAttachment', (owner, request: AttachmentRequest, id: string) => get().unlinkAttachment(request, owner, id));
   handle('renameAttachment', (owner, request: AttachmentRequest, id: string, name: string) => get().renameAttachment(request, owner, id, name));

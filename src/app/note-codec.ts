@@ -46,7 +46,13 @@ export function cleanHtml(html: string): string {
 }
 export function markdownFromHtml(html: string): string {
   const converter = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
-  converter.addRule('inlinePresentation',{filter:node=>['U','S','DEL'].includes(node.nodeName)||node.nodeName==='SPAN'&&node.hasAttribute('style'),replacement:(_content,node)=>node.outerHTML});
+  converter.addRule('inlinePresentation',{filter:node=>{
+    if (!(['U','S','DEL'].includes(node.nodeName)||node.nodeName==='SPAN'&&node.hasAttribute('style'))) return false;
+    // Raw HTML already contains its edge whitespace. Suppress Turndown's extra edges.
+    const whitespace = (node as HTMLElement & { flankingWhitespace?: { leading: string; trailing: string } }).flankingWhitespace;
+    if (whitespace) { whitespace.leading = ''; whitespace.trailing = ''; }
+    return true;
+  },replacement:(_content,node)=>node.outerHTML});
   converter.addRule('sizedImage', { filter: node => node.nodeName === 'IMG' && (node.hasAttribute('width') || node.hasAttribute('height')), replacement: (_content, node) => '\n\n' + node.outerHTML + '\n\n' });
   converter.addRule('taskItem', { filter: node => node.nodeName === 'LI' && ['checked', 'unchecked'].includes(node.getAttribute('data-list') ?? ''), replacement: (content, node) => {
     const marker = node.getAttribute('data-list') === 'checked' ? '[x]' : '[ ]';

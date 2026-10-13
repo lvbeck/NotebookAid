@@ -21,6 +21,10 @@ app-icon { display:inline-flex; flex-shrink:0; align-items:center; }
 .application-menu { min-width:160px; }
 .application-menu.editor-table-menu button { font-size:11px; line-height:16px; gap:8px; padding:8px 12px; }
 .application-menu app-icon svg { display:block; width:14px; height:14px; }
+.note-context-menu, .edit-context-menu { font-size:12px; }
+.note-context-dialog label:not(.setting-row) { display:grid; gap:8px; margin-top:20px; }
+.note-context-dialog input:not([type=checkbox]) { width:100%; padding:10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); }
+.note-context-dialog .setting-row > span { display:flex; align-items:center; gap:8px; }
 .information-dialog p { line-height:1.8; }
 .information-dialog h3 { margin:22px 0 12px; }
 .information-dialog .license-text { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:16px; font:12px/1.7 Consolas,monospace; }

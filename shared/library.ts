@@ -54,6 +54,7 @@ export interface LibraryApi extends RegistryApi, SettingsApi {
   status(): Promise<Result<LibraryStatus>>;
   list(): Promise<Result<NoteSummary[]>>;
   create(operationId: string, input?: NoteInput): Promise<Result<SaveResult>>;
+  duplicate(request:AttachmentRequest,title:string):Promise<Result<SaveResult>>;
   importFile(): Promise<Result<(NoteInput & { removed?: number }) | null>>;
   exportFile(input: NoteInput): Promise<Result<boolean>>;
   begin(noteId: string): Promise<Result<EditSession>>;

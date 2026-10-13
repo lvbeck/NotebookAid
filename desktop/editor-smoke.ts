@@ -69,6 +69,21 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   await source(savedListBody); await click('load-source');
   await capture('editor-lists.png');
   writeFileSync(join(directory, 'list-report.json'), JSON.stringify({ tasksEditable: true, toggleSaved: true, nestedMixedLists: true, roundtrip: true }, null, 2));
+  const presentationLists = 'Features\n\n1. <s>Spotlight&nbsp;Overlay and Coaching&nbsp;Marks.</s>\n2. <s>Add&nbsp;</s> **<s>menu icon</s>** <s>&nbsp;button.</s>\n3. Context actions\n   1. Note cards\n   2. Editor\n4. **Performance**: lazy loading';
+  for (const sample of [presentationLists, '<u>&nbsp;Underlined&nbsp;</u> and <span style="color: #7460c9">&nbsp;Colored&nbsp;</span>']) {
+    await source(sample); await click('load-source');
+    if (await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Inline presentation whitespace unexpectedly source-only');
+    if (await body() !== sample) throw Error('Opening rich text changed original Markdown');
+    await save(); await run("document.querySelectorAll('.note-card')[0].click()"); await wait();
+    if (await body() !== sample || await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Presentation Markdown reopen changed source or blocked editing');
+    await run("(() => {const e=document.querySelector('.ql-editor');e.focus();const r=document.createRange();r.selectNodeContents(e);r.collapse(false);getSelection().removeAllRanges();getSelection().addRange(r);document.execCommand('insertText',false,' edited');})()"); await wait(1200);
+    const edited = await body(); await save(); await click('load-source');
+    if (await run("!!document.querySelector('[data-testid=format-warning]')") || await body() !== edited) throw Error('Presentation whitespace rich edit failed roundtrip');
+    if (!edited.includes('edited')) throw Error('Presentation rich text edit missing: ' + JSON.stringify({ source: edited, html: await run("document.querySelector('.ql-editor').innerHTML") }));
+    if (sample === presentationLists && !await run("!!document.querySelector('.ql-editor strong s, .ql-editor s strong') && !!document.querySelector('.ql-editor .ql-indent-1')")) throw Error('Nested list, bold or strike lost');
+  }
+  await capture('markdown-inline-presentation.png');
+  writeFileSync(join(directory, 'markdown-presentation-report.json'), JSON.stringify({ rawHtmlWhitespace: true, nestedListsBoldStrike: true, underlineColor: true, originalSourcePreserved: true, saveReopenRichEdit: true }, null, 2));
   for (const [kind, sample] of [
     ['image', '![Offline image](https://example.com/picture.png "Caption")'],
     ['embedded', '![Pixel](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==)'],

@@ -1,4 +1,8 @@
 import { Onboarding } from './onboarding';
+import { firstValueFrom } from 'rxjs';
+import { NoteContextDialog } from './note-context-dialog';
+import { contextText,type ContextKey } from './context-i18n';
+import type { NoteSummary } from '../../shared/library';
 import { InformationDialog, type InformationPage } from './information-dialog';
 import { informationText, type InformationKey } from './information-i18n';
 import { UiFailure } from './ui-failure';
@@ -74,6 +78,37 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.writingDialogs.open(FolderBulkDialog,{data:{locale:this.locale(),folderId:this.workspace.query().folderId??null,folders:()=>this.workspace.folderRows(),current:()=>this.workspace.status()?.libraryId===libraryId&&(!this.workspace.status()?.security?.configured||!!this.workspace.status()?.security?.unlocked),prepare:()=>this.workspace.releaseSelection(),refresh:async()=>{await this.workspace.refresh();}},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'760px',maxWidth:'calc(100vw - 32px)',ariaLabel:this.bulkLabel(),restoreFocus:true,disableClose:true});
   }
   private readonly writingDialogs = inject(Dialog);
+  contextLabel(key:ContextKey):string{return contextText(this.locale(),key);}
+  contextBusy():boolean{return this.composing||this.workspace.switching()||this.workspace.exitLocked();}
+  async noteContextAction(action:'rename'|'duplicate'|'delete'|'move'|'tags',note:NoteSummary,libraryId:string):Promise<void>{
+    if(this.contextBusy()||this.workspace.status()?.libraryId!==libraryId)return;
+    await this.workspace.select(note.id);if(this.workspace.session()?.note.id!==note.id)return;
+    if(action==='delete'){await this.workspace.lifecycleAction('trash');return;}
+    if(action==='duplicate'){await this.workspace.duplicateNote((this.workspace.title().slice(0,260)+this.contextLabel('copySuffix')).slice(0,300));return;}
+    const current=this.workspace.session()!.note;
+    const answer=await firstValueFrom(this.writingDialogs.open<string|string[]>(NoteContextDialog,{data:{action,locale:this.locale(),title:this.workspace.title(),folderId:current.folderId,tagIds:current.tagIds,folders:this.workspace.folderRows(),tags:this.workspace.sortedTags()},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'480px',maxWidth:'calc(100vw - 32px)',ariaLabelledBy:'note-context-title',restoreFocus:false}).closed);
+    if(answer===undefined||this.workspace.status()?.libraryId!==libraryId||this.workspace.session()?.note.id!==note.id)return;
+    if(action==='rename'&&typeof answer==='string'){this.workspace.updateTitle(answer);await this.workspace.manualSave();}
+    else if(action==='move'&&typeof answer==='string')await this.workspace.place({folderId:answer||null});
+    else if(action==='tags'&&Array.isArray(answer))await this.workspace.place({tagIds:[...new Set([...this.workspace.session()!.note.tagIds,...answer])]});
+  }
+  private editContext?:{element:HTMLElement;range:Range|null;start:number;end:number;noteId:string;libraryId:string;source:boolean;selected:boolean};
+  readonly editContextSelection=signal(false);
+  private readonly captureEditContext=(event:Event)=>{
+    const target=event.target;if(!(target instanceof HTMLElement))return;
+    const element=target.closest<HTMLElement>('[data-testid=body-source],.ql-editor');if(!element||!this.workspace.session()||this.workspace.switching()||this.composing)return;
+    const source=element instanceof HTMLTextAreaElement,start=source?element.selectionStart:0,end=source?element.selectionEnd:0,selection=window.getSelection();
+    const range=!source&&selection?.rangeCount&&element.contains(selection.anchorNode)&&element.contains(selection.focusNode)?selection.getRangeAt(0).cloneRange():null;
+    const selected=source?end>start:!!range&&!range.collapsed;this.editContextSelection.set(selected);
+    this.editContext={element,range,start,end,source,selected,noteId:this.workspace.session()!.note.id,libraryId:this.workspace.status()!.libraryId};
+  };
+  async editContextAction(action:'cut'|'copy'|'paste'|'selectAll'):Promise<void>{
+    const context=this.editContext;if(!context||!context.element.isConnected||this.workspace.switching()||this.composing||this.workspace.exitLocked()||context.noteId!==this.workspace.session()?.note.id||context.libraryId!==this.workspace.status()?.libraryId)return;
+    context.element.focus({preventScroll:true});
+    if(context.source)(context.element as HTMLTextAreaElement).setSelectionRange(context.start,context.end);
+    else if(context.range){const selection=window.getSelection();selection?.removeAllRanges();selection?.addRange(context.range);}
+    try{await window.notebookAid.editCommand(action);}catch{this.fileMessage.set(this.t('failed'));}
+  }
   informationLabel(key:InformationKey):string{return informationText(this.locale(),key);}
   showInformation(page:InformationPage):void{
     const ref=this.writingDialogs.open(InformationDialog,{data:{page,locale:this.locale(),version:this.runtime()?.version??'—'},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'720px',maxWidth:'calc(100vw - 32px)',ariaLabelledBy:'information-title',autoFocus:'[data-testid=information-close]',restoreFocus:false});
@@ -356,7 +391,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
     effect(() => { if (this.tab() !== 'editor' || !this.workspace.session()) this.editorFullscreen.set(false); });
     effect(() => { this.tab(); this.tagMenuNote(); this.tagMenuOpen.set(false); });
-    effect(() => { this.tab(); this.sourceMode(); this.editorToolsOpen.set(false); this.exportMenuOpen.set(false); });
+    effect(() => { this.tab(); this.sourceMode(); this.workspace.opened();this.editContext=undefined;this.editContextSelection.set(false);this.editorToolsOpen.set(false); this.exportMenuOpen.set(false); });
     effect(() => { this.theme(); this.locale(); this.applyTheme(); });
     effect(() => { if (this.prefs.ready()) void window.notebookAid.uiZoom(this.prefs.state().global.zoomPercent ?? 100).catch(() => this.uiFailure.visible.set(true)); });
     effect(() => { if (this.ready() && this.prefs.ready() && this.runtime()?.onboardingAutoStart && (this.workspace.status() || this.workspace.libraryUnavailable()) && !this.workspace.switching() && !this.workspace.exitLocked() && !this.notifications.drawerOpen()) untracked(()=>this.onboarding.offer()); });
@@ -403,12 +438,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.editor.on('editor-change', () => this.updateEditorContext());
     this.localizeEditor();
     this.onboarding.attach({prepare:()=>{this.editorFullscreen.set(false);this.newNoteMenuOpen.set(false);this.folderTrigger?.close();this.tagMenuOpen.set(false);this.editorToolsOpen.set(false);this.exportMenuOpen.set(false);this.tab.set('editor');},settings:()=>{this.tab.set('settings');this.settingsPanel?.section.set('global');requestAnimationFrame(()=>document.querySelector('[data-testid=onboarding-settings]')?.scrollIntoView({block:'center'}));},available:()=>this.ready()&&!this.workspace.switching()&&!this.workspace.exitLocked()&&!this.notifications.drawerOpen()&&!this.composing});
+    document.addEventListener('contextmenu',this.captureEditContext,true);
     this.ready.set(true);
     void this.workspace.init();
     void window.notebookAid.library.backups().then(result => { if (result.ok) this.missedBackup.set(result.value.missed.length > 0); }).catch(() => {});
     window.notebookAid.runtime().then(value => this.runtime.set(value)).catch(() => this.sqliteResult.set(this.t('failed')));
   }
   ngOnDestroy(): void {
+    document.removeEventListener('contextmenu',this.captureEditContext,true);
     this.onboarding.stop();
     this.stopDesktopTarget();
     document.removeEventListener('pointerdown', this.closeEditorMenus);
