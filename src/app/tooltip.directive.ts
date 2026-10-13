@@ -20,7 +20,8 @@ export class TooltipDirective implements OnChanges, OnDestroy {
     this.ref = this.overlay.create({
       panelClass: 'sidebar-tooltip-overlay',
       positionStrategy: this.overlay.position().flexibleConnectedTo(this.element).withPositions([
-        { originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center', offsetX: 12 }
+        { originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center', offsetX: 12 },
+        { originX: 'start', originY: 'center', overlayX: 'end', overlayY: 'center', offsetX: -12 }
       ]).withPush(true),
       scrollStrategy: this.overlay.scrollStrategies.close()
     });

@@ -3,6 +3,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { regionalLocale, translations, type Locale } from '../src/app/i18n';
 import { uiText } from '../src/app/ui-i18n';
+import { informationText } from '../src/app/information-i18n';
+import { projectLicense } from '../src/app/project-license';
 
 export async function smokeUi(window: BrowserWindow, directory: string): Promise<void> {
   const run = (script: string) => window.webContents.executeJavaScript(script);
@@ -22,6 +24,37 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
     if (!result.ok || result.value.note.body!=='T14 unchanged body') throw Error('UI changes altered note data');
     writeFileSync(join(directory,'ui-reopen.json'),JSON.stringify({zoomRestored:true,contentPreserved:true})); return;
   }
+  await until("!!document.querySelector('[data-testid=backup-missed]')");
+  if(!await run("(()=>{const warning=document.querySelector('[data-testid=backup-missed]'),text=warning.querySelector('span').getBoundingClientRect(),button=warning.querySelector('button').getBoundingClientRect();return Math.abs(text.top+text.height/2-button.top-button.height/2)<.5;})()"))throw Error('Backup reminder and button are misaligned');
+  await click('backup-missed-settings');await until("!document.querySelector('[data-testid=backup-missed]')");
+  await run("window.__tooltipIds=new Set();window.__tooltipObserver=new MutationObserver(()=>document.querySelectorAll('.sidebar-tooltip-overlay').forEach(node=>window.__tooltipIds.add(node.id)));window.__tooltipObserver.observe(document.body,{childList:true,subtree:true});");
+  const menuPoint=await run("(()=>{const rect=document.querySelector('[data-testid=application-menu]').getBoundingClientRect();return{x:Math.round(rect.left+rect.width/2),y:Math.round(rect.top+rect.height/2)};})()");
+  window.webContents.sendInputEvent({type:'mouseMove',x:10,y:100});
+  window.webContents.sendInputEvent({type:'mouseMove',...menuPoint});await new Promise(resolve=>setTimeout(resolve,900));
+  if(!await run(`document.querySelector('[data-testid=application-menu]').contains(document.elementFromPoint(${menuPoint.x},${menuPoint.y}))&&window.__tooltipIds.size===0`))throw Error('Menu has an unexpected tooltip or intercepts the pointer');
+  window.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,...menuPoint});window.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,...menuPoint});
+  await until("document.querySelectorAll('.application-menu [role=menuitem]').length===4");
+  if(!await run("(()=>{const theme=document.querySelector('[data-select-trigger=theme]'),trigger=document.querySelector('[data-testid=application-menu]'),items=[...document.querySelectorAll('.application-menu [role=menuitem]')];return trigger.textContent.trim()==='应用菜单'&&!!trigger.querySelector('svg')&&getComputedStyle(trigger).fontSize===getComputedStyle(theme).fontSize&&items.every(item=>getComputedStyle(item).fontSize===getComputedStyle(theme).fontSize&&item.querySelector('svg').getBoundingClientRect().height===14)&&document.querySelector('[data-testid=menu-about]').textContent.trim()==='关于';})()"))throw Error('Menu label or size differs from the theme control');
+  window.showInactive();await run('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');await new Promise(resolve=>setTimeout(resolve,200));writeFileSync(join(directory,'application-menu.png'),(await window.webContents.capturePage()).toPNG());
+  await run("window.__tooltipObserver.disconnect();delete window.__tooltipObserver;delete window.__tooltipIds;document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',keyCode:27,bubbles:true,cancelable:true}));");await until("!document.querySelector('.application-menu')");
+  window.webContents.sendInputEvent({type:'mouseMove',x:10,y:100});
+  await click('application-menu');await click('menu-settings');await click('settings-global');await until("document.querySelector('[data-testid=interface-settings]').getClientRects().length>0");
+  for(const locale of Object.keys(translations) as Locale[]){
+    await updateSelect('language',locale);await until(`document.documentElement.lang===${JSON.stringify(regionalLocale(locale))}`);
+    for(const page of ['license','privacy','about'] as const){
+      await click('application-menu');await until("document.querySelectorAll('.application-menu [role=menuitem]').length===4");
+      await click('menu-'+page);await until(`document.querySelector('[data-testid=information-dialog]')?.dataset.page===${JSON.stringify(page)}`);
+      if(!await run(`document.querySelector('#information-title').textContent===${JSON.stringify(informationText(locale,page))}`))throw Error('Information title not localized');
+      if(page==='license'&&!await run(`document.querySelector('.license-text').textContent===${JSON.stringify(projectLicense)}`))throw Error('License text changed');
+      if(page==='privacy'&&!await run(`document.querySelector('[data-testid=information-dialog]').textContent.includes(${JSON.stringify(informationText(locale,'privacyAi'))})`))throw Error('Privacy content not localized');
+      if(page==='about'&&!await run(`document.querySelector('[data-testid=information-version]').textContent===${JSON.stringify((await run('window.notebookAid.runtime()')).version)}`))throw Error('About version is stale');
+      await until("document.activeElement?.dataset.testid==='information-close'");
+      if(locale==='zh-CN'){window.showInactive();await run("document.querySelectorAll('[data-testid=notification] .notification-card-top button').forEach(button=>button.click());new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");await new Promise(resolve=>setTimeout(resolve,200));writeFileSync(join(directory,'information-'+page+'.png'),(await window.webContents.capturePage()).toPNG());}
+      await run("document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',keyCode:27,bubbles:true,cancelable:true}))");await until("!document.querySelector('[data-testid=information-dialog]')");
+      await until("document.activeElement?.dataset.testid==='application-menu'");
+    }
+  }
+  await updateSelect('language','zh-CN');
   await click('skip-content'); await until("document.activeElement.id==='main-content'");
   await key('n',false,true); if (await run("!!document.querySelector('#new-note-formats')")) throw Error('Composition shortcut was handled');
   await key('n'); await until("document.activeElement?.dataset.testid==='create-markdown'");
@@ -83,5 +116,5 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   try { await window.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]}); if (!await run("getComputedStyle(document.querySelector('[data-testid=settings-global]')).transitionDuration==='0s'")) throw Error('Reduced motion ignored'); }
   finally { window.webContents.debugger.detach(); }
   writeFileSync(join(directory,'ui-expected.json'),JSON.stringify({id:note.id}));
-  writeFileSync(join(directory,'ui-report.json'),JSON.stringify({languages:8,themes:2,systemTheme:true,fullscreen:true,contentPreserved:true,shortcuts:true,compositionGuard:true,dialogGuard:true,comboboxKeyboard:true,zoom:true,zoomValidation:true,primaryContrast:true,reducedMotion:true,namedControls:true,skipContent:true,safeError:true,physicalKeyboardTested:false,screenReaderTested:false}));
+  writeFileSync(join(directory,'ui-report.json'),JSON.stringify({menuLabelVisible:true,menuTooltipAbsent:true,menuSizeMatchesTheme:true,menuPointerHoverStable:true,menuPointerClick:true,applicationMenu:true,informationPages:3,informationLanguages:8,licenseComplete:true,aboutRuntimeVersion:true,dialogFocusRestored:true,backupReminderAligned:true,languages:8,themes:2,systemTheme:true,fullscreen:true,contentPreserved:true,shortcuts:true,compositionGuard:true,dialogGuard:true,comboboxKeyboard:true,zoom:true,zoomValidation:true,primaryContrast:true,reducedMotion:true,namedControls:true,skipContent:true,safeError:true,physicalKeyboardTested:false,screenReaderTested:false}));
 }

@@ -32,7 +32,9 @@
 | T11 | ChatGPT 订阅登录、Gemini／Claude API Key、模型与连接管理 | 已批准 | 2026-10-12：用户明确账户标签修改完成后验收 T11 并开始 T12；修正已完成并交付 |
 | T12 | AI 辅助写作、翻译保存、编辑格式、手动摘要及版本冲突处理 | 已批准 | 2026-10-13：用户明确“验收T12，开始T13，完成后打包并更新测试目录，等我验收”； 2026-10-12：用户明确“好的，修改完成后验收T11，开始T12”；T11 修正交付并提交 c731b10 后开工，T12 检查通过不等于验收 |
 | T13 | Tasks ICS 导入预览、字段映射、日期时区、去重与异常报告 | 已批准 | 2026-10-13：用户明确“验收T12，开始T13，完成后打包并更新测试目录，等我验收” |
-| T14 | 八语言、主题、快捷键、可访问性、缩放及统一异常体验 | 已批准 | 2026-10-13：用户明确“验收T13，开始T14，完成后打包并更新测试目录，等我验收。” |
+| T14 | 八语言、主题、快捷键、可访问性、缩放及统一异常体验 | 已批准 | 2026-10-13：用户明确“验收T14，暂时不进行下个任务”；已提交 11bca74 |
+| T14-A | 新手引导：聚光灯、进度、完成抑制与设置控制 | 已批准 | 2026-10-13：用户明确“验收新手引导和应用菜单” |
+| T14-B | 顶部应用菜单、许可证／隐私／关于及备份提示对齐 | 已批准 | 2026-10-13：用户明确“验收新手引导和应用菜单” |
 | T15-A | Windows 桌面新建笔记入口：ShellNew 可行性验证、单实例新建、本地化文字与图标、注册及撤销（R39） | 待开发，安排在 T14 后、T15 发布验收前 | 新需求已记录，待逐项授权 |
 | T15 | Windows x64 安装包与 XPI、桥接注册、升级恢复、真实环境发布验收及许可清单 | 待开发 | 无 |
 
@@ -837,3 +839,29 @@ T14 ZIP 已生成，SHA256 82e21af414c0bf0430284584fe98ecf342709b546a1f59457d458
 用户确认已完全退出后，T14 0.14.0-t14.0 已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64：verified=true、backupCreated=false、bridgeManifestsRestored=2。ZIP SHA256 82e21af414c0bf0430284584fe98ecf342709b546a1f59457d4589560f9eecc5，保留 T13.4 ZIP 作为程序回滚来源；设置回退兼容步骤见 t14-testing.md。T14 待用户验收，未提交，T15-A 未开始。
 
 2026-10-13 用户明确“验收T14，暂时不进行下个任务”，T14 获批；随后单独批准新手引导预览并授权按预览实现，完成后打包部署并等待验收。T15-A 继续待授权。T14 准备提交本地 main，新增引导不混入已验收提交。
+
+T14 已依用户明确验收提交本地 main：11bca74。T14-A 为单独授权的新手引导，使用 Driver.js 1.9.0（MIT），已核对 npm 元数据及安装包 license；完成状态和进度通过本地设置核心保存，不传递笔记内容，不从 CDN 载入，不自动创建／导入笔记或调用 AI。开发专项 output/onboarding-packaged/1791909658152 四次进程验证通过，16 项设置／语言／状态检查通过。初次构建的资产复制因沙箱 EPERM 失败，允许后构建通过。新任务仍待验收，T15-A 未开始。
+
+新手引导最终便携专项 output/onboarding-packaged/1791910072584 的首次／暂停重启继续／完成抑制／关闭抑制四次进程均通过，包含折叠侧栏及 200% 缩放。T14 界面回归 output/ui-packaged/1791910085961 及重启通过，虚拟 Passkey 门禁 output/passkey-packaged/1791910094108 通过；16 项设置／状态／语言核心检查通过。最终运行时、前端与构建逐字节一致，DRIVER-JS-LICENSE.txt 与安装包原件一致。实体输入法、Narrator、Win10、真实 iPhone 未测试。等待综合回归与部署，不提交本次新手引导，不开始 T15-A。
+
+新手引导最终便携综合界面及进程重启通过 output/smoke-packaged/1791910095598，consoleErrors=[]，未出现未处理界面异常；编辑、设置、导入、通知和保存失败保留等回归通过。普通测试隔离夹具关闭自动提示以保持测试上下文，引导专项使用启用自动提示的实际同一入口。用户真实设置／笔记／凭据未被测试操作，功能等待用户验收。
+
+新手引导 0.14.1-onboarding.0 已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64：verified=true、backupCreated=false、bridgeManifestsRestored=2。保留 ZIP SHA256 f9bd3c756ee30e667cc00ad68fe42de8720c5e17ba0c218b89c881089eb615b1，回滚使用 0.14.0-t14.0 ZIP 并按 onboarding-testing.md 处理设置字段。T14 已提交 11bca74；新手引导 T14-A 等待用户验收，未提交，未开始 T15-A。
+
+2026-10-13 T14-A 验收修正 0.14.1-onboarding.1：用户报告教学按钮图标与文字错位、关闭按钮紫色外框。修正 Driver.js 内联 display 覆盖及导航组选择器，统一图标和文字居中，关闭按钮使用无外框的键盘焦点背景。构建、16 项设置／状态／语言检查及开发／便携四进程引导专项通过（便携 output/onboarding-packaged/1791912264589）；新增实际 DOM 对齐与关闭外框检查，覆盖浅深主题、各步及 200% 缩放。仍待用户验收，不提交，不启动下一任务。
+
+0.14.1-onboarding.1 已更新 C:\Softwares\NotebookAid-win32-x64，部署 verified=true、backupCreated=false、bridgeManifestsRestored=2。保留 ZIP SHA256 07d4b93ced58d65ea7ab3defed590b07a38ab53c1c46b008332a39b72dda11cf；当前 renderer 的五个 JS／CSS／HTML 文件及引导测试／主进程 Runtime 与 ASAR 逐字节一致，Driver.js 许可证一致。本次只修正当前引导验收，尚未提交；需要回退时完全退出应用后用保留的 0.14.1-onboarding.0 ZIP 恢复程序文件，设置无需变更。
+
+2026-10-13 T14-B 0.14.2-menu.0 已实现主题选择器后的应用菜单、许可证／隐私／关于 CDK 弹窗及设置入口，备份错过提示与按钮垂直居中。用户补充“关于页面用于显示软件版本信息和作者信息等常用内容”，已显示实际版本、作者、邮箱、Slogan 及版权。许可证与本地 LICENSE 完全一致，第三方声明文件存在；隐私内容依据现有本地核心、AI 与桥接实现。七项界面／语言／引导检查通过；最终便携界面及重启 output/ui-packaged/1791919415127 通过，含八语言菜单与信息内容、焦点恢复、许可文本及版本核对、备份提示居中与编辑内容保留；引导四进程回归 output/onboarding-packaged/1791919329640 通过。关于、隐私及许可证截图已查看，实际键盘、Narrator、多显示器未验证。
+
+已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64，verified=true、backupCreated=false、bridgeManifestsRestored=2；ZIP SHA256 0673543b15f4c32e967758042eb9d6faa132d5f660c52df6021a3b1890357e24。前端与相关 Runtime 同最终构建逐字节一致。T14-A、T14-B 均待用户验收，不提交、不推进 T15-A。回退时完全退出，用保留的 0.14.1-onboarding.1 ZIP 恢复程序文件，设置及笔记架构无需变更。
+
+2026-10-13 T14-B 验收修正 0.14.2-menu.1：用户报告菜单悬停文字闪烁、无法点击。Electron 鼠标事件复现旧版失败 output/ui-packaged/1791920051916；原因是右边缘推回的 tooltip pane 拦截指针。提示层 pane 设为 pointer-events:none，并添加左侧位置备选，未改变正常菜单交互。开发版 output/ui-packaged/1791920092062 及最终便携版 output/ui-packaged/1791920216460 界面／重启通过，新增悬停稳定、指针命中及鼠标事件点击打开菜单检查，八语言信息页和既有界面回归通过。前端及 UI Runtime 同构建逐字节一致；实体鼠标和多显示器需用户验收。
+
+0.14.2-menu.1 已更新测试目录，verified=true、backupCreated=false、bridgeManifestsRestored=2；保留 ZIP SHA256 8d6367c8d3e9712b01223af55ee7a4b28d290008c994385843850b49fcb1c182。需要回退时完全退出后恢复 0.14.2-menu.0 ZIP，无需修改设置。当前 T14-A／T14-B 仍待验收，未提交或开始下一任务。
+
+2026-10-13 T14-B 0.14.2-menu.2：依用户要求菜单按钮直接显示图标＋“应用菜单”，移除 Tooltip；菜单文字与主题选择器同为 11px，菜单项图标缩小至 14px，关于入口及标题缩短为“关于”，八语言同步。开发 output/ui-packaged/1791921021125、最终便携 output/ui-packaged/1791921147465 的界面／重启通过，新增入口文字、无 Tooltip、计算字号一致、图标尺寸及鼠标点击检查，实际截图已查看；前端与相关 Runtime 同构建逐字节一致，git diff --check 通过。实体键盘／鼠标及 Narrator 未验证。
+
+ZIP SHA256 81ec6fb4cf56f457945e518ad6202e58077318ce74f5a17a4e6b3e19f0038f64 已保留。Prepare-TestPortable.ps1 检测到 NotebookAid 或原生辅助进程仍在运行并安全停止；未更新测试目录、未强制终止进程。已请用户完全退出后继续部署。T14-A／T14-B 仍待验收，未提交或开始下一任务。
+
+用户确认“已完全退出，请继续更新”后，0.14.2-menu.2 已通过 Prepare-TestPortable.ps1 更新 C:\Softwares\NotebookAid-win32-x64：verified=true、backupCreated=false、bridgeManifestsRestored=2。部署 ZIP SHA256 81ec6fb4cf56f457945e518ad6202e58077318ce74f5a17a4e6b3e19f0038f64。等待用户验收；未提交或开始下一任务。回退可完全退出后恢复保留的 0.14.2-menu.1 ZIP，设置无需修改。

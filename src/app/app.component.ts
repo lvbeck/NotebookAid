@@ -1,3 +1,6 @@
+import { Onboarding } from './onboarding';
+import { InformationDialog, type InformationPage } from './information-dialog';
+import { informationText, type InformationKey } from './information-i18n';
 import { UiFailure } from './ui-failure';
 import { errorText, uiText, type UiKey } from './ui-i18n';
 import { nextZoom } from '../../shared/ui';
@@ -71,6 +74,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.writingDialogs.open(FolderBulkDialog,{data:{locale:this.locale(),folderId:this.workspace.query().folderId??null,folders:()=>this.workspace.folderRows(),current:()=>this.workspace.status()?.libraryId===libraryId&&(!this.workspace.status()?.security?.configured||!!this.workspace.status()?.security?.unlocked),prepare:()=>this.workspace.releaseSelection(),refresh:async()=>{await this.workspace.refresh();}},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'760px',maxWidth:'calc(100vw - 32px)',ariaLabel:this.bulkLabel(),restoreFocus:true,disableClose:true});
   }
   private readonly writingDialogs = inject(Dialog);
+  informationLabel(key:InformationKey):string{return informationText(this.locale(),key);}
+  showInformation(page:InformationPage):void{
+    const ref=this.writingDialogs.open(InformationDialog,{data:{page,locale:this.locale(),version:this.runtime()?.version??'—'},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'720px',maxWidth:'calc(100vw - 32px)',ariaLabelledBy:'information-title',autoFocus:'[data-testid=information-close]',restoreFocus:false});
+    ref.closed.subscribe(()=>requestAnimationFrame(()=>{if(!this.writingDialogs.openDialogs.length&&!this.onboarding.active())document.querySelector<HTMLElement>('[data-testid=application-menu]')?.focus({preventScroll:true});}));
+  }
   writingLabel(): string { return writingText(this.locale(), 'title'); }
   formatLabel(key:'underline'|'strike'|'color'|'background'):string{return writingText(this.locale(),key);}
   async openWriting(): Promise<void> {
@@ -103,6 +111,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.writingDialogs.open(WritingDialog,{data,panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'760px',maxWidth:'calc(100vw - 32px)',ariaLabel:this.writingLabel(),restoreFocus:true});
   }
   readonly missedBackup = signal(false);
+  showMissedBackupSettings():void{const status=this.workspace.status();if(status)this.showLibrarySettings(status.libraryId);else this.tab.set('settings');this.missedBackup.set(false);}
   backupLabel(key: 'missed' | 'settings'): string { return backupText(this.locale(), key); }
   private readonly dialogs = inject(AppDialogs);
   readonly workspace = inject(NoteWorkspace);
@@ -292,7 +301,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly compositionStart = () => { this.composing = true; this.workspace.setComposing(true); };
   readonly compositionEnd = () => { this.composing = false; this.record(); this.workspace.setComposing(false); };
   private readonly keyboard = (event: KeyboardEvent) => {
-    if (event.isComposing || event.defaultPrevented || this.dialogs.opened || this.writingDialogs.openDialogs.length || this.workspace.exitLocked()) return;
+    if (this.onboarding.active() || event.isComposing || event.defaultPrevented || this.dialogs.opened || this.writingDialogs.openDialogs.length || this.workspace.exitLocked()) return;
     const overlay = !!document.querySelector('.cdk-overlay-pane:not(.notification-overlay):not(.sidebar-tooltip-overlay)');
     if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.repeat && !overlay && !this.notifications.drawerOpen() && !this.workspace.switching()) {
       const key = event.key.toLowerCase();
@@ -350,6 +359,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     effect(() => { this.tab(); this.sourceMode(); this.editorToolsOpen.set(false); this.exportMenuOpen.set(false); });
     effect(() => { this.theme(); this.locale(); this.applyTheme(); });
     effect(() => { if (this.prefs.ready()) void window.notebookAid.uiZoom(this.prefs.state().global.zoomPercent ?? 100).catch(() => this.uiFailure.visible.set(true)); });
+    effect(() => { if (this.ready() && this.prefs.ready() && this.runtime()?.onboardingAutoStart && (this.workspace.status() || this.workspace.libraryUnavailable()) && !this.workspace.switching() && !this.workspace.exitLocked() && !this.notifications.drawerOpen()) untracked(()=>this.onboarding.offer()); });
+    effect(() => { if(this.workspace.exitLocked() && this.onboarding.active()) untracked(()=>this.onboarding.stop()); });
     effect(() => { if (this.workspace.libraryUnavailable()) this.tab.set('libraries'); });
     effect(() => {
       const ready = this.ready(); this.workspace.opened();
@@ -391,12 +402,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.editor.on('text-change', this.onEditorChange);
     this.editor.on('editor-change', () => this.updateEditorContext());
     this.localizeEditor();
+    this.onboarding.attach({prepare:()=>{this.editorFullscreen.set(false);this.newNoteMenuOpen.set(false);this.folderTrigger?.close();this.tagMenuOpen.set(false);this.editorToolsOpen.set(false);this.exportMenuOpen.set(false);this.tab.set('editor');},settings:()=>{this.tab.set('settings');this.settingsPanel?.section.set('global');requestAnimationFrame(()=>document.querySelector('[data-testid=onboarding-settings]')?.scrollIntoView({block:'center'}));},available:()=>this.ready()&&!this.workspace.switching()&&!this.workspace.exitLocked()&&!this.notifications.drawerOpen()&&!this.composing});
     this.ready.set(true);
     void this.workspace.init();
     void window.notebookAid.library.backups().then(result => { if (result.ok) this.missedBackup.set(result.value.missed.length > 0); }).catch(() => {});
     window.notebookAid.runtime().then(value => this.runtime.set(value)).catch(() => this.sqliteResult.set(this.t('failed')));
   }
   ngOnDestroy(): void {
+    this.onboarding.stop();
     this.stopDesktopTarget();
     document.removeEventListener('pointerdown', this.closeEditorMenus);
     this.editor?.off('text-change', this.onEditorChange);
@@ -408,6 +421,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     window.removeEventListener('keydown', this.keyboard, true);
   }
   focusMain(): void { document.getElementById('main-content')?.focus(); }
+  readonly onboarding = inject(Onboarding);
   readonly uiFailure = inject(UiFailure);
   ui(key: UiKey): string { return uiText(this.locale(), key); }
   errorText(code: string): string { return errorText(this.locale(), code); }

@@ -26,16 +26,16 @@ export class Preferences {
       this.state.set(result.value); this.ready.set(true); this.error.set('');
     });
   }
-  update(patch: GlobalSettingsPatch): Promise<void> { return this.save(() => window.notebookAid.library.updateSettings(patch)); }
+  update(patch: GlobalSettingsPatch, notify = true): Promise<void> { return this.save(() => window.notebookAid.library.updateSettings(patch), notify); }
   override(id: string, patch: Partial<AutosaveSettings> | null): Promise<void> {
     return this.save(() => window.notebookAid.library.librarySettings(id, patch === null ? null : { ...(this.state().libraries[id] ?? this.state().global.autosave), ...patch }));
   }
-  private save(action: () => ReturnType<typeof window.notebookAid.library.updateSettings>): Promise<void> {
+  private save(action: () => ReturnType<typeof window.notebookAid.library.updateSettings>, notify = true): Promise<void> {
     return this.enqueue(async () => {
       if (!this.ready()) return;
       const result = await action();
       if (!result.ok) { this.error.set(result.code); void this.notices.publish('settingsFailed', 'settings'); return; }
-      this.state.set(result.value); this.error.set(''); void this.notices.publish('settingsSaved', 'settings');
+      this.state.set(result.value); this.error.set(''); if (notify) void this.notices.publish('settingsSaved', 'settings');
     });
   }
 }

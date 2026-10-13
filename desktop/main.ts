@@ -4,6 +4,7 @@ import { registerAi } from './ai-ipc';
 import { registerWriting } from './writing-ipc';
 import { smokeAi } from './ai-smoke';
 import { smokeWriting } from './writing-smoke';
+import { smokeOnboarding } from './onboarding-smoke';
 import { smokeUi } from './ui-smoke';
 import { smokeTasks } from './tasks-smoke';
 import { smokeAddon } from './addon-smoke';
@@ -69,7 +70,7 @@ function applicationIcon(): Electron.NativeImage {
 }
 
 function runtime(): RuntimeInfo {
-  return { version: app.getVersion(), electron: process.versions.electron, node: process.versions.node,
+  return { onboardingAutoStart: !selfTest || process.env['NOTEBOOKAID_ONBOARDING_TEST'] === '1', version: app.getVersion(), electron: process.versions.electron, node: process.versions.node,
     chrome: process.versions.chrome, platform: `${process.platform} ${release()} ${process.arch}`, dataPath,
     packaged: app.isPackaged, pid: process.pid };
 }
@@ -242,6 +243,7 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if (process.env['NOTEBOOKAID_ONBOARDING_TEST'] === '1') { await smokeOnboarding(window,dataPath);await quitByUser(true);return; }
     if (process.env['NOTEBOOKAID_UI_TEST'] === '1') { await smokeUi(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_TASKS_TEST'] === '1') { await smokeTasks(window,dataPath);await quitByUser(true);return; }
 

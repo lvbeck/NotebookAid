@@ -1,6 +1,6 @@
-<button class="skip-link secondary" data-testid="skip-content" (click)="focusMain()"><app-icon name="ChevronRight" />{{ ui('skipContent') }}</button>
+<button class="skip-link secondary" data-testid="skip-content" [disabled]="onboarding.active()" (click)="focusMain()"><app-icon name="ChevronRight" />{{ ui('skipContent') }}</button>
 <app-notifications [locale]="locale()" />
-<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()" [class.editor-fullscreen]="editorFullscreen()" [attr.inert]="notifications.drawerOpen() || workspace.exitLocked() ? '' : null">
+<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()" [class.editor-fullscreen]="editorFullscreen()" [attr.inert]="onboarding.active() || notifications.drawerOpen() || workspace.exitLocked() ? '' : null">
   <aside class="sidebar">
     <div class="brand"><img class="brand-mark" src="assets/notebookaid-64.png" alt=""><strong>NotebookAid</strong></div>
     <p class="tagline">{{ t('tagline') }}</p>
@@ -76,11 +76,18 @@
         <select appSelect [attr.aria-label]="t('theme')" data-testid="theme" [ngModel]="theme()" (change)="setTheme($event)" [disabled]="prefs.busy() || !prefs.ready()">
           <option value="system">{{ t('system') }}</option><option value="light">{{ t('light') }}</option><option value="dark">{{ t('dark') }}</option>
         </select>
+        <button class="select-trigger application-menu-trigger" data-testid="application-menu" [cdkMenuTriggerFor]="applicationMenu" [attr.aria-label]="informationLabel('menu')"><app-icon name="Menu" /><span>{{informationLabel('menu')}}</span></button>
+        <ng-template #applicationMenu><div cdkMenu class="editor-table-menu application-menu" [attr.aria-label]="informationLabel('menu')">
+          <button cdkMenuItem data-testid="menu-license" (cdkMenuItemTriggered)="showInformation('license')"><app-icon name="FileText" />{{informationLabel('license')}}</button>
+          <button cdkMenuItem data-testid="menu-privacy" (cdkMenuItemTriggered)="showInformation('privacy')"><app-icon name="Shield" />{{informationLabel('privacy')}}</button>
+          <button cdkMenuItem data-testid="menu-settings" (cdkMenuItemTriggered)="tab.set('settings')"><app-icon name="Settings" />{{informationLabel('settings')}}</button>
+          <button cdkMenuItem data-testid="menu-about" (cdkMenuItemTriggered)="showInformation('about')"><app-icon name="BookOpen" />{{informationLabel('about')}}</button>
+        </div></ng-template>
       </div>
     </header>
     @if (uiFailure.visible()) { <div class="library-warning" role="alert" data-testid="ui-failure">{{ ui('unexpected') }} <button class="secondary" data-testid="ui-failure-dismiss" (click)="uiFailure.visible.set(false)"><app-icon name="X" />{{ ui('dismiss') }}</button></div> }
     <div class="preview-banner"><span>{{ t('preview') }}</span>{{ t('previewHint') }}</div>
-    @if (missedBackup()) { <div class="library-warning" role="status" data-testid="backup-missed">{{ backupLabel('missed') }} <button class="secondary" (click)="tab.set('settings'); missedBackup.set(false)"><app-icon name="Settings" />{{ backupLabel('settings') }}</button></div> }
+    @if (missedBackup()) { <div class="library-warning backup-missed-warning" role="status" data-testid="backup-missed"><span>{{ backupLabel('missed') }}</span><button class="secondary" data-testid="backup-missed-settings" (click)="showMissedBackupSettings()"><app-icon name="Settings" />{{ backupLabel('settings') }}</button></div> }
     @if (workspace.error()) { <div class="library-warning" role="alert">{{ t('saveFailed') }} · {{ errorText(workspace.error()) }} · {{ t(workspace.error() === 'INVALID_DELTA' || workspace.error() === 'UNSUPPORTED_DELTA' ? 'deltaInvalid' : 'draftRetained') }} <button class="secondary" (click)="workspace.manualSave()" [disabled]="workspace.saving()"><app-icon name="RefreshCw" />{{ t('retry') }}</button></div> }
     @if (workspace.status() && (!workspace.status()!.indexed || workspace.status()!.issues.length || workspace.status()!.pendingRecovery)) { <div class="library-warning">{{ t('recoveryNotice') }} {{ workspace.status()!.issues.join(', ') }} · {{ workspace.status()!.pendingRecovery }} <button class="secondary rebuild-button" data-testid="rebuild-index" (click)="workspace.rebuild()" [disabled]="workspace.rebuilding()"><app-icon name="RefreshCw" [class.spinning]="workspace.rebuilding()" />{{ t(workspace.rebuilding() ? 'rebuilding' : 'rebuild') }}</button></div> }
     @if (notifications.storageFailed()) { <div class="library-warning" role="status">{{ t('noticeStorageFailed') }} <button class="secondary" (click)="notifications.reload()" [disabled]="notifications.busy()"><app-icon name="RefreshCw" />{{ t('noticeReload') }}</button></div> }

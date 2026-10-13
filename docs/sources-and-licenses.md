@@ -83,3 +83,7 @@ T12 复用已安装 parse5 8.0.1（MIT）作为明确的运行依赖，在主进
 ## T13 iCalendar 解析
 
 新增锁定 ical.js 2.2.1，MPL-2.0；来自 https://github.com/kewisch/ical.js，使用官方提供的 CommonJS 构建及类型声明，未修改库文件。随程序打包完整依赖目录（含 lib 源码、dist、README、LICENSE），并另附 ICAL-LICENSE.txt，保留源代码与许可证。语义依据 RFC 5545 https://www.rfc-editor.org/rfc/rfc5545；应用只映射 VTODO 支持字段，不执行外部 URI、提醒或自动展开重复规则。不进行无关依赖升级。
+
+## 新手引导
+
+Driver.js 1.9.0，MIT，Copyright Kamran Ahmed。核对 node_modules/driver.js/package.json 和 license，源仓库 https://github.com/nilbuild/driver.js；配置依据 https://driverjs.com/docs/configuration，以安装包类型声明为实际版本依据。仅本地打包前端脚本和样式，保留 DRIVER-JS-LICENSE.txt 及渲染器第三方许可，不加载 CDN 或遥测。未修改库文件；未升级框架及无关依赖。

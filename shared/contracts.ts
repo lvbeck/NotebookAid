@@ -6,6 +6,7 @@ export interface ProbeResult {
 }
 
 export interface RuntimeInfo {
+  onboardingAutoStart: boolean;
   version: string;
   electron: string;
   node: string;

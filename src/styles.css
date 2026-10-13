@@ -1,4 +1,5 @@
 @import '@angular/cdk/overlay-prebuilt.css';
+@import 'driver.js/dist/driver.css';
 :root { color-scheme: light; --bg:#f6f6f9; --surface:#fff; --sidebar:#f0f0f6; --text:#252436; --muted:#6f6b80; --line:#e7e6ee; --accent:#7460c9; --accent-text:#fff; --accent-soft:#e9e4fa; --editor:#fff; --warning:#8a652b; font-family:'Segoe UI', 'Microsoft YaHei', sans-serif; }
 :root[data-theme=dark] { color-scheme:dark; --bg:#18181f; --surface:#22222c; --sidebar:#1d1d26; --text:#e6e5ee; --muted:#a19dac; --line:#353442; --accent:#b4a1f5; --accent-text:#241c38; --accent-soft:#39304e; --editor:#22222c; --warning:#e4bd7b; }
 * { box-sizing:border-box; }
@@ -14,6 +15,21 @@ app-icon { display:inline-flex; flex-shrink:0; align-items:center; }
 .brand { display:flex; align-items:center; gap:10px; font-size:19px; letter-spacing:-.4px; padding:0 8px; }
 .brand-mark { width:40px; height:40px; display:block; }
 .library-warning { padding:10px 24px; background:var(--surface); color:var(--warning); font-size:13px; }
+.backup-missed-warning { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.backup-missed-warning > button { margin:0; flex-shrink:0; }
+.application-menu-trigger { width:auto; flex-shrink:0; white-space:nowrap; }
+.application-menu { min-width:160px; }
+.application-menu.editor-table-menu button { font-size:11px; line-height:16px; gap:8px; padding:8px 12px; }
+.application-menu app-icon svg { display:block; width:14px; height:14px; }
+.information-dialog p { line-height:1.8; }
+.information-dialog h3 { margin:22px 0 12px; }
+.information-dialog .license-text { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:16px; font:12px/1.7 Consolas,monospace; }
+.information-dialog ul { padding-left:22px; font:12px/1.8 Consolas,monospace; overflow-wrap:anywhere; }
+.information-brand { display:flex; align-items:center; gap:16px; margin-top:24px; }
+.information-brand img { width:48px; height:48px; }
+.information-brand h3, .information-brand p { margin:0; }
+.information-dialog dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px 20px; }
+.information-dialog dd { margin:0; overflow-wrap:anywhere; }
 .note-card { margin-bottom:12px; }
 .note-list { overflow-y:auto; }
 .tagline { color:var(--muted); font-size:11px; margin:14px 8px 27px; letter-spacing:.5px; }
@@ -38,7 +54,7 @@ app-icon { display:inline-flex; flex-shrink:0; align-items:center; }
 .workspace { display:flex; flex-direction:column; min-width:0; flex:1; }
 .topbar { min-height:66px; display:flex; justify-content:space-between; align-items:center; padding:0 25px; border-bottom:1px solid var(--line); gap:12px; }
 .breadcrumb { display:flex; align-items:center; gap:13px; font-size:12px; color:var(--muted); }.breadcrumb b { color:var(--text); font-weight:500; }
-.preferences { display:flex; gap:8px; }.preferences .select-trigger { max-width:160px; background:var(--surface); color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font-size:11px; }
+.preferences { display:flex; align-items:center; gap:8px; }.preferences .select-trigger { max-width:160px; background:var(--surface); color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font-size:11px; }
 .preview-banner { padding:10px 25px; border-bottom:1px solid var(--line); font-size:11px; color:var(--muted); background:var(--surface); }
 .preview-banner span { color:var(--accent); font-weight:600; margin-right:14px; }
 .content { display:flex; flex:1; min-height:0; }
@@ -301,6 +317,7 @@ app-organization { flex:1; overflow:auto; }
 .sidebar-collapsed .folder-row .nav-item { margin-left:0; }
 .sidebar-collapsed .folder-tree { margin:10px 0; }
 .sidebar-exit { border-top:1px solid var(--line); margin-top:12px; }
+.sidebar-tooltip-overlay.cdk-overlay-pane { pointer-events:none; }
 .sidebar-tooltip { display:block; max-width:280px; overflow-wrap:anywhere; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text); box-shadow:0 4px 16px #0002; font-size:12px; pointer-events:none; }
 .new-note-formats { min-width:180px; box-shadow:0 8px 24px #0002; }
 .tag-filter-header { gap:6px; }
@@ -486,3 +503,22 @@ summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 
 .skip-link { position:fixed; inset:8px auto auto 8px; z-index:10000; transform:translateY(-200%); background:var(--surface); display:flex; align-items:center; gap:8px; }
 .skip-link:focus { transform:none; }
+
+.onboarding-prompt h3 { font-size:20px; margin:22px 0 12px; }
+.onboarding-prompt p { line-height:1.8; color:var(--muted); }
+.driver-popover.notebookaid-guide { background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:12px; padding:20px; width:320px; min-width:0; max-width:calc(100vw - 24px); max-height:calc(100vh - 24px); overflow:auto; box-shadow:0 16px 48px #17132b30; font-family:'Segoe UI','Microsoft YaHei',sans-serif; }
+.notebookaid-guide .driver-popover-title { font-size:20px; line-height:1.4; margin:14px 0 10px; }
+.notebookaid-guide .driver-popover-description { font-size:14px; line-height:1.8; color:var(--muted); }
+.notebookaid-guide .driver-popover-footer { margin-top:20px; }
+.notebookaid-guide .driver-popover-navigation-btns { float:none; display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
+.notebookaid-guide .driver-popover-navigation-btns button + button { margin-left:0; }
+.notebookaid-guide .driver-popover-footer button { float:none; display:inline-flex !important; align-items:center; justify-content:center; gap:6px; font:inherit; font-size:13px; line-height:18px; text-shadow:none; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--text); padding:9px 12px; }
+.notebookaid-guide .onboarding-button-label { display:block; line-height:18px; }
+.notebookaid-guide button.driver-popover-next-btn { background:var(--accent); border-color:var(--accent); color:var(--accent-text); }
+.onboarding-step-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.notebookaid-guide .driver-popover-progress-text { color:var(--accent); font-size:12px; }
+.notebookaid-guide button.driver-popover-close-btn { position:static; display:flex !important; align-items:center; justify-content:center; width:28px; height:28px; background:transparent; border:0; color:var(--muted); font-size:0; padding:4px; }
+.notebookaid-guide button svg { display:block; width:18px; height:18px; flex-shrink:0; }
+.notebookaid-guide .driver-popover-arrow { display:none; }
+.notebookaid-guide button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.notebookaid-guide button.driver-popover-close-btn:focus-visible, .onboarding-prompt header > .icon-button:focus-visible { outline:none; background:var(--accent-soft); }

@@ -1,6 +1,6 @@
 {
   "name": "notebookaid",
-  "version": "0.14.0-t14.0",
+  "version": "0.14.2-menu.2",
   "private": true,
   "description": "Local notes and writing assistant - T14 interface quality",
   "author": "Jin Lu <it@live.cn>",
@@ -25,6 +25,7 @@
     "@angular/platform-browser": "22.2.2",
     "@simplewebauthn/server": "14.0.3",
     "dompurify": "3.4.16",
+    "driver.js": "1.9.0",
     "highlight.js": "11.11.1",
     "ical.js": "2.2.1",
     "jose": "6.2.2",

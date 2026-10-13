@@ -1,3 +1,5 @@
+import { Onboarding } from './onboarding';
+import { onboardingText, type OnboardingKey } from './onboarding-i18n';
 import { zoomPercentages } from '../../shared/ui';
 import { uiText, errorText, type UiKey } from './ui-i18n';
 import { PasskeyComponent } from './passkey.component';
@@ -22,6 +24,9 @@ export class SettingsComponent {
   @Input() locale: Locale = 'zh-CN';
   @Input() active = false;
   readonly prefs = inject(Preferences);
+  readonly onboarding = inject(Onboarding);
+  guide(key: OnboardingKey): string { return onboardingText(this.locale,key,this.onboarding.state().step); }
+  async guideEnable(event: Event): Promise<void> { const input=event.target as HTMLInputElement;await this.onboarding.enable(input.checked);input.checked=this.onboarding.state().enabled; }
   readonly workspace = inject(NoteWorkspace);
   readonly notifications = inject(NotificationService);
   readonly section = signal('global');
