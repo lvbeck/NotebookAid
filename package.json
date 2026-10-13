@@ -1,8 +1,8 @@
 {
   "name": "notebookaid",
-  "version": "0.13.0-t13.4",
+  "version": "0.14.0-t14.0",
   "private": true,
-  "description": "Local notes and writing assistant - T13 Tasks ICS import",
+  "description": "Local notes and writing assistant - T14 interface quality",
   "author": "Jin Lu <it@live.cn>",
   "license": "BSD-3-Clause",
   "main": "dist/runtime/desktop/main.js",

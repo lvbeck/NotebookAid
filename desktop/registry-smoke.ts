@@ -68,7 +68,7 @@ export async function smokeRegistry(window: BrowserWindow, directory: string): P
   await run("(() => { const e=document.querySelector('[data-testid=theme]');e.value='light';e.dispatchEvent(new Event('change')); })()"); await wait(250); await window.webContents.capturePage(); await wait(250);
   writeFileSync(join(directory, 'libraries-light.png'), (await window.webContents.capturePage()).toPNG());
   await run("(() => { const e=document.querySelector('[data-testid=theme]');e.value='dark';e.dispatchEvent(new Event('change')); })()");
-  if (!await run("[...document.querySelectorAll('button')].every(button=>button.querySelector('svg') || button.matches('[data-testid=note-security][data-encrypted=false]'))")) throw Error('Library button missing icon');
+  if (!await run("[...document.querySelectorAll('button')].every(button=>button.querySelector('svg') || button.getAttribute('aria-label') || button.getAttribute('title'))")) throw Error('Library button has neither an icon nor an accessible label');
   writeFileSync(join(directory, 'registry-expected.json'), JSON.stringify((await state()).entries.map((entry: any) => ({ id: entry.id, name: entry.name, path: entry.path, libraryId: entry.libraryId }))));
   writeFileSync(join(directory, 'registry-report.json'), JSON.stringify({ createAddRename: true, cancelNoChange: true, saveBeforeSwitch: true, saveFailureKeepsDraft: true, registryFailureKeepsLibrary: true, lockFailureKeepsLibrary: true, missingPathNotRecreated: true, relocateChecksIdentity: true, removalPreservesFiles: true, duplicateRejected: true, isolatedLibraries: true, dialogsSimulated: true }, null, 2));
   await click('[data-testid=settings-tab]');

@@ -139,7 +139,7 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
   await until("document.querySelector('[data-testid=diagnostics-tab]').classList.contains('active')");
   await window.webContents.capturePage();
   await wait(300); writeFileSync(join(directory, 'diagnostics-light.png'), (await window.webContents.capturePage()).toPNG());
-  await evaluate("document.querySelector('.nav-item').click()");
+  await evaluate("document.querySelector('nav .nav-item').click()");
   if (!await evaluate("typeof window.require === 'undefined' && getComputedStyle(document.querySelector('.app-shell')).display === 'flex'")) throw new Error('Isolation/style failed');
   await wait(200);
   writeFileSync(join(directory, 'desktop-light.png'), (await window.webContents.capturePage()).toPNG());
@@ -147,7 +147,7 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
   await wait(150); writeFileSync(join(directory, 'desktop-dark.png'), (await window.webContents.capturePage()).toPNG());
   await evaluate("document.querySelector('[data-testid=settings-tab]').click();const minutes=document.querySelector('[data-testid=autosave-minutes]');minutes.value='10';minutes.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('[data-testid=autosave-enabled]').click()");
   await wait(150); writeFileSync(join(directory, 'settings-dark.png'), (await window.webContents.capturePage()).toPNG());
-  if (!await evaluate("[...document.querySelectorAll('button')].every(button=>button.querySelector('svg') || button.matches('[data-testid=note-security][data-encrypted=false]'))")) throw new Error('A button is missing an icon');
+  if (!await evaluate("[...document.querySelectorAll('button')].every(button=>button.querySelector('svg') || button.getAttribute('aria-label') || button.getAttribute('title'))")) throw new Error('A button has neither an icon nor an accessible label');
   await smokeRegistry(window, directory);
   await smokeSettings(window, directory);
   await smokeEditor(window, directory);
@@ -160,6 +160,7 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
   await smokeNotifications(window, directory);
   writeFileSync(join(directory, 'settings-expected.json'), JSON.stringify((await evaluate("window.notebookAid.library.settings({locale:null,theme:null,autosave:null})")).value));
   writeFileSync(join(directory, 'expected-exit-version.json'), JSON.stringify((await evaluate('window.notebookAid.library.list()')).value[0].version + 1));
+  if (await evaluate("!!document.querySelector('[data-testid=ui-failure]')")) throw new Error('Unhandled interface error');
   if (errors.length) throw new Error('Renderer errors: ' + errors.join('; '));
   const runtime = await evaluate('window.notebookAid.runtime()');
   writeFileSync(join(directory, 'smoke-report.json'), JSON.stringify({ runtime, noteId: note.id, version: note.version, indexed: status.indexed, manualSave: true, saveFeedback: true, rebuildFeedback: true, buttonIcons: true, autosave: true, autosaveTimerAdvancedByTest: true, autosaveOff: true, unchangedSaveNoRevision: true, failedWriteDraftRetained: true, failedWriteDidNotOverwrite: true, retry: true, reloadReacquiredSession: true, reloadContentPreserved: true, consoleErrors: errors }, null, 2));

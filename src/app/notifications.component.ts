@@ -1,3 +1,4 @@
+import { errorText } from './ui-i18n';
 import { SelectDirective } from './select.directive';
 import { AfterViewInit, Component, Input, OnDestroy, TemplateRef, ViewChild, ViewContainerRef, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -55,6 +56,7 @@ export class NotificationsComponent implements AfterViewInit, OnDestroy {
   }
   ngAfterViewInit(): void { this.ready.set(true); }
   ngOnDestroy(): void { this.cardsOverlay?.dispose(); this.historyOverlay?.dispose(); }
+  errorText(code: string): string { return errorText(this.locale, code); }
   t(key: MessageKey): string { return translate(this.locale, key); }
   icon(type: NotificationType): 'CircleCheck' | 'Info' | 'TriangleAlert' | 'CircleX' { return { success: 'CircleCheck', info: 'Info', warning: 'TriangleAlert', error: 'CircleX' }[type] as ReturnType<NotificationsComponent['icon']>; }
   label(type: NotificationType): string { return this.t(({ success: 'noticeSuccess', info: 'noticeInfo', warning: 'noticeWarning', error: 'noticeError' } as const)[type]); }

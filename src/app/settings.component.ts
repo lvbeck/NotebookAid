@@ -1,3 +1,5 @@
+import { zoomPercentages } from '../../shared/ui';
+import { uiText, errorText, type UiKey } from './ui-i18n';
 import { PasskeyComponent } from './passkey.component';
 import { writingText } from './writing-i18n';
 import { AiSettingsComponent } from './ai-settings.component';
@@ -28,6 +30,10 @@ export class SettingsComponent {
   readonly inherited = computed(() => !this.prefs.state().libraries[this.selectedId()]);
   readonly effective = computed(() => effectiveAutosave(this.prefs.state(), this.selectedId()));
   readonly languages = languages;
+  readonly zoomPercentages = zoomPercentages;
+  ui(key: UiKey): string { return uiText(this.locale, key); }
+  errorText(code: string): string { return errorText(this.locale, code); }
+  async zoom(event: Event): Promise<void> { const input = event.target as HTMLSelectElement; await this.prefs.update({ zoomPercent: Number(input.value) }); input.value = String(this.prefs.state().global.zoomPercent ?? 100); }
   readonly renaming = signal(false);
   readonly latestSchema = latestNotebookSchemaVersion;
   readonly upgrading = signal(false);

@@ -71,7 +71,10 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
       }
     }
     button.disabled = this.select.disabled || !options.some((_option, index) => this.enabled(index));
-    const name = this.select.getAttribute('aria-label') || this.select.closest('label')?.querySelector('span')?.textContent || this.label.textContent;
+    const associated = this.select.labels?.[0]?.cloneNode(true) as HTMLElement | undefined;
+    associated?.querySelectorAll('select,button,input').forEach(element => element.remove());
+    const name = this.select.getAttribute('aria-label') || associated?.textContent?.trim() || this.label.textContent;
+    for (const attribute of ['aria-describedby', 'aria-invalid']) { const value = this.select.getAttribute(attribute); if (value !== null) button.setAttribute(attribute, value); else button.removeAttribute(attribute); }
     button.setAttribute('aria-label', name || 'Select');
     button.setAttribute('aria-required', String(this.select.required));
     const snapshot = JSON.stringify(options.map((option, index) => [option.value, option.label, option.selected, this.enabled(index)]));

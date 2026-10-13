@@ -1,3 +1,6 @@
+import { UiFailure } from './ui-failure';
+import { errorText, uiText, type UiKey } from './ui-i18n';
+import { nextZoom } from '../../shared/ui';
 import { TaskSourceComponent } from './task-source.component';
 import { FolderBulkDialog } from './folder-bulk-dialog';
 import { batchText } from './batch-i18n';
@@ -289,13 +292,22 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly compositionStart = () => { this.composing = true; this.workspace.setComposing(true); };
   readonly compositionEnd = () => { this.composing = false; this.record(); this.workspace.setComposing(false); };
   private readonly keyboard = (event: KeyboardEvent) => {
-    if (this.dialogs.opened || this.workspace.exitLocked()) return;
+    if (event.isComposing || event.defaultPrevented || this.dialogs.opened || this.writingDialogs.openDialogs.length || this.workspace.exitLocked()) return;
+    const overlay = !!document.querySelector('.cdk-overlay-pane:not(.notification-overlay):not(.sidebar-tooltip-overlay)');
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.repeat && !overlay && !this.notifications.drawerOpen() && !this.workspace.switching()) {
+      const key = event.key.toLowerCase();
+      if (['+', '=', '-', '0'].includes(key)) { event.preventDefault(); void this.prefs.update({ zoomPercent: nextZoom(this.prefs.state().global.zoomPercent ?? 100, key === '0' ? 0 : key === '-' ? -1 : 1) }); return; }
+      if (!event.shiftKey && key === 'n' && this.workspace.status()) { event.preventDefault(); this.editorFullscreen.set(false); this.newNoteMenuOpen.set(true); setTimeout(() => document.querySelector<HTMLButtonElement>('[data-testid=create-markdown]')?.focus()); return; }
+      if (!event.shiftKey && key === 'f') { event.preventDefault(); this.editorFullscreen.set(false); this.tab.set('editor'); setTimeout(() => document.querySelector<HTMLInputElement>('[data-testid=note-search]')?.focus()); return; }
+      if (key === ',') { event.preventDefault(); this.tab.set('settings'); return; }
+    }
+    if (overlay && event.key !== 'Escape') return;
     if (event.key === 'Escape' && (this.editorToolsOpen() || this.exportMenuOpen())) { this.editorToolsOpen.set(false); this.exportMenuOpen.set(false); event.preventDefault(); return; }
     if (!event.isComposing && event.ctrlKey && event.shiftKey && event.code === 'KeyF') { event.preventDefault(); if (!event.repeat) this.toggleEditorFullscreen(); return; }
     if (event.key === 'Escape' && this.selectedImage()) { this.selectedImage.set(null); event.preventDefault(); return; }
     if (event.key === 'Escape' && this.editorFullscreen() && !event.defaultPrevented && !document.querySelector('.cdk-overlay-pane:not(.notification-overlay):not(.sidebar-tooltip-overlay)')) { this.editorFullscreen.set(false); event.preventDefault(); return; }
     if (event.key === 'Escape' && this.newNoteMenuOpen()) { this.newNoteMenuOpen.set(false); document.querySelector<HTMLButtonElement>('[data-testid=create-note]')?.focus(); }
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void this.workspace.manualSave(); }
+    if (this.tab() === 'editor' && this.workspace.session() && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); void this.workspace.manualSave(); }
     const target = event.target as HTMLElement;
     if ((event.ctrlKey || event.metaKey) && target.closest('.editor-area,.body-source,[data-testid=markdown-source]') && ['z', 'y'].includes(event.key.toLowerCase())) {
       event.preventDefault(); event.stopImmediatePropagation(); this.undo(event.shiftKey || event.key.toLowerCase() === 'y');
@@ -337,6 +349,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     effect(() => { this.tab(); this.tagMenuNote(); this.tagMenuOpen.set(false); });
     effect(() => { this.tab(); this.sourceMode(); this.editorToolsOpen.set(false); this.exportMenuOpen.set(false); });
     effect(() => { this.theme(); this.locale(); this.applyTheme(); });
+    effect(() => { if (this.prefs.ready()) void window.notebookAid.uiZoom(this.prefs.state().global.zoomPercent ?? 100).catch(() => this.uiFailure.visible.set(true)); });
     effect(() => { if (this.workspace.libraryUnavailable()) this.tab.set('libraries'); });
     effect(() => {
       const ready = this.ready(); this.workspace.opened();
@@ -394,6 +407,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.host.nativeElement.removeEventListener('compositionend', this.compositionEnd);
     window.removeEventListener('keydown', this.keyboard, true);
   }
+  focusMain(): void { document.getElementById('main-content')?.focus(); }
+  readonly uiFailure = inject(UiFailure);
+  ui(key: UiKey): string { return uiText(this.locale(), key); }
+  errorText(code: string): string { return errorText(this.locale(), code); }
   t(key: MessageKey): string { return translate(this.locale(), key); }
   securityLabel(key: SecurityKey): string { return securityText(this.locale(), key); }
   async setLocale(event: Event): Promise<void> {

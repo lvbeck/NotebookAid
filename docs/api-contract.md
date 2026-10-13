@@ -122,3 +122,5 @@ T13.2：TasksApi.onProgress 接收 token 绑定的 BatchProgress（backup/proces
 T13.3 Tasks.confirm(token,indices,folderId?,force?) 的 force 必须为 boolean，默认 false。true 不跳过已导入条目、不执行旧正文转换，而是备份后新建独立笔记。无效索引、变更的来源或目标仍拒绝。强制操作记录使用独立操作 ID，未完成记录按同一来源／字段快照复用，正常去重规则保留。
 
 永久删除收尾同步清理 noteId 匹配的记录，完成标记在清理之后发布；中断恢复复用 purge journal。计划读取时忽略笔记目录不存在的历史记录，preview 不写入，confirm 在完整备份后清理旧行并按新增导入。
+
+T14: PrototypeApi.uiZoom(percent) applies a bounded interface zoom to the authenticated main frame only. Accepted percentages are 75, 90, 100, 110, 125, 150, 175 and 200; other types and values are rejected before changing the window. Global settings optionally store zoomPercent; old settings default to 100. Zoom does not change notebook content or image dimensions.

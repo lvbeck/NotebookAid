@@ -4,7 +4,7 @@
       <article class="notification-card" [attr.data-type]="item.type" [attr.data-code]="item.code" data-testid="notification" (mouseenter)="notifications.pause(item.id, 'hover')" (mouseleave)="notifications.resume(item.id, 'hover')" (focusin)="notifications.pause(item.id, 'focus')" (focusout)="focusOut($event, item.id)">
         <div class="notification-card-top"><span class="notification-symbol"><app-icon [name]="icon(item.type)" /></span><strong>{{ label(item.type) }}</strong><button class="icon-button" [attr.aria-label]="t('noticeClose')" (click)="notifications.dismiss(item.id)"><app-icon name="X" /></button></div>
         <p>{{ t(item.code) }}</p>
-        @if (item.errorCode) { <small class="notification-code">{{ item.errorCode }}</small> }
+        @if (item.errorCode) { <small class="notification-code">{{ errorText(item.errorCode) }}</small> }
         @if (item.count > 1) { <small>{{ t('noticeOccurrences') }} {{ item.count }}</small> }
         <button class="notification-link" (click)="notifications.openHistory()"><app-icon name="History" />{{ t('noticeViewHistory') }}</button>
       </article>
@@ -29,7 +29,7 @@
         <article class="notification-history-item" [attr.data-type]="item.type" [class.unread]="!item.read" data-testid="notification-record">
           <div class="notification-item-heading"><span class="notification-symbol"><app-icon [name]="icon(item.type)" /></span><strong>{{ label(item.type) }}</strong>@if (!item.read) { <span class="unread-label">{{ t('noticeUnread') }}</span> }</div>
           <time>{{ time(item) }}</time><span class="notification-library">{{ library(item.libraryId) }}</span>
-          <p>{{ t(item.code) }}</p>@if (item.errorCode) { <small class="notification-code">{{ item.errorCode }}</small> }@if (item.count > 1) { <small>{{ t('noticeOccurrences') }} {{ item.count }}</small> }
+          <p>{{ t(item.code) }}</p>@if (item.errorCode) { <small class="notification-code">{{ errorText(item.errorCode) }}</small> }@if (item.count > 1) { <small>{{ t('noticeOccurrences') }} {{ item.count }}</small> }
           <div class="notification-item-actions">@if (!item.read) { <button class="notification-link" data-testid="notification-read" (click)="notifications.read(item.id)" [disabled]="notifications.busy()"><app-icon name="Check" />{{ t('noticeRead') }}</button> }<button class="notification-link" data-testid="notification-remove" (click)="notifications.remove(item.id)" [disabled]="notifications.busy()"><app-icon name="Trash2" />{{ t('noticeDelete') }}</button></div>
         </article>
       } @empty { <div class="notification-empty"><app-icon name="Bell" /><p>{{ t('noticeEmpty') }}</p></div> }

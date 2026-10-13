@@ -1,3 +1,5 @@
+import { UiFailure } from './ui-failure';
+import { uiText, type UiKey } from './ui-i18n';
 import { Component, Input, OnDestroy, inject, signal } from '@angular/core';
 import { IconComponent } from './icon.component';
 import { TooltipDirective } from './tooltip.directive';
@@ -41,11 +43,14 @@ export class PasskeyComponent implements OnDestroy {
     <img class="passkey-logo" src="assets/notebookaid-64.png" alt="NotebookAid"><h1>NotebookAid</h1><h2>{{ t('locked') }}</h2><p>{{ t('hint') }}</p>
     <button class="primary" data-testid="passkey-unlock" (click)="unlock()" [disabled]="busy() || !initial.supported"><app-icon name="LockKeyhole" />{{ t('unlock') }}</button>
     @if (busy()) { <p role="status">{{ t('waiting') }}</p> } @if (error()) { <p class="warning" role="alert">{{ t('failed') }}</p> }
+    @if (uiFailure.visible()) { <p class="warning" role="alert">{{ ui('unexpected') }}</p><button class="secondary" (click)="uiFailure.visible.set(false)"><app-icon name="X" />{{ ui('dismiss') }}</button> }
     @if (!initial.supported) { <p class="warning">{{ t('unavailable') }}</p> }
     <p class="muted">{{ t('phone') }}</p><button class="secondary" (click)="quit()"><app-icon name="Power" />{{ exitLabel }}</button>
   </section></main>
 ` })
 export class PasskeyScreenComponent implements OnDestroy {
+  readonly uiFailure = inject(UiFailure);
+  ui(key: UiKey): string { return uiText(this.locale, key); }
   static initial: PasskeyState;
   readonly initial = PasskeyScreenComponent.initial;
   readonly dialogs = inject(AppDialogs);

@@ -30,6 +30,7 @@ export interface PrototypeApi {
   runtime(): Promise<RuntimeInfo>;
   probe(): Promise<ProbeResult>;
   hide(): Promise<void>;
+  uiZoom(percent: number): Promise<void>;
   editorFullscreen(enabled: boolean): Promise<void>;
   quit(): Promise<void>;
 }

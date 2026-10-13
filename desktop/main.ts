@@ -1,8 +1,10 @@
 import { migrateAppData } from '../core/app-data';
+import { validZoom } from '../shared/ui';
 import { registerAi } from './ai-ipc';
 import { registerWriting } from './writing-ipc';
 import { smokeAi } from './ai-smoke';
 import { smokeWriting } from './writing-smoke';
+import { smokeUi } from './ui-smoke';
 import { smokeTasks } from './tasks-smoke';
 import { smokeAddon } from './addon-smoke';
 import { AddonService } from '../core/addon';
@@ -93,6 +95,7 @@ async function createWindow(show = true): Promise<BrowserWindow> {
   mainWindow.webContents.session.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (_details, callback) => callback({ cancel: true }));
   mainWindow.on('close', event => { if (!quitting) { event.preventDefault(); void quitByUser(false, true); } });
   mainWindow.on('closed', () => { storage.release(owner); mainWindow = null; });
+  mainWindow.webContents.on('did-finish-load', () => mainWindow?.webContents.setZoomFactor(storage.zoom() / 100));
   await mainWindow.loadFile(rendererPath);
   if (show) mainWindow.show();
   return mainWindow;
@@ -133,6 +136,7 @@ async function start(): Promise<void> {
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });
   ipcMain.handle('prototype:sqlite', event => { protectedCaller(event); return runSqliteProbe(dataPath); });
   ipcMain.handle('prototype:hide', event => { authorize(event); mainWindow?.hide(); });
+  ipcMain.handle('prototype:ui-zoom', (event, percent: unknown) => { authorize(event); if (!validZoom(percent)) throw new Error('INVALID_INPUT'); mainWindow!.webContents.setZoomFactor(percent / 100); });
   ipcMain.handle('prototype:editor-fullscreen', (event, enabled: unknown) => {
     authorize(event);
     if (typeof enabled !== 'boolean') throw new Error('Invalid editor fullscreen state');
@@ -238,6 +242,7 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if (process.env['NOTEBOOKAID_UI_TEST'] === '1') { await smokeUi(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_TASKS_TEST'] === '1') { await smokeTasks(window,dataPath);await quitByUser(true);return; }
 
     if (process.env['NOTEBOOKAID_WRITING_TEST'] === '1') { await smokeWriting(window, dataPath); await quitByUser(true); return; }
