@@ -98,6 +98,38 @@ export class AiNetwork {
     return tokens.access_token;
   }
   async refresh(): Promise<void> { await this.access(); }
+  async writeText(id: AiProvider, model: string, prompt: string, signal: AbortSignal): Promise<string> {
+    const key = id === 'chatgpt' ? await this.access() : this.store.credential(id).key!;
+    if (signal.aborted) throw new AiError('REQUEST_CANCELLED'); this.permitted();
+    let url: string, headers: Record<string,string>, body: unknown;
+    if (id === 'chatgpt') { url = 'https://api.openai.com/v1/responses'; headers = { Authorization: 'Bearer ' + key }; body = { model, input: [{ role: 'user', content: prompt }], store: false, stream: true }; }
+    else if (id === 'gemini') { url = 'https://generativelanguage.googleapis.com/v1beta/' + model + ':generateContent'; headers = { 'x-goog-api-key': key }; body = { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 8192 } }; }
+    else { url = 'https://api.anthropic.com/v1/messages'; headers = { 'x-api-key': key, 'anthropic-version': '2023-06-01' }; body = { model, max_tokens: 8192, messages: [{role:'user',content:prompt}] }; }
+    const controller = new AbortController(), abort = () => controller.abort(); signal.addEventListener('abort',abort,{once:true});
+    const timer = setTimeout(abort,120000);
+    try {
+      const response = await fetch(url,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal,redirect:'error'});
+      if (!response.ok) { await response.body?.cancel(); throw new AiError(response.status===401?'AUTH_REQUIRED':response.status===403?'ACCESS_DENIED':response.status===429||response.status===402?'RATE_LIMITED':'PROVIDER_UNAVAILABLE'); }
+      const reader=response.body?.getReader(); if(!reader)throw new AiError('INVALID_RESPONSE');
+      let bytes=0,raw='',text='',completed=false; const decoder=new TextDecoder();
+      for(;;){const next=await reader.read();if(next.done)break;bytes+=next.value.length;if(bytes>2*1024*1024){await reader.cancel();throw new AiError('OUTPUT_TOO_LARGE_OR_EMPTY');}raw+=decoder.decode(next.value,{stream:true});
+        if(id==='chatgpt'){
+          raw=raw.replace(/\r\n/g,'\n');let boundary;
+          while((boundary=raw.indexOf('\n\n'))>=0){const block=raw.slice(0,boundary);raw=raw.slice(boundary+2);const payload=block.split('\n').filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trimStart()).join('\n');if(!payload||payload==='[DONE]')continue;
+            const event=JSON.parse(payload);if(event.type==='response.output_text.delta')text+=event.delta??'';
+            if(event.type==='response.completed')completed=true;
+            if(['error','response.failed','response.incomplete'].includes(event.type))throw new AiError(event.response?.error?.code==='subscription_sharing_usage_limit_exceeded'?'RATE_LIMITED':'INFERENCE_FAILED');
+            if(text.length>64000)throw new AiError('OUTPUT_TOO_LARGE_OR_EMPTY');
+          }
+        }
+      }
+      if(id==='chatgpt'){if(!completed)throw new AiError('INCOMPLETE_RESPONSE');return text;}
+      const result=JSON.parse(raw);
+      if(id==='claude'){if(!['end_turn','stop_sequence'].includes(result.stop_reason))throw new AiError('INCOMPLETE_RESPONSE');return (result.content??[]).filter((x:any)=>x.type==='text').map((x:any)=>x.text).join('');}
+      const candidate=result.candidates?.[0];if(candidate?.finishReason!=='STOP')throw new AiError('INCOMPLETE_RESPONSE');return (candidate.content?.parts??[]).filter((x:any)=>typeof x.text==='string'&&!x.thought).map((x:any)=>x.text).join('');
+    } catch(e){if(e instanceof AiError)throw e;throw new AiError(signal.aborted?'REQUEST_CANCELLED':controller.signal.aborted?'REQUEST_TIMEOUT':'INFERENCE_FAILED');}
+    finally{clearTimeout(timer);signal.removeEventListener('abort',abort);controller.abort();}
+  }
   async check(id: AiProvider): Promise<void> {
     const models: AiModel[] = []; let cursor: string | undefined;
     const key = id === 'chatgpt' ? await this.access() : this.store.credential(id).key!;

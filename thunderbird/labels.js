@@ -248,3 +248,5 @@ const notebookLabels = {
     "imageUnavailable": "Imagem indisponível"
   }
 };
+const bridgeUnavailableLabels = {en:'Native bridge unavailable. Run Register-Bridge.ps1 in the NotebookAid program folder, then reconnect.','zh-CN':'本地桥接不可用。请运行 NotebookAid 程序目录中的 Register-Bridge.ps1，然后重新连接。','zh-TW':'本機橋接無法使用。請執行 NotebookAid 程式目錄內的 Register-Bridge.ps1，然後重新連線。',de:'Native Bridge nicht verfügbar. Register-Bridge.ps1 im NotebookAid-Programmordner ausführen und erneut verbinden.',fr:'Pont natif indisponible. Exécutez Register-Bridge.ps1 dans le dossier du programme NotebookAid, puis reconnectez-vous.',it:'Bridge nativo non disponibile. Eseguire Register-Bridge.ps1 nella cartella del programma NotebookAid, quindi riconnettersi.',es:'Puente nativo no disponible. Ejecute Register-Bridge.ps1 en la carpeta del programa NotebookAid y vuelva a conectar.','pt-PT':'Ponte nativa indisponível. Execute Register-Bridge.ps1 na pasta do programa NotebookAid e volte a ligar.'};
+for (const [locale,label] of Object.entries(bridgeUnavailableLabels)) notebookLabels[locale].bridgeUnavailable=label;

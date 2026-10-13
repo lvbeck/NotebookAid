@@ -27,7 +27,7 @@ browser.runtime.onMessage.addListener(async (request, sender) => {
   }
   if (request?.type !== 'native' || !['handshake','query','organization','preview','image','trash','openNote','mapTags','changes','start','open'].includes(request.method)) return { ok: false, code: 'INVALID_INPUT' };
   try { return await browser.runtime.sendNativeMessage(host, { method: request.method, protocolVersion, libraryId: request.libraryId, params: request.params }); }
-  catch { return { ok: false, code: 'BACKGROUND_UNAVAILABLE' }; }
+  catch { return { ok: false, code: 'NATIVE_HOST_UNAVAILABLE' }; }
 });
 
 for (const name of ["onCreated","onUpdated","onDeleted"]) browser.messages.tags[name].addListener(() => { void browser.runtime.sendMessage({ type: "tagsChanged" }).catch(() => {}); });

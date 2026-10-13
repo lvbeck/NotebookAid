@@ -468,6 +468,9 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     })();
   }, selfTest && process.env['NOTEBOOKAID_BACKUP_TEST'] === '1' ? 1000 : 60000); backupTimer.unref();
   return {
+    writingContext: () => ({ library: get(), locale: currentLocale() }),
+    writingEnabled: () => !!settings && settings.get().global.aiEnabled !== false,
+    confirmWriting: (message: string) => { const target = window(); return target ? dialogs.ask(target, {kind:'warning',title:translate(currentLocale(),'about'),message,cancelLabel:translate(currentLocale(),'cancelOperation'),confirmLabel:securityText(currentLocale(),'confirm')}) : Promise.resolve(false); },
     addonContext: () => { const library = get(); return { library, name: manager().currentName(), unlocked: true, locale: currentLocale(), theme: settings?.get().global.theme ?? 'system' }; },
     locale: currentLocale,
     theme: () => { try { return (settings ?? (existsSync(join(dataPath, 'settings.json')) ? new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }) : null))?.get().global.theme ?? 'system'; } catch { return 'system' as const; } },

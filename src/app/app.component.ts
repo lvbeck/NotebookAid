@@ -1,4 +1,7 @@
 import { PasskeyComponent } from './passkey.component';
+import { Dialog } from '@angular/cdk/dialog';
+import { WritingDialog, type WritingDialogData } from './writing-dialog';
+import { writingText } from './writing-i18n';
 import { SecurityComponent } from './security.component';
 import { backupText } from './backup-i18n';
 import { securityText, type SecurityKey } from './security-i18n';
@@ -46,6 +49,38 @@ type Theme = 'light' | 'dark' | 'system';
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
+  private readonly writingDialogs = inject(Dialog);
+  writingLabel(): string { return writingText(this.locale(), 'title'); }
+  formatLabel(key:'underline'|'strike'|'color'|'background'):string{return writingText(this.locale(),key);}
+  async openWriting(): Promise<void> {
+    const session = this.workspace.session(), libraryId = this.workspace.status()?.libraryId;
+    if (!session || !libraryId || this.composing || this.workspace.switching() || this.prefs.state().global.aiEnabled===false) return;
+    const raw = this.sourceMode() || this.warning() || this.format() === 'text';
+    if (raw && this.format() === 'delta') return;
+    const textarea = document.querySelector<HTMLTextAreaElement>('[data-testid=body-source]');
+    const range = raw ? { index: textarea?.selectionStart ?? 0, length: (textarea?.selectionEnd ?? 0) - (textarea?.selectionStart ?? 0) } : (this.editor.getSelection() ?? { index: 0, length: 0 });
+    const selection = raw ? this.source().slice(range.index, range.index + range.length) : this.editor.getText(range.index, range.length);
+    if (!await this.workspace.flush()) return;
+    const original = this.source(), noteId = session.note.id;
+    const current = () => this.workspace.session()?.note.id === noteId && this.workspace.status()?.libraryId === libraryId && this.source() === original;
+    const data: WritingDialogData = { locale: this.locale(), translationLocale:this.prefs.state().global.translationLocale??this.locale(), selection, note: this.workspace.session()!.note, stale: !!session.note.generatedSummary && (session.note.generatedSummary.sourceContentVersion !== session.note.contentVersion || original !== session.note.body), libraryId, sourceMode: raw, current,
+      context: async summary => {
+        if (!current()) throw Error('RESULT_EXPIRED');
+        if (summary) { const entry = this.workspace.registry().entries.find(item => item.current); if (entry && (entry.schemaVersion ?? 0) < 9) { const upgraded = await this.workspace.securityChange(() => window.notebookAid.library.upgradeLibrary(entry.id, entry.schemaVersion!)); if (!upgraded?.ok || !upgraded.value) return null; } }
+        if (!current() || !await this.workspace.flush()) throw Error('RESULT_EXPIRED');
+        const active = this.workspace.session()!; return { noteId, token: active.token, generation: active.generation, expectedVersion: active.note.version, operationId: crypto.randomUUID() };
+      },
+      apply: async (text, mode, scope) => {
+        if (!current()) throw Error('RESULT_EXPIRED');
+        if (raw) { const index=scope==='selection'?range.index:0,length=scope==='selection'?range.length:original.length; this.workspace.updateBody(mode==='replace'?original.slice(0,index)+text+original.slice(index+length):original.slice(0,index+length)+'\n'+text+original.slice(index+length)); this.record(); this.loadSource(); }
+        else { const index=scope==='selection'?range.index:0,length=scope==='selection'?range.length:this.editor.getLength()-1;
+          this.editor.history.cutoff(); this.editor.updateContents(new Delta().retain(mode==='replace'?index:index+length).delete(mode==='replace'?length:0).insert(mode==='replace'?text:'\n'+text),'user'); this.editor.history.cutoff();
+        }
+      },
+      saved: note => { const active=this.workspace.session(); if(active&&active.note.id===note.id){this.workspace.session.set({...active,note});void this.workspace.refresh();} }
+    };
+    this.writingDialogs.open(WritingDialog,{data,panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'760px',maxWidth:'calc(100vw - 32px)',ariaLabel:this.writingLabel(),restoreFocus:true});
+  }
   readonly missedBackup = signal(false);
   backupLabel(key: 'missed' | 'settings'): string { return backupText(this.locale(), key); }
   private readonly dialogs = inject(AppDialogs);
@@ -298,7 +333,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     registerNoteFormats();
     this.editor = new Quill(this.host.nativeElement, {
       theme: 'snow',
-      formats: ['header', 'bold', 'italic', 'blockquote', 'code', 'code-block', 'code-token', 'list', 'indent', 'link', 'image', 'table', 'cell-header', 'cell-align'],
+      formats: ['header', 'bold', 'italic', 'underline', 'strike', 'color', 'background', 'blockquote', 'code', 'code-block', 'code-token', 'list', 'indent', 'link', 'image', 'table', 'cell-header', 'cell-align'],
       modules: { table: true, syntax: { hljs, languages: codeLanguages.map(key => ({ key, label: key })) }, toolbar: { container: this.toolbar.nativeElement, handlers: { image: () => void this.attachmentsPanel?.chooseImage() } } }
     });
     this.editor.clipboard.addMatcher('PRE', (input: Node) => {
@@ -514,6 +549,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     const label = (value: string | null) => value ? this.t('heading') + ' ' + value : this.t('normalText');
     this.toolbar.nativeElement.querySelectorAll<HTMLOptionElement>('select.ql-header option').forEach(option => { option.textContent = label(option.value); });
     this.toolbar.nativeElement.querySelectorAll<HTMLElement>('.ql-header .ql-picker-item, .ql-header .ql-picker-label').forEach(item => { item.dataset['label'] = label(item.getAttribute('data-value')); });
+    for (const key of ['color','background'] as const) this.toolbar.nativeElement.querySelectorAll<HTMLElement>('.ql-'+key+' .ql-picker-label').forEach(item=>{item.setAttribute('aria-label',this.formatLabel(key));item.title=this.formatLabel(key);});
     for (const key of ['visitLink', 'enterLink', 'editLink', 'removeLink', 'save'] as const) document.documentElement.style.setProperty('--quill-' + key, JSON.stringify(this.t(key)));
   }
   private applyTheme(): void {

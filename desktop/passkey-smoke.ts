@@ -23,6 +23,7 @@ export async function smokePasskey(window: BrowserWindow, directory: string, gat
   if (window.getTitle() !== 'NotebookAid') throw Error('Unexpected locked window title');
   if (await run("!!document.querySelector('.ql-editor')")) throw Error('Editor loaded behind application gate');
   const blocked = await run("window.notebookAid.library.list().then(()=>false,()=>true)"); if (!blocked) throw Error('Locked application IPC allowed note access');
+  if (!await run("window.notebookAid.writing.request({action:'prepare',input:{}}).then(()=>false,()=>true)")) throw Error('Locked application allowed writing IPC');
   if (!await run("window.notebookAid.ai.request({action:'state'}).then(()=>false,()=>true)")) throw Error('Locked application allowed AI access');
   await window.webContents.capturePage().then(image => writeFileSync(join(directory, 'passkey-gate.png'), image.toPNG()));
   // Verify a real P-256 assertion in the main process, not a renderer unlock flag.

@@ -132,3 +132,17 @@ Folder.order 为可选非负安全整数；缺省文件夹保留名称排序。�
 
 Notebook schema 5 opts into primaryFormat=delta. Revision content.nadelta stores a NotebookAidDelta version 1 full insert-only document. Existing metadata, revision hashes, sessions, operation replay, attachments and atomic head commits remain authoritative. No derived HTML is stored as a second authority. NotebookAidNative version 1 .nadelta exchange files contain title/document checksum and current attachment payloads; they are not full history backups.
 Native exchange capacity uses the same 50 / 20 MiB / 200 MiB attachment limits as note storage. Container version 1 and notebook schema 5 remain unchanged. Export writes attachment records sequentially and escapes non-ASCII JSON characters, preserving decoded content and hashes. Import still parses the complete JSON container in the main process; it is not a streaming parser.
+
+## T12 摘要架构 8
+
+`library.json.schemaVersion=8` 增加可选修订元数据 `generatedSummary`，包含 `text/sourceContentVersion/sourceRevisionId/createdAt/provider/model`。正文、head 和修订哈希格式保持不变，摘要通过原有原子提交、操作去重与版本检查发布；只增加笔记 `version`，不增加正文 `contentVersion`。正文保存保留原摘要，来源正文版本不同即提示过期。历史恢复使用所选修订的摘要，历史列表不包含摘要文字。
+
+首次保存摘要前使用现有架构升级流程，在库外创建完整 `.schema-backups` 副本。核心读取架构 1–8；旧程序拒绝 8，避免编辑时丢弃摘要。安全设置不将 8 降为 7。摘要随元数据加密、完整备份及原生跨库导入保留，不增加独立明文文件或磁盘摘要索引；单篇格式交换包仍不包含独立摘要。
+
+写作请求与预览令牌仅在内存保存，绑定所属笔记本、会话所有者、会话令牌／generation、笔记版本及来源正文版本。核心验证选区属于保存快照，最多 100,000 个字符；结果最多 64,000 个字符，摘要最多 16,384 个字符。锁定、修改、删除、取消、会话失效或十分钟过期时不得应用旧结果。提供商凭据继续留在主进程保护存储，与笔记数据分离。
+
+## T12.4 翻译架构 9 与行内样式
+
+`library.json.schemaVersion=9` 增加可选 `generatedTranslation`，沿用摘要的 text/sourceContentVersion/sourceRevisionId/createdAt/provider/model，并保存 targetLanguage/scope/sourceMode/sourceHash/instruction。sourceHash 是实际源文本、范围、源码模式及补充要求的 SHA-256；用于本地缓存有效性，不替代修订完整性校验。每篇笔记保存最近一次翻译，增加 version，不增加 contentVersion。缓存读取不访问提供商，正文或范围不匹配时只读展示过期结果。翻译随元数据历史、加密、备份及跨库导入保留，列表／索引不回传翻译文字，单篇导出不包含翻译。元数据读取与提交上限统一为 512 KiB，其他清单保持原上限。核心支持架构 1–9，安全设置不会降级架构，旧程序拒绝不支持的架构。
+
+Delta version 1 支持 underline/strike=true、color/background=#RRGGBB，禁止其他颜色输入。HTML 允许行内文字标签的 color/background-color，保存时规范为 span，颜色使用六位十六进制或 0–255 RGB；Markdown 保留受限制行内 HTML 的下划线、删除线和颜色，其他 CSS 不进入富文本编辑。

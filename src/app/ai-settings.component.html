@@ -1,4 +1,5 @@
 <h2 data-testid="ai-title">{{ t('title') }}</h2><p class="muted">{{ t('hint') }}</p>
+<label class="setting-row"><span>{{ t('enabled') }}</span><input type="checkbox" data-testid="ai-enabled" [checked]="prefs.state().global.aiEnabled ?? true" (change)="enableAi($event)" [disabled]="prefs.busy() || !prefs.ready()"></label>
 <div class="ai-provider-picker"><span>{{ t('provider') }}</span><div class="ai-provider-options" role="radiogroup" [attr.aria-label]="t('provider')">@for (id of providers; track id) { <button type="button" class="secondary" role="radio" [attr.data-testid]="'ai-provider-' + id" [class.selected]="viewProvider() === id" [attr.aria-checked]="viewProvider() === id" [disabled]="busy()" (click)="showProvider(id)"><app-icon [name]="id === 'chatgpt' ? 'Bot' : id === 'gemini' ? 'Sparkles' : 'BrainCircuit'" />{{ id === 'chatgpt' ? 'ChatGPT' : id === 'gemini' ? 'Gemini' : 'Claude' }}</button> }</div></div>
 @if (!state().available) { <p class="warning">{{ t('storage') }}</p> }
 @for (connection of state().connections; track connection.provider) {

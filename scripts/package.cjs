@@ -36,7 +36,9 @@ const { execFileSync } = require('node:child_process');
   };
   copyDependency('@simplewebauthn/server');
   copyDependency('jose');
-  writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'], jose: project.dependencies['jose'] } }));
+  copyDependency('parse5');
+  copyDependency('marked');
+  writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'], jose: project.dependencies['jose'], parse5: project.dependencies['parse5'], marked: project.dependencies['marked'] } }));
   const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: 'win32', arch: 'x64', electronVersion: project.devDependencies.electron, overwrite: true, asar: true, prune: false,
     icon: resolve('assets/notebookaid.ico'), appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid', ProductName: 'NotebookAid' },
     download: { cacheRoot: resolve('.cache/electron') }
@@ -57,6 +59,9 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/t07-testing.md', join(packageRoot, 'T07-TESTING.md'));
   cpSync('docs/t10-testing.md', join(packageRoot, 'T10-TESTING.md'));
   cpSync('docs/t11-testing.md', join(packageRoot, 'T11-TESTING.md'));
+  cpSync('docs/t12-testing.md', join(packageRoot, 'T12-TESTING.md'));
+  cpSync('node_modules/parse5/LICENSE', join(packageRoot, 'PARSE5-LICENSE.txt'));
+  cpSync('node_modules/marked/LICENSE', join(packageRoot, 'MARKED-LICENSE.txt'));
   cpSync('node_modules/jose/LICENSE.md', join(packageRoot, 'JOSE-LICENSE.txt'));
   cpSync('docs/t09-testing.md', join(packageRoot, 'T09-TESTING.md'));
   cpSync('docs/t09-restore-testing.md', join(packageRoot, 'T09-RESTORE-TESTING.md'));

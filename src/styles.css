@@ -467,3 +467,9 @@ app-attachments { position: relative; }
 .preferences .select-trigger { gap:8px; max-width:180px; }
 
 [data-testid="backup-result"], [data-testid="backup-error"] { white-space:pre-wrap; }
+.editor-actions .compact-editor-toolbar.plain-toolbar.ql-toolbar.ql-snow{border-left:0;padding-left:0;}
+.editor-actions .ql-picker.ql-color-picker { width:28px; height:28px; }
+.editor-actions .ql-color-picker .ql-picker-label { display:flex; align-items:center; justify-content:center; height:100%; padding:3px; border:0; background:transparent; }
+.editor-actions .ql-color-picker .ql-picker-label svg { display:block; width:18px; height:18px; }
+.editor-actions .ql-color-picker .ql-picker-item { padding:0; border-radius:2px; }
+.editor-actions .ql-color-picker .ql-picker-item.ql-selected::after { content:none; }

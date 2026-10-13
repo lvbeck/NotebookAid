@@ -3,9 +3,10 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import type { NoteFormat } from '../../shared/library';
 import { codeLanguages, safeImage } from './editor-formats';
+import { safeInlineStyle } from '../../shared/inline-style';
 
-export const richTags = ['p', 'br', 'h1', 'h2', 'h3', 'strong', 'b', 'em', 'i', 'blockquote', 'pre', 'code', 'ol', 'ul', 'li', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td'];
-export const richAttributes = ['href', 'target', 'rel', 'data-list', 'src', 'alt', 'title', 'width', 'height', 'align', 'data-language', 'data-cell-header', 'data-cell-align', 'data-row'];
+export const richTags = ['p', 'br', 'h1', 'h2', 'h3', 'strong', 'b', 'em', 'i', 'u', 's', 'del', 'span', 'blockquote', 'pre', 'code', 'ol', 'ul', 'li', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td'];
+export const richAttributes = ['href', 'target', 'rel', 'data-list', 'src', 'alt', 'title', 'width', 'height', 'align', 'style', 'data-language', 'data-cell-header', 'data-cell-align', 'data-row'];
 export type SourceIssueKind = 'issueTask' | 'issueNested' | 'issueImage' | 'issueTable' | 'issueRule' | 'issueCodeLanguage' | 'issueHeading' | 'issueEmbeddedHtml' | 'issueStrike' | 'issueLink' | 'issueReference' | 'issueElement' | 'issueAttribute' | 'issueDocument' | 'issueComment' | 'issueLinkAttribute' | 'issueRoundtrip';
 export interface SourceIssue { kind: SourceIssueKind; detail: string; line?: number; element?: number; count: number; }
 
@@ -28,9 +29,9 @@ export function sourceIssues(body: string, format: NoteFormat): SourceIssue[] {
       if (start >= 0) occurrences.set(raw, start + raw.length);
       const line = start < 0 ? undefined : body.slice(0, start).split('\n').length;
       if (token.type === 'code' && start >= 0) excluded.push([start, start + raw.length]);
-      const kinds: Record<string, SourceIssueKind> = { html: 'issueEmbeddedHtml', hr: 'issueRule', del: 'issueStrike' };
-      const sizedImages = token.type === 'html' && /<img\b/i.test(raw) && sourceIssues(raw, 'html').length === 0;
-      if (kinds[token.type] && !sizedImages) add(kinds[token.type]!, '', line);
+      const kinds: Record<string, SourceIssueKind> = { html: 'issueEmbeddedHtml', hr: 'issueRule' };
+      const supportedHtml = token.type === 'html' && sourceIssues(raw, 'html').length === 0;
+      if (kinds[token.type] && !supportedHtml) add(kinds[token.type]!, '', line);
       if (token.type === 'heading' && token.depth > 3) add('issueHeading', `H${token.depth}`, line);
       if (token.type === 'code' && token.lang && !codeLanguages.includes(token.lang)) add('issueCodeLanguage', token.lang.slice(0, 80), line);
       if (token.type === 'image' && !safeImage(token.href)) add('issueImage', token.href.slice(0, 80), line);
@@ -64,7 +65,8 @@ export function sourceIssues(body: string, format: NoteFormat): SourceIssue[] {
         const image = tag === 'img' && ['src', 'alt', 'title', 'width', 'height'].includes(attribute.name) && (attribute.name !== 'src' || safeImage(attribute.value));
         const alignment = ['td', 'th'].includes(tag) && attribute.name === 'align' && ['left', 'center', 'right'].includes(attribute.value);
         const language = (tag === 'pre' && attribute.name === 'data-language' && codeLanguages.includes(attribute.value)) || (tag === 'code' && attribute.name === 'class' && codeLanguages.includes(attribute.value.replace(/^language-/, '')));
-        if (!taskState && !image && !alignment && !language && (tag !== 'a' || !['href', 'target', 'rel'].includes(attribute.name))) add('issueAttribute', `<${tag}> ${attribute.name}`, undefined, index + 1);
+        const color=['span','strong','b','em','i','u','s','del','a'].includes(tag)&&attribute.name==='style'&&safeInlineStyle(attribute.value);
+        if (!taskState && !image && !alignment && !language && !color && (tag !== 'a' || !['href', 'target', 'rel'].includes(attribute.name))) add('issueAttribute', `<${tag}> ${attribute.name}`, undefined, index + 1);
       }
       if (tag === 'a') {
         for (const [name, expected] of [['target', '_blank'], ['rel', 'noopener noreferrer']]) {

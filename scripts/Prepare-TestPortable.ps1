@@ -27,6 +27,12 @@ function Assert-TargetReady {
     }
 }
 Assert-TargetReady
+$registeredHosts = @()
+foreach ($hostEntry in @(@{Name='de.zub_systems.notebookaid';Id='notebookaid@zub-systems.de';File='native-host.json'},@{Name='de.zub_systems.notebookaid_t02';Id='notebookaid-t02@zub-systems.de';File='native-host-legacy.json'})) {
+    $key = 'HKCU:\Software\Mozilla\NativeMessagingHosts\' + $hostEntry.Name
+    $manifest = Join-Path $target $hostEntry.File
+    if ((Test-Path -LiteralPath $key) -and ((Get-Item -LiteralPath $key).GetValue('') -eq $manifest)) { $registeredHosts += $hostEntry }
+}
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [IO.Compression.ZipFile]::OpenRead($bundle)
 try {
@@ -48,7 +54,7 @@ try {
         finally { $stream.Dispose(); $algorithm.Dispose() }
         $files[$resolved] = @{ Entry=$entry; Hash=$hash }
     }
-    foreach ($required in @('NotebookAid.exe','NotebookAid.Passkey.exe','resources/app.asar')) {
+    foreach ($required in @('NotebookAid.exe','NotebookAid.Passkey.exe','NotebookAid.Bridge.exe','resources/app.asar')) {
         if (-not $files.ContainsKey([IO.Path]::GetFullPath((Join-Path $target $required)))) { throw "Missing package file: $required" }
     }
     # No folder backup: retained release ZIPs are the rollback source.
@@ -65,9 +71,17 @@ try {
         if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $files[$path].Hash) { throw "Deployed file mismatch: $path" }
     }
 } finally { $archive.Dispose() }
+# Recreate only registrations already owned by this portable directory.
+foreach ($hostEntry in $registeredHosts) {
+    $document = @{name=$hostEntry.Name;description='NotebookAid bridge';path=(Join-Path $target 'NotebookAid.Bridge.exe');type='stdio';allowed_extensions=@($hostEntry.Id)}
+    $manifest = Join-Path $target $hostEntry.File
+    [IO.File]::WriteAllText($manifest, ($document | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+    $restored = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
+    if ($restored.name -ne $hostEntry.Name -or $restored.path -ne (Join-Path $target 'NotebookAid.Bridge.exe') -or $restored.allowed_extensions.Count -ne 1 -or $restored.allowed_extensions[0] -ne $hostEntry.Id) { throw 'Restored bridge manifest mismatch' }
+}
 if (Test-Path -LiteralPath (Join-Path $target 'NotebookAid-win32-x64')) { throw 'Nested package directory detected' }
 $job = Join-Path $workspace ('output/portable-preparation/' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 New-Item -ItemType Directory -Path $job -Force | Out-Null
-$report = [ordered]@{ version=$version; target=$target; bundle=$bundle; sha256=(Get-FileHash -LiteralPath $bundle).Hash; backupCreated=$false; verified=$true }
+$report = [ordered]@{ version=$version; target=$target; bundle=$bundle; sha256=(Get-FileHash -LiteralPath $bundle).Hash; backupCreated=$false; verified=$true; bridgeManifestsRestored=$registeredHosts.Count }
 $report | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'deployment.json') -Encoding utf8
 $report | ConvertTo-Json

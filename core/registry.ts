@@ -26,7 +26,7 @@ export function inspectLibrary(directory: string): { path: string; libraryId: st
     const manifest = join(path, 'library.json');
     valid(!lstatSync(manifest).isSymbolicLink());
     const value = readJson(manifest);
-    valid(value && [1, 2, 3, 4, 5, 6, 7].includes(value.schemaVersion), 'UNSUPPORTED_LIBRARY');
+    valid(value && [1, 2, 3, 4, 5, 6, 7, 8, 9].includes(value.schemaVersion), 'UNSUPPORTED_LIBRARY');
     valid(typeof value.libraryId === 'string' && uuid.test(value.libraryId), 'INTEGRITY_CHECK_FAILED');
     return { path, libraryId: value.libraryId, schemaVersion: value.schemaVersion };
   } catch (error) {

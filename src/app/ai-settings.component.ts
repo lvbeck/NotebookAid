@@ -3,6 +3,7 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from './icon.component';
 import { SelectDirective } from './select.directive';
+import { Preferences } from './preferences';
 import type { Locale } from './i18n';
 import { aiText, aiErrorText } from './ai-i18n';
 import type { AiState, AiRequest, AiProvider } from '../../shared/ai';
@@ -13,6 +14,8 @@ export class AiSettingsComponent implements OnInit, OnChanges, OnDestroy {
  @Input() locale: Locale = 'zh-CN';
  @Input() active = false;
  readonly providers = ['chatgpt', 'gemini', 'claude'] as const;
+ readonly prefs=inject(Preferences);
+ async enableAi(event:Event):Promise<void>{const input=event.target as HTMLInputElement;await this.prefs.update({aiEnabled:input.checked});input.checked=this.prefs.state().global.aiEnabled??true;}
  readonly viewProvider = signal<AiProvider>('chatgpt');
  private initialized = false;
  readonly state = signal<AiState>({ available: false, selected: null, connections: [], accounts: [], accountId: null });

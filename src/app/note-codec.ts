@@ -4,6 +4,7 @@ import TurndownService from 'turndown';
 import DOMPurify from 'dompurify';
 import type { NoteFormat } from '../../shared/library';
 import { codeLanguages } from './editor-formats';
+import { safeInlineStyle } from '../../shared/inline-style';
 
 /** Wrap Quill's escaped code text before HTML parsers consume leading newlines. */
 export function semanticHtml(html: string): string {
@@ -16,6 +17,7 @@ export function cleanHtml(html: string): string {
     ALLOWED_ATTR: richAttributes, ALLOW_DATA_ATTR: false, ALLOW_ARIA_ATTR: false
   });
   const tree = new DOMParser().parseFromString(cleaned, 'text/html');
+  tree.querySelectorAll('[style]').forEach(node=>{const style=node.getAttribute('style')!;if(!['SPAN','STRONG','B','EM','I','U','S','DEL','A'].includes(node.tagName)||!safeInlineStyle(style)){node.removeAttribute('style');return;}if(node.tagName!=='SPAN'){const span=tree.createElement('span');span.setAttribute('style',style);span.innerHTML=node.innerHTML;node.replaceChildren(span);node.removeAttribute('style');}});
   tree.querySelectorAll('td,th').forEach(cell => {
     cell.removeAttribute('data-row');
     if (cell.getAttribute('data-cell-align')) cell.setAttribute('align', cell.getAttribute('data-cell-align')!);
@@ -44,6 +46,7 @@ export function cleanHtml(html: string): string {
 }
 export function markdownFromHtml(html: string): string {
   const converter = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+  converter.addRule('inlinePresentation',{filter:node=>['U','S','DEL'].includes(node.nodeName)||node.nodeName==='SPAN'&&node.hasAttribute('style'),replacement:(_content,node)=>node.outerHTML});
   converter.addRule('sizedImage', { filter: node => node.nodeName === 'IMG' && (node.hasAttribute('width') || node.hasAttribute('height')), replacement: (_content, node) => '\n\n' + node.outerHTML + '\n\n' });
   converter.addRule('taskItem', { filter: node => node.nodeName === 'LI' && ['checked', 'unchecked'].includes(node.getAttribute('data-list') ?? ''), replacement: (content, node) => {
     const marker = node.getAttribute('data-list') === 'checked' ? '[x]' : '[ ]';

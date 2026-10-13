@@ -77,3 +77,5 @@ T01 只定义验证任务，不宣称上述能力已经通过。
 ## T11 登录与连接
 
 新增锁定 jose 6.2.2（MIT，Filip Skokan），用于 OpenAI OIDC JWT 签名／issuer／audience／expiry 校验，随程序保留 JOSE-LICENSE.txt 及模块 LICENSE.md。ChatGPT、Gemini、Claude 的官方接口依据见 t11-testing.md；未引入供应商收费 SDK 或自定义密码算法。安装审计仍有既有 low 告警，未进行无关依赖升级。
+
+T12 复用已安装 parse5 8.0.1（MIT）作为明确的运行依赖，在主进程提取 HTML 文字；marked 18.1.0（MIT）同时打包到主进程用于 Markdown 文字提取。保留 PARSE5-LICENSE.txt、MARKED-LICENSE.txt 和包内传递依赖 entities 的许可证，未升级框架。官方文字推理依据：[OpenAI 订阅模型与推理](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)、[订阅预览限制](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)、[Gemini generateContent](https://ai.google.dev/api/generate-content)、[Claude Messages](https://platform.claude.com/docs/en/api/messages/create)。自动验证使用模拟响应，未进行真实收费请求。

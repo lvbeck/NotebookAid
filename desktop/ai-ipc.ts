@@ -52,5 +52,13 @@ export function registerAi(root: string, authorize: (event: IpcMainInvokeEvent) 
     } catch { /* Preserve unreadable credentials and let settings report the failure. */ }
   }, 30000);
   renewal.unref();
-  return { close: () => { closed = true; clearInterval(renewal); network?.cancel(); } };
+  return { store: get, generate: async (id: import('../shared/ai').AiProvider, model: string, prompt: string, signal: AbortSignal) => {
+    if (closed || !backgroundAllowed()) throw new AiError('APP_LOCKED'); if (busy) throw new AiError('CONNECTION_BUSY');
+    const state=get().state(),connection=state.connections.find(c=>c.provider===state.selected);
+    if(connection?.provider!==id||connection.model!==model)throw new AiError('MODEL_UNAVAILABLE');
+    busy=true;
+    try { if(simulated){await new Promise(resolve=>setTimeout(resolve,50));if(signal.aborted)throw new AiError('REQUEST_CANCELLED');return 'Fixture AI result';}
+      return await new AiNetwork(get(),url=>shell.openExternal(url),undefined,()=>{if(closed||!backgroundAllowed())throw new AiError('APP_LOCKED');}).writeText(id,model,prompt,signal);
+    } finally{busy=false;}
+  }, close: () => { closed = true; clearInterval(renewal); network?.cancel(); } };
 }

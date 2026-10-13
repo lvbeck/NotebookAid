@@ -1,6 +1,8 @@
 import { migrateAppData } from '../core/app-data';
 import { registerAi } from './ai-ipc';
+import { registerWriting } from './writing-ipc';
 import { smokeAi } from './ai-smoke';
+import { smokeWriting } from './writing-smoke';
 import { smokeAddon } from './addon-smoke';
 import { AddonService } from '../core/addon';
 import type { AddonRequest, DesktopNoteTarget } from '../shared/addon';
@@ -44,6 +46,7 @@ let quitting = false;
 let exitPending = false;
 let addon: AddonService;
 let ai: ReturnType<typeof registerAi>;
+let writing: ReturnType<typeof registerWriting>;
 let addonWaiters = 0;
 let editorWindowBounds: Electron.Rectangle | null = null;
 let storage: ReturnType<typeof registerLibrary>;
@@ -82,7 +85,7 @@ async function createWindow(show = true): Promise<BrowserWindow> {
   });
   const owner = String(mainWindow.webContents.id);
   mainWindow.webContents.on('render-process-gone', () => { passkeys.gate.lock(); storage.release(owner); });
-  mainWindow.webContents.on('did-start-navigation', (_event, _url, _inPlace, isMainFrame) => { if (isMainFrame) storage.release(owner); });
+  mainWindow.webContents.on('did-start-navigation', (_event, _url, _inPlace, isMainFrame) => { if (isMainFrame) { writing?.clear(); storage.release(owner); } });
   mainWindow.webContents.on('will-attach-webview', event => event.preventDefault());
   mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   mainWindow.webContents.session.setPermissionCheckHandler(() => false);
@@ -146,6 +149,7 @@ async function start(): Promise<void> {
   ipcMain.handle('prototype:quit', event => { authorize(event); quitByUser(); });
   addon = new AddonService(() => ({ ...storage.addonContext(), unlocked: passkeys.gate.unlocked, appVersion: app.getVersion() }), openDesktopNote);
   ai = registerAi(dataPath, protectedCaller, selfTest && process.env['NOTEBOOKAID_AI_TEST'] === '1', () => passkeys.gate.unlocked);
+  writing = registerWriting(storage, ai, protectedCaller);
   await startBridge();
   if (!background || selfTest) {
     const window = await createWindow(!selfTest);
@@ -221,6 +225,7 @@ app.on('before-quit', event => {
   quitting = true;
   addon?.close();
   ai?.close();
+  writing?.close();
   server?.close();
   tray?.destroy();
   storage?.close();
@@ -232,6 +237,7 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if (process.env['NOTEBOOKAID_WRITING_TEST'] === '1') { await smokeWriting(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_AI_TEST'] === '1') { await smokeAi(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_ADDON_TEST'] === '1') { await smokeAddon(window, dataPath); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_PASSKEY_TEST'] === '1') { await smokePasskey(window, dataPath, passkeys.gate); await quitByUser(true); return; }

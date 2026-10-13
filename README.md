@@ -6,15 +6,16 @@ NotebookAid 是面向本地个人使用的开源笔记应用，由独立桌面�
 
 ## 项目状态
 
-- T01–T05 及 T05-A 已获用户批准；当前交付 T06 图片与附件，等待用户验收。
+- T01–T11 已获用户批准；当前交付 T12 AI 写作与手动摘要，等待用户验收。
 - 提供 Markdown／HTML 安全子集富文本、TXT 纯文本、原文保护、导入／导出预览、正文撤销重做，以及本地保存、多笔记本、分层设置和消息中心。
-- T05 提供多层文件夹、笔记移动、标签、组合搜索与分页、置顶及最近使用。删除／回收站与历史版本界面仍在 T07，T06 已提供图片附件，可选 Delta 在 T06-A。
+- 已提供图片附件、可选 Delta 原生格式、回收站与历史、逐笔记加密、Passkey 应用门禁、备份恢复、笔记本外观、Thunderbird 集成及 AI 连接管理。T12 增加主动辅助写作、插入／替换、独立摘要与翻译保存，工具栏支持下划线、删除线及文字／背景颜色。
 - 计划与验收状态以 [实施计划](docs/implementation-plan.md) 为准。
 
 ## 当前测试入口
 
-- [NotebookAid 0.6.0-t06a.3 EXE](release/0.6.0-t06a.3/NotebookAid-win32-x64/NotebookAid.exe)
-- [Windows x64 便携 ZIP](release/NotebookAid-0.6.0-t06a.3-win-x64.zip)
+- [NotebookAid 0.12.0-t12.5 EXE](release/0.12.0-t12.5/NotebookAid-win32-x64/NotebookAid.exe)
+- [Windows x64 便携 ZIP](release/NotebookAid-0.12.0-t12.5-win-x64.zip)
+- [T12 写作、摘要及回退指南](docs/t12-testing.md)
 - [T06 附件与升级回退指南](docs/t06-testing.md)
 - [T05-A 导入、兼容与回退指南](docs/t05a-testing.md)
 - [T05 组织与搜索测试](docs/t05-testing.md)

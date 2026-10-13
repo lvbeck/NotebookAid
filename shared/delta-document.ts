@@ -1,4 +1,5 @@
 import type { Attachment } from './attachments';
+import { safeColor } from './inline-style';
 
 export interface NativeAttachment extends Attachment { data: string; }
 export interface DeltaOp { insert: string | { image: string }; attributes?: Record<string, string | number | boolean>; }
@@ -29,7 +30,8 @@ export function parseDelta(body: string): DeltaDocument {
       const a = op.attributes;
       for (const [key, value] of Object.entries(a)) {
         let valid = false;
-        if (['bold','italic','code','blockquote'].includes(key)) valid = value === true;
+        if (['bold','italic','underline','strike','code','blockquote'].includes(key)) valid = value === true;
+        if (['color','background'].includes(key)) valid = safeColor(value);
         if (key === 'header') valid = [1,2,3].includes(value as number);
         if (key === 'list') valid = ['ordered','bullet','checked','unchecked'].includes(value as string);
         if (key === 'indent') valid = Number.isInteger(value) && Number(value) >= 1 && Number(value) <= 8;

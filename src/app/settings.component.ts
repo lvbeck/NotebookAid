@@ -1,4 +1,5 @@
 import { PasskeyComponent } from './passkey.component';
+import { writingText } from './writing-i18n';
 import { AiSettingsComponent } from './ai-settings.component';
 import { BackupComponent } from './backup.component';
 import { NotebookAppearanceComponent } from './notebook-appearance.component';
@@ -33,6 +34,8 @@ export class SettingsComponent {
   readonly upgradeMessage = signal('');
   name = '';
   securityText(key: SecurityKey): string { return securityText(this.locale, key); }
+  translationLabel():string{return writingText(this.locale,'defaultLanguage');}
+  async translationDefault(event:Event):Promise<void>{const input=event.target as HTMLSelectElement;await this.prefs.update({translationLocale:input.value as SettingsLocale});input.value=this.prefs.state().global.translationLocale??this.prefs.locale();}
   async securityDefault(event: Event): Promise<void> { const input = event.target as HTMLInputElement; await this.prefs.update({ masterPasswordDefault: input.checked }); input.checked = this.prefs.state().global.masterPasswordDefault ?? false; }
   constructor() { effect(() => { const entries = this.workspace.registry().entries; if (!entries.some(item => item.id === this.selectedId())) this.selectedId.set(this.workspace.registry().activeId ?? entries[0]?.id ?? ''); }); }
   t(key: MessageKey): string { return translate(this.locale, key); }

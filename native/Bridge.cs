@@ -53,14 +53,15 @@ internal static class Bridge
 
     private static object Handle(string method)
     {
-        if (method == "start")
+        if (method == "start" || method == "open")
         {
-            try { return CallCore("status"); }
+            string action = method == "open" ? "open" : "status";
+            try { return CallCore(action); }
             catch { LaunchIndependent(); }
             for (int attempt = 0; attempt < 100; attempt++)
             {
                 Thread.Sleep(150);
-                try { return CallCore("status"); } catch { }
+                try { return CallCore(action); } catch { }
             }
             throw new IOException("Background did not become ready within 15 seconds.");
         }

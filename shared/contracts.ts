@@ -18,6 +18,7 @@ export interface RuntimeInfo {
 
 export interface PrototypeApi {
   ai: import('./ai').AiApi;
+  writing: import('./writing').WritingApi;
   appPasskeys(action: 'status' | 'enable' | 'unlock' | 'disable' | 'lock'): Promise<{ enabled: boolean; locked: boolean; count: number; supported: boolean; locale: string; theme: 'system' | 'light' | 'dark'; error?: string }>;
   onAddonChanged(callback: () => void): () => void;
   openDesktopTarget(callback: (target: import('./addon').DesktopNoteTarget) => Promise<boolean>): () => void;

@@ -1,5 +1,7 @@
 # T10 Thunderbird 集成验收 — 0.10.0-t10.2
 
+2026-10-13 桥接修复（桌面 0.12.0-t12.2／XPI 0.10.3）：Windows 注册持续保留，不需要每次重启重新注册。旧测试目录更新曾清除注册项指向的 native-host.json／native-host-legacy.json，导致三个连接按钮均失败。已恢复当前用户原路径注册（回滚快照位于 %APPDATA%\NotebookAid\bridge-backups）；更新脚本现在只重建已归属该目录的主机配置，不新建已移除的旧别名或修改其他目录的注册。安装新 NotebookAid.xpi 后，桥接缺失会明确提示运行 Register-Bridge.ps1；新版“打开应用”可在应用未运行时独立启动。电脑重启后可点击“启动后台”或“打开应用”；若开启 Passkey，仍需在应用内解锁。换程序目录或首次安装才需要运行对应目录的注册脚本。真实 Thunderbird 的重连仍需用户复测。
+
 状态：构建、核心及便携验证完成，等待用户真实 Thunderbird 验收。T09／T09.3 已根据用户明确批准提交 ec7ac53；T10 不提交、不开始 T11。
 
 ## 安装与打开
@@ -13,7 +15,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Register-Bridge.ps1
 
 此脚本注册当前用户的 Native Messaging 主机，修改专用 HKCU 项并生成 native-host.json；助手没有自动修改用户注册表。新主机名为 de.zub_systems.notebookaid，插件 ID 为 notebookaid@zub-systems.de。本轮必须重新运行注册脚本。脚本会保留指向同一程序目录的旧主机别名以兼容旧插件，并在 %APPDATA%\NotebookAid\bridge-backups 保存注册快照；失败时自动尝试回滚。若旧注册属于其他目录，会拒绝修改，请先从原目录撤销注册。
 3. 已使用过旧插件时，先安装 NotebookAid-Compatibility.xpi 替换旧 ID 的插件（保持旧插件存储），再安装新 ID 的 NotebookAid.xpi。新插件会通过仅允许指定插件 ID 的本机消息转移 profileId 和已授权标签映射列表，不传输笔记或凭据。完成后建议先禁用 NotebookAid migration helper，保留旧插件存储用于回退；确认不再需要回退后再移除。确认新插件连接和标签映射正常后，可运行 Register-Bridge.ps1 -RemoveLegacy 移除旧主机别名，保留新注册。请勿在迁移前卸载旧插件，否则 Thunderbird 可能删除其独立存储。若先装了新插件，请在安装迁移包后重新载入新插件，并在迁移完成前不要导入标签。
-4. 将配套 NotebookAid.xpi（内部版本 0.10.2）安装至 Thunderbird，或在调试附加组件中临时载入 manifest.json。产品基线 Thunderbird 157.0.1，Gecko 声明最低 157.0；未签名测试 XPI，能否常规安装以 Thunderbird 提示为准。
+4. 将配套 NotebookAid.xpi（内部版本 0.10.3）安装至 Thunderbird，或在调试附加组件中临时载入 manifest.json。产品基线 Thunderbird 157.0.1，Gecko 声明最低 157.0；未签名测试 XPI，能否常规安装以 Thunderbird 提示为准。
 5. 点击 Spaces 侧栏 NotebookAid 或工具栏按钮。出现笔记页后可搜索、按文件夹及标签过滤、分页和预览；首次打开不会自动启动程序。连接断开时点击启动后台，或先手动打开桌面应用。
 
 标签 API 要求 messagesRead 和 messagesTagsList 权限；本 addon 只读取标签定义，不读取邮件正文、不修改邮件或 Thunderbird 标签。请查看并确认安装权限提示。

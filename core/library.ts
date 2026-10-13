@@ -1,4 +1,5 @@
 import { NotebookSecurity } from './security';
+import { validateSummary, validateTranslation, type GeneratedTranslation, type GeneratedSummary } from '../shared/writing';
 import { validateAppearance } from './notebook-appearance';
 import { restoreAllowed } from './restore-guard';
 import type { SecurityState, SecurityRequest } from '../shared/security';
@@ -14,7 +15,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { rmSync, unlinkSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { EventEmitter } from 'node:events';
-import { latestNotebookSchemaVersion, formatExtensions, type LibraryUpgradeResult, type NoteInput, type EditSession, type LibraryErrorCode, type LibraryStatus, type NoteDocument, type NoteSummary, type SaveRequest, type SaveResult } from '../shared/library';
+import { latestNotebookSchemaVersion, maxNoteMetadataBytes, formatExtensions, type LibraryUpgradeResult, type NoteInput, type EditSession, type LibraryErrorCode, type LibraryStatus, type NoteDocument, type NoteSummary, type SaveRequest, type SaveResult } from '../shared/library';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const maxBody = 2 * 1024 * 1024;
@@ -66,11 +67,11 @@ export class NoteLibrary {
       if (!existsSync(manifestPath)) this.atomic(manifestPath, JSON.stringify({ schemaVersion: 1, libraryId: randomUUID(), createdAt: new Date().toISOString() }));
       recoverImport(this.path);
       const manifest = this.json(manifestPath) as { schemaVersion: number; libraryId: string };
-      if (![1, 2, 3, 4, 5, 6, 7].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       this.libraryId = manifest.libraryId;
       this.manifest = manifest;
       this.security = new NotebookSecurity(this.path, this.libraryId, stage => this.fault?.(stage as CommitStage));
-      if (this.security.configured && this.manifest.schemaVersion < 7) { this.atomic(manifestPath, JSON.stringify({ ...this.manifest, schemaVersion: 7 })); this.manifest.schemaVersion = 7; }
+      if (this.security.configured && this.manifest.schemaVersion < 7) { this.atomic(manifestPath, JSON.stringify({ ...this.manifest, schemaVersion: Math.max(this.manifest.schemaVersion, 7) })); this.manifest.schemaVersion = Math.max(this.manifest.schemaVersion, 7); }
       const organizationPath = this.safe('organization.json');
       if (existsSync(organizationPath)) {
         try { this.structure = this.json(organizationPath) as Organization; this.validateStructure(this.structure); } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
@@ -152,7 +153,7 @@ export class NoteLibrary {
     let recoveryKey: string | undefined;
     if (request.action === 'setup') {
       recoveryKey = await this.security.setup(request.password!);
-      this.atomic(this.safe('library.json'), JSON.stringify({ ...this.manifest, schemaVersion: 7 })); this.manifest.schemaVersion = 7;
+      this.atomic(this.safe('library.json'), JSON.stringify({ ...this.manifest, schemaVersion: Math.max(this.manifest.schemaVersion, 7) })); this.manifest.schemaVersion = Math.max(this.manifest.schemaVersion, 7);
       this.atomic(this.safe('security-preference.json'), 'true');
     } else if (request.action === 'unlock') await this.security.unlock(request.credential!);
     else if (request.action === 'recover' || request.action === 'password') await this.security.changePassword(request.credential!, request.password!, request.action === 'recover');
@@ -202,7 +203,7 @@ export class NoteLibrary {
     return target;
   }
   private json(path: string): unknown {
-    return JSON.parse(this.text(path, 128 * 1024)) as unknown;
+    return JSON.parse(this.text(path, basename(path) === 'metadata.json' ? maxNoteMetadataBytes : 128 * 1024)) as unknown;
   }
   private text(path: string, max: number): string {
     if (!this.security) { if (statSync(path).size > max) throw new LibraryError('INTEGRITY_CHECK_FAILED'); return readFileSync(path, 'utf8'); }
@@ -230,10 +231,12 @@ export class NoteLibrary {
     try {
       this.id(head.id); this.id(head.revisionId);
       const metaPath = this.safe('notes', head.id, 'revisions', head.revisionId, 'metadata.json');
-      const text = this.text(metaPath, 128 * 1024);
+      const text = this.text(metaPath, maxNoteMetadataBytes);
       const meta = JSON.parse(text) as Metadata;
       if (digest(text) !== head.metadataHash || meta.schemaVersion !== 1 || meta.id !== head.id || meta.revisionId !== head.revisionId || meta.version !== head.version || !Object.hasOwn(formatExtensions, meta.primaryFormat)) throw new Error();
       if (meta.attachments !== undefined) validateAttachments(meta.attachments);
+      if (meta.generatedSummary !== undefined) { if (this.manifest.schemaVersion < 8) throw new Error(); validateSummary(meta.generatedSummary); }
+      if (meta.generatedTranslation !== undefined) { if (this.manifest.schemaVersion < 9) throw new Error(); validateTranslation(meta.generatedTranslation); }
       this.validateContent(meta.title, ''); this.validatePlacement(meta, false);
       if (!Number.isSafeInteger(meta.contentVersion) || meta.contentVersion < 1 || !uuid.test(meta.operationId) || (meta.parentRevisionId !== null && !uuid.test(meta.parentRevisionId))) throw new Error();
       if (meta.contentVersion > meta.version || !Number.isFinite(Date.parse(meta.createdAt)) || !Number.isFinite(Date.parse(meta.updatedAt)) || (meta.deletedAt !== null && !Number.isFinite(Date.parse(meta.deletedAt))) || (meta.version === 1) !== (meta.parentRevisionId === null)) throw new Error();
@@ -241,7 +244,7 @@ export class NoteLibrary {
       const body = this.text(bodyPath, maxBody);
       if (digest(body) !== meta.bodyHash) throw new Error();
       if (meta.primaryFormat === 'delta') { if (this.manifest.schemaVersion < 5) throw new Error(); parseDelta(body); }
-      return { encrypted: this.security.encrypted(meta.id), visibleInThunderbird: meta.visibleInThunderbird !== false, id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body, folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned, ...(meta.attachments ? { attachments: meta.attachments } : {}) };
+      return { encrypted: this.security.encrypted(meta.id), visibleInThunderbird: meta.visibleInThunderbird !== false, id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body, folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned, ...(meta.attachments ? { attachments: meta.attachments } : {}), ...(meta.generatedSummary ? { generatedSummary: meta.generatedSummary } : {}), ...(meta.generatedTranslation ? { generatedTranslation: meta.generatedTranslation } : {}) };
     } catch (error) { if (error instanceof LibraryError && error.code === 'NOTEBOOK_LOCKED') throw error; throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
   }
   private documents(): NoteDocument[] {
@@ -380,10 +383,10 @@ export class NoteLibrary {
       return terms.every(term => content.includes(term));
     });
     rows.sort((a, b) => view === 'trash' ? b.deletedAt!.localeCompare(a.deletedAt!) || a.id.localeCompare(b.id) : view === 'recent' ? this.recent[b.id].localeCompare(this.recent[a.id]) || a.id.localeCompare(b.id) : Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
-    return { total: rows.length, notes: rows.slice(offset, offset + limit).map(({ body: _body, revisionId: _revision, ...summary }) => ({ ...summary, tagIds: [...summary.tagIds] })) };
+    return { total: rows.length, notes: rows.slice(offset, offset + limit).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, ...summary }) => ({ ...summary, tagIds: [...summary.tagIds] })) };
   }
   list(): NoteSummary[] {
-    return this.documents().filter(note => !note.deletedAt).map(({ body: _body, revisionId: _revision, ...summary }) => summary)
+    return this.documents().filter(note => !note.deletedAt).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, ...summary }) => summary)
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
   }
   rebuild(): LibraryStatus {
@@ -493,6 +496,26 @@ export class NoteLibrary {
     if (current.version !== request.expectedVersion) throw new LibraryError('VERSION_CONFLICT');
     if (current.primaryFormat === 'delta') parseDelta(request.body);
     return this.commit({ ...current, title: request.title, body: request.body }, current, request.operationId, hash);
+  }
+  writingSnapshot(request: AttachmentRequest, owner: string): NoteDocument {
+    const note = this.attachmentSession(request, owner);
+    if (note.deletedAt) throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
+    if (note.version !== request.expectedVersion) throw new LibraryError('VERSION_CONFLICT');
+    return note;
+  }
+  saveSummary(request: AttachmentRequest, owner: string, summary: GeneratedSummary): SaveResult {
+    const note = this.attachmentSession(request, owner); validateSummary(summary);
+    const hash = digest(JSON.stringify(['summary', request.noteId, request.expectedVersion, summary]));
+    const replay = this.operation(request.operationId, hash); if (replay) return replay;
+    if (note.deletedAt || note.version !== request.expectedVersion || this.manifest.schemaVersion < 8 || summary.sourceContentVersion !== note.contentVersion || summary.sourceRevisionId !== note.revisionId) throw new LibraryError('VERSION_CONFLICT');
+    return this.commit({ ...note, generatedSummary: summary }, note, request.operationId, hash);
+  }
+  saveTranslation(request:AttachmentRequest,owner:string,translation:GeneratedTranslation):SaveResult{
+    const note=this.attachmentSession(request,owner);validateTranslation(translation);
+    const hash=digest(JSON.stringify(['translation',request.noteId,request.expectedVersion,translation]));
+    const replay=this.operation(request.operationId,hash);if(replay)return replay;
+    if(note.deletedAt||note.version!==request.expectedVersion||this.manifest.schemaVersion<9||translation.sourceContentVersion!==note.contentVersion||translation.sourceRevisionId!==note.revisionId)throw new LibraryError('VERSION_CONFLICT');
+    return this.commit({...note,generatedTranslation:translation},note,request.operationId,hash);
   }
   private enableDelta(): void {
     if (this.manifest.schemaVersion >= 5) return;
@@ -628,8 +651,8 @@ export class NoteLibrary {
       if (visited.has(revision)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       visited.add(revision);
       const file = this.safe('notes', id, 'revisions', revision, 'metadata.json');
-      const raw = this.text(file, 128 * 1024);
-      if (Buffer.byteLength(raw) > 128 * 1024) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+      const raw = this.text(file, maxNoteMetadataBytes);
+      if (Buffer.byteLength(raw) > maxNoteMetadataBytes) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       const meta = JSON.parse(raw) as Metadata;
       if (meta.id !== id || meta.revisionId !== revision || meta.version !== version || (version === current.version && digest(raw) !== current.metadataHash)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       result.push({ formatVersion: 1, id, revisionId: revision, version, metadataHash: digest(raw) });
@@ -643,7 +666,7 @@ export class NoteLibrary {
     if (!Number.isSafeInteger(offset) || offset < 0) throw new LibraryError('INVALID_INPUT');
     const heads = this.revisionHeads(id);
     return { total: heads.length, revisions: heads.slice(offset, offset + 20).map(head => {
-      const { body, attachments, ...note } = this.readHead(head);
+      const { body, attachments, generatedSummary, generatedTranslation, ...note } = this.readHead(head);
       return { ...note, attachmentCount: attachments?.length ?? 0 };
     }) };
   }
@@ -664,7 +687,7 @@ export class NoteLibrary {
     const source = revision ? this.revision(id, revision) : current;
     // Verify resources before committing a restoration; missing files never become a successful restore.
     for (const item of source.attachments ?? []) this.checkedAttachment(id, item).fill(0);
-    return this.commit({ ...current, title: source.title, body: source.body, primaryFormat: source.primaryFormat, attachments: source.attachments, deletedAt: null }, current, operationId, hash);
+    return this.commit({ ...current, title: source.title, body: source.body, primaryFormat: source.primaryFormat, attachments: source.attachments, generatedSummary: source.generatedSummary, generatedTranslation:source.generatedTranslation, deletedAt: null }, current, operationId, hash);
   }
   deleteOrganization(kind: 'folder' | 'tag', id: string, expectedVersion: number): Organization {
     this.id(id);
@@ -752,6 +775,7 @@ export class NoteLibrary {
     const { body, ...fields } = note;
     const meta: Metadata = { ...fields, schemaVersion: 1, parentRevisionId: previous?.revisionId ?? null, bodyHash: digest(body), operationId, requestHash, visibleInThunderbird: input.visibleInThunderbird !== false };
     const text = JSON.stringify(meta);
+    if(Buffer.byteLength(text)>maxNoteMetadataBytes)throw new LibraryError('INVALID_INPUT');
     const head: Head = { formatVersion: 1, id: note.id, revisionId: note.revisionId, version: note.version, metadataHash: digest(text) };
     let committed = false;
     try {

@@ -8,11 +8,12 @@ export type LibraryErrorCode = MaintenanceErrorCode | 'PASSWORD_POLICY' | 'BAD_C
 export type Result<T> = { ok: true; value: T } | { ok: false; code: LibraryErrorCode; details?: { targetPath?: string; rollbackPath?: string; stagingPath?: string } };
 export type NoteFormat = 'markdown' | 'html' | 'text' | 'delta';
 export const formatExtensions: Record<NoteFormat, string> = { markdown: 'md', html: 'html', text: 'txt', delta: 'nadelta' };
-export const latestNotebookSchemaVersion = 7;
+export const latestNotebookSchemaVersion = 9;
+export const maxNoteMetadataBytes=512*1024;
 export interface LibraryUpgradeResult { schemaVersion: number; backupPath: string | null; }
 export interface NoteInput { primaryFormat: NoteFormat; title: string; body: string; folderId?: string | null; nativeAttachments?: import('./delta-document').NativeAttachment[]; attachmentNoteId?: string; nativeImportToken?: string; }
 export interface NoteSummary extends NotePlacement { encrypted?: boolean; visibleInThunderbird?: boolean; id: string; title: string; primaryFormat: NoteFormat; version: number; contentVersion: number; createdAt: string; updatedAt: string; deletedAt: string | null; }
-export interface NoteDocument extends NoteSummary { body: string; revisionId: string; attachments?: Attachment[]; }
+export interface NoteDocument extends NoteSummary { body: string; revisionId: string; attachments?: Attachment[]; generatedSummary?: import('./writing').GeneratedSummary;generatedTranslation?:import('./writing').GeneratedTranslation; }
 export interface EditSession { token: string; generation: string; note: NoteDocument; }
 export interface SaveRequest { noteId: string; token: string; generation: string; expectedVersion: number; operationId: string; title: string; body: string; }
 export interface SaveResult { removedUnsafeSvg?: number; note: NoteDocument; saved: true; indexed: boolean; }
