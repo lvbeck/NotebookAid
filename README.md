@@ -14,8 +14,8 @@ NotebookAid 是面向本地个人使用的开源笔记应用，由独立桌面�
 
 ## 当前测试入口
 
-- [NotebookAid 0.14.3-context.1 EXE](release/0.14.3-context.1/NotebookAid-win32-x64/NotebookAid.exe)
-- [Windows x64 便携 ZIP](release/NotebookAid-0.14.3-context.1-win-x64.zip)
+- [NotebookAid 0.14.3-context.2 EXE](release/0.14.3-context.2/NotebookAid-win32-x64/NotebookAid.exe)
+- [Windows x64 便携 ZIP](release/NotebookAid-0.14.3-context.2-win-x64.zip)
 - [新手引导验收及回退指南](docs/onboarding-testing.md)
 - [应用菜单及信息页面验收指南](docs/menu-testing.md)
 - [右键菜单验收及回退指南](docs/context-testing.md)

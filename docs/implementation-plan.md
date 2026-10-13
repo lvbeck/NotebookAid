@@ -882,3 +882,11 @@ T14-C 验收修正 0.14.3-context.1：用户报告旧 Markdown 笔记只显示�
 修正版 ZIP SHA256 d1a56fab934be09c08c3cd50d8931eef0ae28b8002c250693901b84dfa1a2011 已保留；Prepare-TestPortable.ps1 已更新 C:\Softwares\NotebookAid-win32-x64，verified=true、backupCreated=false、bridgeManifestsRestored=2。等待用户复测原 Markdown 笔记及 T14-C 右键菜单；未提交，未开始下一任务。
 
 用户随后明确确认：“Markdown笔记现在可以正常编辑了，验收T14-C右键菜单，暂时不进行下个任务。”据此 T14-C（含 Markdown 验收修正）已批准，按项目规则将本任务源码、测试及文档提交本地 main；不推送，不开始 T15-A 或其他新任务。当前测试版本仍为 0.14.3-context.1。
+
+T14-C 已提交本地 main：c83f035（Add note context menus and fix Markdown whitespace roundtrip），未推送。用户随后单独要求“把联系人邮箱 改成 it@live.cn”，仅调整公开联系邮箱、关于页面、项目作者元数据及当前基线文档；历史记录中的旧邮箱保留。版本 0.14.3-context.2，未开始下一计划任务，联系信息调整等待用户确认。
+
+联系信息调整构建通过；最终便携包 UI 及重启回归 output/ui-packaged/1791928231871 通过，关于页面截图已检查，显示 it@live.cn。包内作者元数据为 Jin Lu <it@live.cn>；当前前端五文件及三个相关 Runtime 与 ASAR 一致。回归中的 INVALID_INPUT 为非法缩放输入夹具的预期拒绝。本次不新增测试或修改运行逻辑，未提交。
+
+0.14.3-context.2 已通过 Prepare-TestPortable.ps1 更新测试目录，verified=true、backupCreated=false、bridgeManifestsRestored=2；保留 ZIP SHA256 7abf5b815e832a6290a7083bfdc6e809bef4380be8d7b14d9ec74f17f631a41b。用户可在“应用菜单 → 关于”确认新邮箱；完全退出后恢复保留的 0.14.3-context.1 ZIP 可回退程序文件。等待本次信息调整确认，未开始下一任务。
+
+2026-10-14 用户明确：“联系人邮箱修改验收通过，暂时不进行下个任务。”据此联系信息调整已批准，提交本次源码、项目元数据及文档到本地 main；不推送，不开始下一任务。当前已验收测试版本为 0.14.3-context.2。
