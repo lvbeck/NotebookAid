@@ -44,7 +44,7 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   window.webContents.sendInputEvent({type:'mouseMove',x:10,y:100});
   await click('application-menu');await click('menu-settings');await click('settings-global');await until("document.querySelector('[data-testid=interface-settings]').getClientRects().length>0");
   if (!await run("(()=>{const theme=document.querySelector('[data-testid=settings-theme]').closest('label'),size=document.querySelector('[data-testid=note-page-size]').closest('label');return theme.nextElementSibling===size;})()")) throw Error('Note page size is not immediately after theme');
-  await until("document.querySelector('[data-testid=update-settings] p').textContent.includes('便携版')");
+  await until(`document.querySelector('[data-testid=update-settings] p').textContent.includes(${JSON.stringify(updateText('zh-CN',process.platform === 'darwin' ? 'unconfigured' : 'portable'))})`);
   await click('auto-update');
   await until("window.notebookAid.library.settings({locale:null,theme:null,autosave:null}).then(result=>result.ok&&result.value.global.autoUpdates===false)");
   await run("document.querySelector('[data-testid=update-settings]').scrollIntoView({block:'center'})");

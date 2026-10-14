@@ -11,7 +11,7 @@ async function run(args, environment = env) {
   const child = cp.spawn(executable, args, { env: environment, stdio: ['ignore','pipe','pipe'] });
   let log = ''; child.stdout.on('data', bytes => { log += bytes; }); child.stderr.on('data', bytes => { log += bytes; });
   const timer = setTimeout(() => child.kill('SIGTERM'), 180000);
-  try { const [code] = await once(child, 'exit'); fs.writeFileSync(path.join(environment.NOTEBOOKAID_TEST_HOME, args[0] + '.log'), log); if (code !== 0) throw Error('macOS application smoke failed: ' + log.slice(-3000)); }
+  try { const [code] = await once(child, 'exit'); fs.writeFileSync(path.join(environment.NOTEBOOKAID_TEST_HOME, args[0] + '.log'), log); if (code !== 0) { const file=path.join(environment.NOTEBOOKAID_TEST_HOME,'smoke-error.txt'); throw Error('macOS application smoke failed: ' + (fs.existsSync(file)?fs.readFileSync(file,'utf8'):log.slice(-3000))); } }
   finally { clearTimeout(timer); }
 }
 (async () => {
