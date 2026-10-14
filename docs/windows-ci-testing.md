@@ -34,3 +34,5 @@ GitHub 的 [Artifact attestations](https://docs.github.com/en/actions/how-tos/se
 版本0.15.4-mac.0的测试安装器、便携ZIP、两个XPI和校验清单已上传Artifacts并下载到本地 `release/windows-tests/0.15.4-mac.0/38626804424`，五个成品SHA256均一致。Windows安装器未签名，GitHub Release数量仍为0。安装器SHA256为 `d0062158b3af4d8a5515ca9ce4e313046158950603ee0c9e4e28ba5bac66dbfc`，便携ZIP为 `ccc1f42831aa9674c3e9464a75df00d1a067e6b9a3b066639487f8af94d43e11`。
 
 通过既有Prepare-TestPortable.ps1授权更新便携测试目录：verified=true、backupCreated=false、bridgeManifestsRestored=2，不强制停止进程、不保留解压暂存副本。此前0.15.3-t15.3 ZIP保留供回退；个人数据不作回退。当前等待用户验收，免费签名服务获批和正式更新发布另行完成。
+
+2026-10-14 原生元数据修正交付：源码461468c的运行38630850263成功，266项核心测试中265通过、0失败、1项macOS专用测试跳过；三个最终辅助EXE产品名／完整产品版本／四段文件版本检查、打包界面、编辑器及当前用户安装重装卸载全部通过。最终ZIP与安装器已重新下载校验；ZIP SHA256 bd009fa3ba1edae80bda9c2d068de0c85210f68ddc3ea6c0708670b3310817c5，安装器 f8441ee7ed17142ac548a3f2c3c9b9ac4e3c41799efaa99612a73c94a6904dfb。此前38626804424产物保留于release/windows-tests/0.15.4-mac.0/38626804424供回退，仍未签名、不创建Release。

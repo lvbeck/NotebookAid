@@ -1025,3 +1025,6 @@ T15 implementation record (2026-10-14): 用户授权搁置 T15-A、开始 T15，
 2026-10-14 T15 Windows CI 交付：源码7015309的运行38626804424成功，264项核心测试中263通过、0失败、1项macOS专用检查跳过；安装器／ZIP及校验、打包界面八语言与重启、编辑器、当前用户安装重装卸载均通过。最终Artifacts已下载并逐项核对SHA256，Prepare-TestPortable.ps1更新测试目录verified=true、backupCreated=false、bridgeManifestsRestored=2。按用户授权保存GitHub Releases更新目录为仓库变量NOTEBOOKAID_UPDATE_URL；用户提出免费GitHub签名，经官方说明核对，GitHub产物证明不能替代Windows Authenticode签名，SignPath Foundation尚需申请审核，未声称签名或自动更新已启用。安装器未签名、Release数量0；详情见windows-ci-testing.md，当前仍等待用户验收，T15-A继续搁置。
 
 2026-10-14 SignPath申请准备补充授权：用户要求补齐三个原生辅助EXE产品名与版本，并将审核后的签名政策和隐私声明上传GitHub，不正式发布。新增构建期统一AssemblyInfo，Bridge／Passkey／SetupSupport全部生产编译路径使用package.json版本；产品名NotebookAid，产品版本保留完整语义版本，程序集／文件版本使用主次补丁加0的四段数字；实际编译三个EXE并读取版本资源通过。发布code-signing-policy.md和privacy.md，首页链接注明未提交／未获批／未签名，申请文本同步已解决项。不接入签名、不创建Release、不修改业务逻辑，源码上传用于用户授权的申请与CI验证，不视为产品验收；T15-A继续搁置。
+
+2026-10-14 SignPath准备验证结果：提交461468c已推送，公开签名政策和隐私声明路径由GitHub API确认存在。Windows运行38630850263成功：265通过、0失败、1跳过，最终三个原生EXE元数据及安装器／ZIP／界面／编辑器／安装重装卸载均通过；macOS运行38630850387双架构成功。最终Windows文件下载SHA256一致，旧CI版本产物保留可回退；签名申请文本更新到新构建证据。未提交申请、未签名、未启用更新、Release数量0，当前等待用户验收。
+最终Prepare-TestPortable.ps1更新测试目录verified=true、backupCreated=false、bridgeManifestsRestored=2；已再次读取部署后三个EXE的版本资源，产品名NotebookAid、产品版本0.15.4-mac.0、文件版本0.15.4.0全部一致。

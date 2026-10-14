@@ -20,7 +20,7 @@
 | Project Name * | NotebookAid |
 | Repository URL * | https://github.com/lvbeck/NotebookAid |
 | Homepage URL * | https://github.com/lvbeck/NotebookAid |
-| Download URL | https://github.com/lvbeck/NotebookAid/actions/runs/38626804424 （仅临时测试产物） |
+| Download URL | https://github.com/lvbeck/NotebookAid/actions/runs/38630850263 （仅临时测试产物） |
 | Privacy Policy URL | https://github.com/lvbeck/NotebookAid/blob/main/docs/privacy.md |
 | Wikipedia URL | 留空，没有已核实的条目 |
 | Tagline * | A local-first notebook and writing assistant with optional, user-initiated AI assistance. |
@@ -49,10 +49,10 @@ The source code, license, build workflows and test evidence are publicly availab
 - Repository: https://github.com/lvbeck/NotebookAid
 - License: https://github.com/lvbeck/NotebookAid/blob/main/LICENSE
 - Windows workflow: https://github.com/lvbeck/NotebookAid/blob/main/.github/workflows/windows-build.yml
-- Successful Windows build: https://github.com/lvbeck/NotebookAid/actions/runs/38626804424
-- Successful macOS build: https://github.com/lvbeck/NotebookAid/actions/runs/38622102289
+- Successful Windows build: https://github.com/lvbeck/NotebookAid/actions/runs/38630850263
+- Successful macOS build: https://github.com/lvbeck/NotebookAid/actions/runs/38630850387
 
-The Windows CI run completed 263 core tests with no failures, with one macOS-only test skipped, plus packaged UI/editor checks and current-user installation, reinstallation and uninstallation checks. These are automated checks, not independent user adoption or a security audit.
+The Windows CI run completed 265 core tests with no failures, with one macOS-only test skipped, plus packaged UI/editor checks and current-user installation, reinstallation and uninstallation checks. These are automated checks, not independent user adoption or a security audit.
 
 Unsigned Windows installer and portable ZIP test artifacts are available from the Windows run for 30 days and require GitHub sign-in to download. We have not created a formal GitHub Release. Please advise whether these test artifacts meet your existing-download requirement and whether this early-stage project is eligible, or which additional evidence is needed.
 
