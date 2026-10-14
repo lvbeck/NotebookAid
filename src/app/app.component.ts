@@ -79,12 +79,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
   private readonly writingDialogs = inject(Dialog);
   contextLabel(key:ContextKey):string{return contextText(this.locale(),key);}
+  contextPinned(note:NoteSummary):boolean{return this.workspace.notes().find(current=>current.id===note.id)?.pinned??note.pinned;}
   contextBusy():boolean{return this.composing||this.workspace.switching()||this.workspace.exitLocked();}
-  async noteContextAction(action:'rename'|'duplicate'|'delete'|'move'|'tags',note:NoteSummary,libraryId:string):Promise<void>{
+  async noteContextAction(action:'rename'|'duplicate'|'pin'|'delete'|'move'|'tags',note:NoteSummary,libraryId:string):Promise<void>{
     if(this.contextBusy()||this.workspace.status()?.libraryId!==libraryId)return;
     await this.workspace.select(note.id);if(this.workspace.session()?.note.id!==note.id)return;
     if(action==='delete'){await this.workspace.lifecycleAction('trash');return;}
     if(action==='duplicate'){await this.workspace.duplicateNote((this.workspace.title().slice(0,260)+this.contextLabel('copySuffix')).slice(0,300));return;}
+    if(action==='pin'){await this.workspace.place({pinned:!this.workspace.session()!.note.pinned});return;}
     const current=this.workspace.session()!.note;
     const answer=await firstValueFrom(this.writingDialogs.open<string|string[]>(NoteContextDialog,{data:{action,locale:this.locale(),title:this.workspace.title(),folderId:current.folderId,tagIds:current.tagIds,folders:this.workspace.folderRows(),tags:this.workspace.sortedTags()},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'480px',maxWidth:'calc(100vw - 32px)',ariaLabelledBy:'note-context-title',restoreFocus:false}).closed);
     if(answer===undefined||this.workspace.status()?.libraryId!==libraryId||this.workspace.session()?.note.id!==note.id)return;

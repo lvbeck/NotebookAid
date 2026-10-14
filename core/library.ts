@@ -176,6 +176,16 @@ export class NoteLibrary {
     this.index?.close(); this.index = null; this.clearDiskIndex();
     try { this.security.convert(id, encrypted); } finally { this.rebuild(); this.scanRecovery(); this.events.emit('change', { noteId: '', version: 0, indexed: this.indexed }); }
   }
+  assertSecurityIdle(): void { if (this.sessions.size) throw new LibraryError('NOTE_IN_USE'); }
+  encryptedNotes(): import('../shared/security').EncryptedNote[] {
+    if (!this.security.unlocked) throw new LibraryError('NOTEBOOK_LOCKED');
+    const folders = this.organization().folders;
+    return this.security.encryptedIds().map(id => {
+      const note = this.read(id), names: string[] = []; let folder = folders.find(item => item.id === note.folderId);
+      for (let depth = 0; folder && depth < 16; depth++) { names.unshift(folder.name); folder = folders.find(item => item.id === folder!.parentId); }
+      return { id, title: note.title, version: note.version, folder: names.join(' / '), deleted: !!note.deletedAt };
+    });
+  }
   setVisibility(id: string, expectedVersion: number, visible: boolean): SaveResult {
     this.id(id); if (typeof visible !== 'boolean') throw new LibraryError('INVALID_INPUT');
     if (this.sessions.has(id)) throw new LibraryError('NOTE_IN_USE');

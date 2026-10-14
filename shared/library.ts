@@ -26,6 +26,9 @@ export interface LibraryApi extends RegistryApi, SettingsApi {
   printRecovery(mode: 'print' | 'pdf', key: string): Promise<Result<boolean>>;
   upgradeLibrary(id: string, expectedSchemaVersion: number): Promise<Result<LibraryUpgradeResult | null>>;
   security(request: import('./security').SecurityRequest): Promise<Result<{ state: import('./security').SecurityState; recoveryKey?: string }>>;
+  encryptedNotes(): Promise<Result<import('./security').EncryptedNote[]>>;
+  decryptNotes(credential: string): Promise<Result<import('./security').DecryptReport>>;
+  onDecryptProgress(callback: (progress: import('./security').DecryptProgress) => void): () => void;
   securityPreference(value: boolean | null): Promise<Result<void>>;
   protectNote(id: string, version: number, encrypted: boolean): Promise<Result<void>>;
   noteVisibility(id: string, version: number, visible: boolean): Promise<Result<SaveResult>>;

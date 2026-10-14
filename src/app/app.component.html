@@ -3,6 +3,7 @@
 <ng-template #noteContextMenu let-note="note" let-libraryId="libraryId"><div cdkMenu class="editor-table-menu note-context-menu" data-testid="note-context-menu">
   <button cdkMenuItem data-testid="note-context-rename" (cdkMenuItemTriggered)="noteContextAction('rename',note,libraryId)"><app-icon name="NotebookPen" />{{contextLabel('rename')}}</button>
   <button cdkMenuItem data-testid="note-context-duplicate" (cdkMenuItemTriggered)="noteContextAction('duplicate',note,libraryId)"><app-icon name="Files" />{{contextLabel('duplicate')}}</button>
+  <button cdkMenuItem data-testid="note-context-pin" (cdkMenuItemTriggered)="noteContextAction('pin',note,libraryId)"><app-icon [name]="contextPinned(note) ? 'PinOff' : 'Pin'" />{{t(contextPinned(note) ? 'unpinNote' : 'pinNote')}}</button>
   <button cdkMenuItem data-testid="note-context-delete" (cdkMenuItemTriggered)="noteContextAction('delete',note,libraryId)"><app-icon name="Trash2" />{{contextLabel('delete')}}</button>
   <button cdkMenuItem data-testid="note-context-move" (cdkMenuItemTriggered)="noteContextAction('move',note,libraryId)"><app-icon name="Folder" />{{contextLabel('move')}}</button>
   <button cdkMenuItem data-testid="note-context-tags" (cdkMenuItemTriggered)="noteContextAction('tags',note,libraryId)"><app-icon name="Tag" />{{contextLabel('tags')}}</button>
@@ -75,7 +76,6 @@
       <button class="nav-item" data-testid="settings-tab" [class.active]="tab() === 'settings'" (click)="tab.set('settings')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('settings') : ''" [attr.aria-label]="t('settings')"><app-icon name="Settings" /><span class="sidebar-text">{{ t('settings') }}</span></button>
       <button class="nav-item sidebar-collapse-toggle" data-testid="sidebar-toggle" (click)="toggleSidebar()" [disabled]="!prefs.ready() || prefs.busy()" [attr.aria-expanded]="!sidebarCollapsed()" [attr.aria-label]="t(sidebarCollapsed() ? 'expandSidebar' : 'collapseSidebar')" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('expandSidebar') : ''"><app-icon [name]="sidebarCollapsed() ? 'PanelLeftOpen' : 'PanelLeftClose'" /><span class="sidebar-text">{{ t('collapseSidebar') }}</span></button>
       <button class="nav-item sidebar-exit" data-testid="exit-app" (click)="quit()" [appTooltip]="sidebarCollapsed() ? t('exitApp') : ''" [attr.aria-label]="t('exitApp')"><app-icon name="Power" /><span class="sidebar-text">{{ t('exitApp') }}</span></button>
-      <div class="local-label"><span class="status-dot"></span>{{ t('local') }}<span class="preview-pill">T10</span></div>
     </div>
   </aside>
   <section class="workspace">

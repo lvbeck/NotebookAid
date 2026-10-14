@@ -1,4 +1,5 @@
 import { planFolderBulk,executeFolderBulk,type FolderBulkPlan } from '../core/folder-bulk';
+import { decryptNotes } from '../core/decrypt-bulk';
 import { randomUUID } from 'node:crypto';
 import { planTasks, executeTasksAsync, tasksRows, TasksError, type TasksPlan } from '../core/tasks';
 import type { TasksResult } from '../shared/tasks';
@@ -182,6 +183,19 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     finally { choosing = false; }
   });
   handle('securityPreference', (_owner, value) => get().setSecurityPreference(value));
+  handle('encryptedNotes', () => get().encryptedNotes());
+  ipcMain.handle('library:decryptNotes', async (event, credential: unknown) => {
+    authorize(event);
+    if (choosing || batchBusy) return { ok: false, code: 'LIBRARY_IN_USE' };
+    if (typeof credential !== 'string' || credential.length > 1024) return { ok: false, code: 'INVALID_INPUT' };
+    choosing = true; batchBusy = true;
+    try {
+      const library = get(), libraryId = library.status().libraryId;
+      const value = await decryptNotes(library, credential, progress => { if (!event.sender.isDestroyed()) event.sender.send('library:decryptProgress', { ...progress, libraryId }); }, () => { authorize(event); if (event.sender.isDestroyed() || get() !== library) throw new LibraryError('CANCELLED'); });
+      lastActivity = Date.now(); return { ok: true, value };
+    } catch (error) { return { ok: false, code: error instanceof LibraryError ? error.code : (error as NodeJS.ErrnoException).code === 'ENOSPC' ? 'DISK_FULL' : ['EACCES', 'EPERM'].includes((error as NodeJS.ErrnoException).code ?? '') ? 'ACCESS_DENIED' : 'WRITE_FAILED' }; }
+    finally { credential = ''; choosing = false; batchBusy = false; }
+  });
   handle('printRecovery', async (_owner, mode, key) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
     const state = get().status().security;
