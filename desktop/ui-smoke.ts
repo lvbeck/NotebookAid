@@ -17,6 +17,7 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   const updateSelect = async (id: string, value: string) => { await run(`{const select=document.querySelector('[data-testid="${id}"]');select.value=${JSON.stringify(value)};select.dispatchEvent(new Event('change',{bubbles:true}));}`); await until(`!document.querySelector('[data-testid="${id}"]').disabled`); };
   const capture = async (name: string) => { await run("document.querySelectorAll('[data-testid=notification] .notification-card-top button').forEach(button=>button.click());document.querySelector('[data-testid=interface-settings]').scrollIntoView({block:'center'});"); window.showInactive(); await run('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))'); await new Promise(r=>setTimeout(r,200)); writeFileSync(join(directory,name),(await window.webContents.capturePage()).toPNG()); };
   await until("document.querySelector('app-root')?.dataset.ready==='true' && !document.querySelector('[data-testid=create-note]').disabled");
+  if (!await run("document.querySelector('[data-testid=diagnostics-tab]').getClientRects().length===0")) throw Error('Technical validation entry is visible');
   if (process.argv.includes('--self-test-reopen')) {
     const settings = JSON.parse(readFileSync(join(directory,'settings.json'),'utf8'));
     if (settings.global.zoomPercent!==125 || window.webContents.getZoomFactor()!==1.25) throw Error('Zoom was not restored');
@@ -42,6 +43,7 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   await run("window.__tooltipObserver.disconnect();delete window.__tooltipObserver;delete window.__tooltipIds;document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',keyCode:27,bubbles:true,cancelable:true}));");await until("!document.querySelector('.application-menu')");
   window.webContents.sendInputEvent({type:'mouseMove',x:10,y:100});
   await click('application-menu');await click('menu-settings');await click('settings-global');await until("document.querySelector('[data-testid=interface-settings]').getClientRects().length>0");
+  if (!await run("(()=>{const theme=document.querySelector('[data-testid=settings-theme]').closest('label'),size=document.querySelector('[data-testid=note-page-size]').closest('label');return theme.nextElementSibling===size;})()")) throw Error('Note page size is not immediately after theme');
   await until("document.querySelector('[data-testid=update-settings] p').textContent.includes('便携版')");
   await click('auto-update');
   await until("window.notebookAid.library.settings({locale:null,theme:null,autosave:null}).then(result=>result.ok&&result.value.global.autoUpdates===false)");
