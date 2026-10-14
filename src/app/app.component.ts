@@ -1,3 +1,4 @@
+import { BackupProgressComponent, BackupProgressService } from './backup-progress';
 import { EasterBridge } from './easter-bridge';
 import { Onboarding } from './onboarding';
 import { StartupProgressComponent } from './startup-progress.component';
@@ -7,6 +8,7 @@ import { contextText,type ContextKey } from './context-i18n';
 import type { NoteSummary } from '../../shared/library';
 import { InformationDialog, type InformationPage } from './information-dialog';
 import { informationText, type InformationKey } from './information-i18n';
+import { updateText } from './updates-i18n';
 import { UiFailure } from './ui-failure';
 import { errorText, uiText, type UiKey } from './ui-i18n';
 import { nextZoom } from '../../shared/ui';
@@ -62,10 +64,11 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [StartupProgressComponent,TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [BackupProgressComponent, StartupProgressComponent,TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
+  readonly backupProgress = inject(BackupProgressService);
   tasksLabel():string{return tasksText(this.locale(),'menu');}
   async importTasks():Promise<void>{
     this.newNoteMenuOpen.set(false);
@@ -114,6 +117,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     try{await window.notebookAid.editCommand(action);}catch{this.fileMessage.set(this.t('failed'));}
   }
   informationLabel(key:InformationKey):string{return informationText(this.locale(),key);}
+  updateLabel(): string { return updateText(this.locale(), 'check'); }
+  checkUpdates(): void { this.tab.set('settings'); this.settingsPanel?.checkUpdates(); }
   showInformation(page:InformationPage):void{
     const ref=this.writingDialogs.open(InformationDialog,{data:{page,locale:this.locale(),version:this.runtime()?.version??'—'},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'720px',maxWidth:'calc(100vw - 32px)',ariaLabelledBy:'information-title',autoFocus:'[data-testid=information-close]',restoreFocus:false});
     ref.closed.subscribe(()=>requestAnimationFrame(()=>{if(!this.writingDialogs.openDialogs.length&&!this.onboarding.active())document.querySelector<HTMLElement>('[data-testid=application-menu]')?.focus({preventScroll:true});}));

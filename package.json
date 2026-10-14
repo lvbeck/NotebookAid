@@ -1,8 +1,8 @@
 {
   "name": "notebookaid",
-  "version": "0.14.5-easter.3",
+  "version": "0.15.2-t15.2",
   "private": true,
-  "description": "Local notes and writing assistant - T14 interface quality",
+  "description": "Local notes and writing assistant",
   "author": "Jin Lu <it@live.cn>",
   "license": "BSD-3-Clause",
   "main": "dist/runtime/desktop/main.js",
@@ -14,7 +14,8 @@
     "start": "electron .",
     "test": "node --test test/*.test.cjs",
     "smoke": "node scripts/smoke.cjs",
-    "package": "node scripts/package.cjs"
+    "package": "node scripts/package.cjs",
+    "installer": "node scripts/build-installer.cjs"
   },
   "dependencies": {
     "@angular/cdk": "22.2.2",
@@ -26,6 +27,7 @@
     "@simplewebauthn/server": "14.0.3",
     "dompurify": "3.4.16",
     "driver.js": "1.9.0",
+    "electron-updater": "6.8.9",
     "highlight.js": "11.11.1",
     "ical.js": "2.2.1",
     "jose": "6.2.2",
@@ -45,6 +47,7 @@
     "@types/node": "24.10.1",
     "@types/turndown": "5.0.6",
     "electron": "44.7.0",
+    "electron-builder": "26.15.3",
     "typescript": "6.0.3"
   }
 }

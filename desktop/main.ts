@@ -1,4 +1,5 @@
 import { smokeEaster } from './easter-smoke';
+import { registerUpdates, updateSourceReady } from './updates';
 import { migrateAppData } from '../core/app-data';
 import { validZoom } from '../shared/ui';
 import { registerAi } from './ai-ipc';
@@ -19,7 +20,7 @@ import { smokeHtmlImport } from './html-import-smoke';
 import { smokeLibrary } from './smoke';
 import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain } from 'electron';
 import { mkdirSync, writeFileSync, existsSync, unlinkSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createServer, Server } from 'node:net';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -56,6 +57,8 @@ let exitPending = false;
 let addon: AddonService;
 let ai: ReturnType<typeof registerAi>;
 let writing: ReturnType<typeof registerWriting>;
+let updates: ReturnType<typeof registerUpdates>;
+let updateInstalling = false;
 let addonWaiters = 0;
 let editorWindowBounds: Electron.Rectangle | null = null;
 let storage: ReturnType<typeof registerLibrary>;
@@ -128,6 +131,10 @@ async function start(): Promise<void> {
   passkeys = passkeyClient(dataPath);
   const protectedCaller = (event: Electron.IpcMainInvokeEvent) => { authorize(event); if (!passkeys.gate.unlocked) throw Error('APP_LOCKED'); };
   storage = registerLibrary(dataPath, () => mainWindow, protectedCaller, selfTest, updateTray, { enabled: () => passkeys.gate.enabled && passkeys.gate.unlocked, lock: () => { passkeys.gate.lock(); mainWindow?.webContents.reload(); } }, authorize);
+  updates = registerUpdates({ root: dirname(process.execPath), resources: process.resourcesPath, configured: app.isPackaged && !selfTest && updateSourceReady(dirname(process.execPath), process.resourcesPath), enabled: () => !selfTest && storage.autoUpdatesEnabled(), publish: state => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('updates:state', state); }, confirm: () => storage.confirmUpdate(), flush: () => storage.flush(), beforeInstall: () => { updateInstalling = true; quitting = true; }, installFailed: () => { if (updateInstalling) { updateInstalling = false; quitting = false; } } });
+  ipcMain.handle('updates:state', event => { protectedCaller(event); return updates.state(); });
+  ipcMain.handle('updates:check', event => { protectedCaller(event); return updates.check(); });
+  ipcMain.handle('updates:install', event => { protectedCaller(event); return updates.install(); });
   notifications = registerNotifications(dataPath, protectedCaller, selfTest);
   ipcMain.handle('prototype:edit-command',(event,action:unknown)=>{
     protectedCaller(event);if(typeof action!=='string'||!['cut','copy','paste','selectAll'].includes(action))throw Error('INVALID_INPUT');
@@ -244,6 +251,7 @@ app.on('before-quit', event => {
   addon?.close();
   ai?.close();
   writing?.close();
+  updates?.close();
   server?.close();
   tray?.destroy();
   storage?.close();

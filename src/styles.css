@@ -532,4 +532,4 @@ summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .easter-slogan { background: transparent; border: 0; padding: 0; color: inherit; font: inherit; text-align: start; cursor: pointer; }
 .brand-logo-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; padding: 0; border: 0; background: transparent; cursor: pointer; }
 
-.notebook-appearance h2 { display: flex; align-items: center; gap: 8px; }
+.notebook-appearance h2, .notebook-appearance h3 { display: flex; align-items: center; gap: 8px; }

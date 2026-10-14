@@ -118,21 +118,38 @@ export class NoteLibrary {
   }
   assertMaintenance(allowDamaged = false): void { if (this.sessions.size) throw new LibraryError('NOTE_IN_USE'); if (!allowDamaged && (this.pendingRecovery || this.issues.size)) throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
   verifyIntegrity(): import('../shared/backup').IntegrityResult {
+    const steps = this.integritySteps();
+    let next = steps.next();
+    while (!next.done) next = steps.next();
+    return next.value;
+  }
+  async verifyIntegrityAsync(progress: (value: import('../shared/backup').BackupProgress) => void): Promise<import('../shared/backup').IntegrityResult> {
+    const steps = this.integritySteps();
+    let next = steps.next();
+    while (!next.done) { progress(next.value); await new Promise<void>(resolve => setImmediate(resolve)); next = steps.next(); }
+    return next.value;
+  }
+  private *integritySteps(): Generator<import('../shared/backup').BackupProgress, import('../shared/backup').IntegrityResult> {
     if (this.pendingRecovery || this.issues.size) throw new LibraryError('INTEGRITY_CHECK_FAILED');
     this.security.verifyStructure();
     let notes = 0, revisions = 0, attachments = 0, encryptedSkipped = 0;
     const seen = new Set<string>();
-    for (const id of readdirSync(this.safe('notes'))) {
+    const ids = readdirSync(this.safe('notes')); let completed = 0;
+    yield { phase: 'validating', completed, total: ids.length };
+    for (const id of ids) {
       this.id(id);
-      if (this.security.encrypted(id) && !this.security.unlocked) { encryptedSkipped++; continue; }
+      if (this.security.encrypted(id) && !this.security.unlocked) { encryptedSkipped++; completed++; yield { phase: 'validating', completed, total: ids.length }; continue; }
       notes++;
       for (const head of this.revisionHeads(id)) {
         const note = this.readHead(head); revisions++;
         for (const item of note.attachments ?? []) {
           const key = id + '/' + item.id; if (seen.has(key)) continue;
           seen.add(key); this.checkedAttachment(id, item).fill(0); attachments++;
+          yield { phase: 'validating', completed, total: ids.length };
         }
+        yield { phase: 'validating', completed, total: ids.length };
       }
+      completed++; yield { phase: 'validating', completed, total: ids.length };
     }
     return { notes, revisions, attachments, encryptedSkipped };
   }

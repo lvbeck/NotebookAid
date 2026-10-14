@@ -13,12 +13,15 @@ NotebookAid 是面向本地个人使用的开源笔记应用，由独立桌面�
 - 已提供图片附件、可选 Delta 原生格式、回收站与历史、逐笔记加密、Passkey 应用门禁、备份恢复、笔记本外观、Thunderbird 集成及 AI 连接管理。T12 增加主动辅助写作、插入／替换、独立摘要与翻译保存，工具栏支持下划线、删除线及文字／背景颜色。
 - 计划与验收状态以 [实施计划](docs/implementation-plan.md) 为准。
 
-启动性能及可配置分页（T14-D）已获用户验收；T15-A 未开始。验收与回退见 [启动验收](docs/startup-testing.md)。
+启动性能及可配置分页（T14-D）、彩蛋（T14-E）已获用户验收。T15-A 按用户决定暂时搁置；T15 安装与自动更新机制正在实施，等待独立验收。安装、构建、支持矩阵及回退见 [T15 验收](docs/t15-testing.md) 和 [发布说明](docs/release-support.md)。未发布正式 1.0。
 
 ## 当前测试入口
 
-- [NotebookAid 0.14.4-startup.0 EXE](release/0.14.4-startup.0/NotebookAid-win32-x64/NotebookAid.exe)
-- [Windows x64 便携 ZIP](release/NotebookAid-0.14.4-startup.0-win-x64.zip)
+- [NotebookAid 0.15.2-t15.2 安装器](release/installer/NotebookAid-0.15.2-t15.2-Setup-x64.exe)
+- [Windows x64 便携 ZIP](release/NotebookAid-0.15.2-t15.2-win-x64.zip)
+- [Thunderbird 插件](release/NotebookAid.xpi)
+- [本版源码 ZIP](release/NotebookAid-0.15.2-t15.2-source.zip)
+- [T15 安装与回退验收](docs/t15-testing.md)
 - [新手引导验收及回退指南](docs/onboarding-testing.md)
 - [应用菜单及信息页面验收指南](docs/menu-testing.md)
 - [右键菜单验收及回退指南](docs/context-testing.md)

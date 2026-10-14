@@ -24,7 +24,13 @@ export async function smokeBackups(window: BrowserWindow, directory: string): Pr
   if (await run("document.querySelector('[data-testid=backup-daily]').checked")) throw Error('Daily backup default is on');
   const copies = join(directory, 'copies'); writeFileSync(join(directory, 'backup-dialog.json'), JSON.stringify({ directory: copies }));
   await click('backup-directory'); await until("!document.querySelector('[data-testid=backup-now]').disabled");
+  writeFileSync(join(entry.path, 'background-fixture.bin'), Buffer.alloc(32 * 1024 * 1024, 23));
+  window.showInactive();
+  await run(`window.__backupEvidence={events:0,replies:0,blocked:false,frames:0,visible:false};window.__backupStop=window.notebookAid.library.onBackupProgress(job=>{if(job){window.__backupEvidence.events++;window.notebookAid.library.status().then(value=>{if(value.ok)window.__backupEvidence.replies++;});if(window.__backupEvidence.events===1)window.notebookAid.library.create(crypto.randomUUID(),{title:'Blocked fixture',body:'',primaryFormat:'text'}).then(value=>window.__backupEvidence.blocked=!value.ok&&value.code==='LIBRARY_IN_USE');}});window.__backupObserver=new MutationObserver(()=>{if(document.querySelector('[data-testid=backup-progress]'))window.__backupEvidence.visible=true;});window.__backupObserver.observe(document.body,{childList:true,subtree:true});window.__backupFramesActive=true;function tick(){if(document.querySelector('[data-testid=backup-progress]'))window.__backupEvidence.frames++;if(window.__backupFramesActive)requestAnimationFrame(tick);}requestAnimationFrame(tick);`);
   await click('backup-now'); await until("document.querySelector('[data-testid=backup-result]')?.textContent.includes('操作完成')");
+  const evidence = await run('window.__backupFramesActive=false;window.__backupStop();window.__backupObserver.disconnect();window.__backupEvidence');
+  writeFileSync(join(directory, 'background-backup.json'), JSON.stringify(evidence));
+  if (!evidence.visible || evidence.frames < 1 || evidence.replies < 1 || !evidence.blocked) throw Error('Background backup blocks UI/IPC or permits concurrent writes: ' + JSON.stringify(evidence));
   const backup = join(copies, readdirSync(copies).find(name => name.endsWith('.nabackup'))!);
   await click('unfiled-folder'); await run(`document.querySelector('[data-note-id="${note.id}"]').click()`); await until("document.querySelector('[data-testid=note-title]').value==='T09 note'");
   await fill('body-source', 'After backup'); await click('save-note'); await until("document.querySelector('[data-testid=save-status]').textContent.includes('已保存')");

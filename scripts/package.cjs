@@ -20,7 +20,7 @@ const { execFileSync } = require('node:child_process');
   cpSync('dist/runtime', join(stage, 'runtime'), { recursive: true });
   cpSync('dist/renderer', join(stage, 'renderer'), { recursive: true });
   cpSync('LICENSE', join(stage, 'LICENSE'));
-  cpSync('assets', join(stage, 'assets'), { recursive: true });
+  cpSync('assets', join(stage, 'assets'), { recursive: true, filter: source => !/notebookaid-note\.(svg|ico)$|installer-sidebar\.(bmp|png)$/.test(source) });
   const project = JSON.parse(readFileSync('package.json', 'utf8'));
   const copied = new Set();
   const copyDependency = (name, from = workspace) => {
@@ -40,6 +40,7 @@ const { execFileSync } = require('node:child_process');
   copyDependency('parse5');
   copyDependency('marked');
   copyDependency('ical.js');
+  copyDependency('electron-updater');
   writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'], jose: project.dependencies['jose'], parse5: project.dependencies['parse5'], marked: project.dependencies['marked'], 'ical.js': project.dependencies['ical.js'] } }));
   const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: 'win32', arch: 'x64', electronVersion: project.devDependencies.electron, overwrite: true, asar: true, prune: false,
     icon: resolve('assets/notebookaid.ico'), appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid', ProductName: 'NotebookAid' },
@@ -50,6 +51,9 @@ const { execFileSync } = require('node:child_process');
   const compiler = join(process.env.WINDIR || 'C:/Windows', 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
   execFileSync(compiler, ['/nologo', '/target:exe', '/platform:x64', '/reference:System.Web.Extensions.dll', '/out:' + join(packageRoot, 'NotebookAid.Bridge.exe'), resolve('native/Bridge.cs')], { stdio: 'inherit', windowsHide: true });
   cpSync('scripts/Register-Bridge.ps1', join(packageRoot, 'Register-Bridge.ps1'));
+  cpSync('scripts/Recover-Installation.ps1', join(packageRoot, 'Recover-Installation.ps1'));
+  cpSync('docs/t15-testing.md', join(packageRoot, 'T15-TESTING.md'));
+  cpSync('docs/release-support.md', join(packageRoot, 'RELEASE-SUPPORT.md'));
   cpSync('LICENSE', join(packageRoot, 'NotebookAid-LICENSE.txt'));
   cpSync('docs/t02-testing.md', join(packageRoot, 'T02-TESTING.md'));
   cpSync('docs/t03-testing.md', join(packageRoot, 'T03-TESTING.md'));
@@ -84,5 +88,6 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/t05a-testing.md', join(packageRoot, 'T05A-TESTING.md'));
   cpSync('node_modules/@angular/cdk/LICENSE', join(packageRoot, 'CDK-LICENSE.txt'));
   cpSync('dist/renderer/3rdpartylicenses.txt', join(packageRoot, 'renderer-THIRD-PARTY-LICENSES.txt'));
+  require('./distribution-licenses.cjs').distributionLicenses(packageRoot, stage);
   console.log('Packaged:', packageRoot);
 })().catch(error => { console.error(error); process.exitCode = 1; });

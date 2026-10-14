@@ -14,7 +14,7 @@ type PasskeyState = Awaited<ReturnType<PrototypeApi['appPasskeys']>>;
   @if (compact) {
     @if (state()?.enabled) { <button class="nav-item" data-testid="lock-app" (click)="act('lock')" [disabled]="busy()" [appTooltip]="t('lock')"><app-icon name="Shield" /><span class="sidebar-text">{{ t('lock') }}</span></button> }
   } @else {
-    <h2>{{ t('title') }}</h2><p>{{ t('hint') }}</p><p class="muted">{{ t('phone') }}</p>
+    @if (grouped) { <h3>{{ t('title') }}</h3> } @else { <h2>{{ t('title') }}</h2> }<p>{{ t('hint') }}</p><p class="muted">{{ t('phone') }}</p>
     <p>{{ t(state()?.enabled ? 'on' : 'off') }} · {{ t('count') }}: {{ state()?.count ?? 0 }}</p>
     <div class="actions"><button class="primary" data-testid="passkey-enable" (click)="act('enable')" [disabled]="busy() || !state()?.supported || (state()?.count ?? 0) >= 10"><app-icon name="Shield" />{{ t(state()?.enabled ? 'add' : 'enable') }}</button>
     @if (state()?.enabled) { <button class="secondary" (click)="act('disable')" [disabled]="busy()"><app-icon name="X" />{{ t('disable') }}</button><button class="secondary" (click)="act('lock')" [disabled]="busy()"><app-icon name="LockKeyhole" />{{ t('lock') }}</button> }</div>
@@ -25,6 +25,7 @@ type PasskeyState = Awaited<ReturnType<PrototypeApi['appPasskeys']>>;
 ` })
 export class PasskeyComponent implements OnDestroy {
   @Input() compact = false;
+  @Input() grouped = false;
   readonly prefs = inject(Preferences);
   readonly state = signal<PasskeyState | null>(null); readonly busy = signal(false); readonly error = signal(false);
   private readonly refresh = () => { void window.notebookAid.appPasskeys('status').then(value => this.state.set(value)); };

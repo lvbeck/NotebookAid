@@ -18,6 +18,7 @@ export interface RuntimeInfo {
 }
 
 export interface PrototypeApi {
+  updates: import('./updates').UpdatesApi;
   editCommand(action:'cut'|'copy'|'paste'|'selectAll'):Promise<void>;
   folderBulk: import('./batch').FolderBulkApi;
   tasks: import('./tasks').TasksApi;

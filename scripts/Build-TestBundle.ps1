@@ -65,8 +65,11 @@ try {
     [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($compatZip, (Join-Path $workspace 'LICENSE'), 'LICENSE', [IO.Compression.CompressionLevel]::Optimal) | Out-Null
 } finally { $compatZip.Dispose(); $compatStream.Dispose() }
 Copy-Item -LiteralPath $compatPath -Destination (Join-Path $packageRoot 'NotebookAid-Compatibility.xpi') -Force
+Copy-Item -LiteralPath (Join-Path $workspace 'docs/t15-testing.md') -Destination (Join-Path $packageRoot 'T15-TESTING.md') -Force
 Compress-Archive -LiteralPath $packageRoot -DestinationPath $bundlePath -CompressionLevel Optimal -Force
-$hashes = @($bundlePath, $addonPath, $compatPath) | ForEach-Object {
+$installerPattern = '^NotebookAid-' + [regex]::Escape($version) + '-Setup-x64\.exe(?:\.blockmap)?$'
+$installerFiles = @(Get-ChildItem -LiteralPath (Join-Path $releaseRoot 'installer') -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match $installerPattern } | ForEach-Object FullName)
+$hashes = @($bundlePath, $addonPath, $compatPath) + $installerFiles | ForEach-Object {
     $hash = Get-FileHash -LiteralPath $_ -Algorithm SHA256
     "$($hash.Hash.ToLowerInvariant())  $([System.IO.Path]::GetFileName($_))"
 }

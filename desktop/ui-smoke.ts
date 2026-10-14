@@ -5,9 +5,11 @@ import { regionalLocale, translations, type Locale } from '../src/app/i18n';
 import { uiText } from '../src/app/ui-i18n';
 import { informationText } from '../src/app/information-i18n';
 import { projectLicense } from '../src/app/project-license';
+import { updateText } from '../src/app/updates-i18n';
+import { settingsLayoutText } from '../src/app/settings-layout-i18n';
 
 export async function smokeUi(window: BrowserWindow, directory: string): Promise<void> {
-  const run = (script: string) => window.webContents.executeJavaScript(script);
+  const run = async (script: string) => { try { return await window.webContents.executeJavaScript(script); } catch (error) { throw new Error('UI script failed: ' + script, { cause: error }); } };
   const until = async (expression: string) => { for (let n=0;n<140;n++) { if (await run(expression)) return; await new Promise(resolve=>setTimeout(resolve,100)); } throw Error('UI timeout: '+expression); };
   const untilZoom = async (factor: number) => { for (let n=0;n<100;n++) { if (window.webContents.getZoomFactor()===factor) return; await new Promise(resolve=>setTimeout(resolve,50)); } throw Error('Zoom not applied: '+factor); };
   const click = async (id: string) => { await until(`document.querySelector('[data-testid="${id}"]') && !document.querySelector('[data-testid="${id}"]').disabled`); await run(`document.querySelector('[data-testid="${id}"]').click()`); };
@@ -18,6 +20,7 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   if (process.argv.includes('--self-test-reopen')) {
     const settings = JSON.parse(readFileSync(join(directory,'settings.json'),'utf8'));
     if (settings.global.zoomPercent!==125 || window.webContents.getZoomFactor()!==1.25) throw Error('Zoom was not restored');
+    if (settings.global.autoUpdates !== false) throw Error('Update preference was not restored');
     await key(','); await until("document.querySelector('[data-select-trigger=interface-zoom]')?.textContent.includes('125%')");
     const expected = JSON.parse(readFileSync(join(directory,'ui-expected.json'),'utf8'));
     const result = await run(`window.notebookAid.library.begin(${JSON.stringify(expected.id)})`);
@@ -33,16 +36,36 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   window.webContents.sendInputEvent({type:'mouseMove',...menuPoint});await new Promise(resolve=>setTimeout(resolve,900));
   if(!await run(`document.querySelector('[data-testid=application-menu]').contains(document.elementFromPoint(${menuPoint.x},${menuPoint.y}))&&window.__tooltipIds.size===0`))throw Error('Menu has an unexpected tooltip or intercepts the pointer');
   window.webContents.sendInputEvent({type:'mouseDown',button:'left',clickCount:1,...menuPoint});window.webContents.sendInputEvent({type:'mouseUp',button:'left',clickCount:1,...menuPoint});
-  await until("document.querySelectorAll('.application-menu [role=menuitem]').length===4");
+  await until("document.querySelectorAll('.application-menu [role=menuitem]').length===5");
   if(!await run("(()=>{const theme=document.querySelector('[data-select-trigger=theme]'),trigger=document.querySelector('[data-testid=application-menu]'),items=[...document.querySelectorAll('.application-menu [role=menuitem]')];return trigger.textContent.trim()==='应用菜单'&&!!trigger.querySelector('svg')&&getComputedStyle(trigger).fontSize===getComputedStyle(theme).fontSize&&items.every(item=>getComputedStyle(item).fontSize===getComputedStyle(theme).fontSize&&item.querySelector('svg').getBoundingClientRect().height===14)&&document.querySelector('[data-testid=menu-about]').textContent.trim()==='关于';})()"))throw Error('Menu label or size differs from the theme control');
   window.showInactive();await run('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');await new Promise(resolve=>setTimeout(resolve,200));writeFileSync(join(directory,'application-menu.png'),(await window.webContents.capturePage()).toPNG());
   await run("window.__tooltipObserver.disconnect();delete window.__tooltipObserver;delete window.__tooltipIds;document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',keyCode:27,bubbles:true,cancelable:true}));");await until("!document.querySelector('.application-menu')");
   window.webContents.sendInputEvent({type:'mouseMove',x:10,y:100});
   await click('application-menu');await click('menu-settings');await click('settings-global');await until("document.querySelector('[data-testid=interface-settings]').getClientRects().length>0");
+  await until("document.querySelector('[data-testid=update-settings] p').textContent.includes('便携版')");
+  await click('auto-update');
+  await until("window.notebookAid.library.settings({locale:null,theme:null,autosave:null}).then(result=>result.ok&&result.value.global.autoUpdates===false)");
+  await run("document.querySelector('[data-testid=update-settings]').scrollIntoView({block:'center'})");
+  window.showInactive();await run('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');writeFileSync(join(directory,'update-settings.png'),(await window.webContents.capturePage()).toPNG());
   for(const locale of Object.keys(translations) as Locale[]){
     await updateSelect('language',locale);await until(`document.documentElement.lang===${JSON.stringify(regionalLocale(locale))}`);
+    for (const [id, key] of [['basic-settings', 'basic'], ['security-settings', 'security']] as const) {
+      if (!await run(`document.querySelector('[data-testid=${id}] h2').textContent===${JSON.stringify(settingsLayoutText(locale,key))}`)) throw Error('Settings title is not localized');
+    }
+    if (!await run(`(()=>{const ids=['onboarding-settings','basic-settings','interface-settings','global-autosave-settings','ai-settings-region','security-settings','notifications-settings','easter-settings','update-settings'];const nodes=ids.map(id=>document.querySelector('[data-testid='+id+']'));return nodes.every((node,i)=>node&&(!i||(nodes[i-1].compareDocumentPosition(node)&Node.DOCUMENT_POSITION_FOLLOWING)));})()`)) throw Error('Global settings order is incorrect');
+    await click('settings-library');
+    await until("!!document.querySelector('[data-testid=notebook-appearance] h2')");
+    if (!await run(`document.querySelector('[data-testid=notebook-appearance] h2').textContent===${JSON.stringify(settingsLayoutText(locale,'appearance'))}`)) throw Error('Appearance title is not localized');
+    if (!await run(`(()=>{const ids=['library-identity-settings','notebook-appearance','library-security-settings','library-autosave-settings','backup-settings','library-maintenance-settings'];const nodes=ids.map(id=>document.querySelector('[data-testid='+id+']'));return nodes.every((node,i)=>node&&(!i||(nodes[i-1].compareDocumentPosition(node)&Node.DOCUMENT_POSITION_FOLLOWING)));})()`)) throw Error('Notebook settings order is incorrect');
+    await run('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
+    await click('application-menu');
+    await until("!!document.querySelector('[data-testid=menu-check-updates]')");
+    if (!await run(`document.querySelector('[data-testid=menu-check-updates]').textContent.trim()===${JSON.stringify(updateText(locale,'check'))}&&!!document.querySelector('[data-testid=menu-check-updates] svg')`)) throw Error('Update menu is not localized or has no icon');
+    await click('menu-check-updates');
+    await until("document.activeElement?.dataset.testid==='update-settings'&&document.querySelector('[data-testid=update-settings]').getClientRects().length>0");
+    if (!await run(`document.querySelector('[data-testid=update-settings] h2').textContent===${JSON.stringify(updateText(locale,'title'))}`)) throw Error('Update settings are not localized');
     for(const page of ['license','privacy','about'] as const){
-      await click('application-menu');await until("document.querySelectorAll('.application-menu [role=menuitem]').length===4");
+      await click('application-menu');await until("document.querySelectorAll('.application-menu [role=menuitem]').length===5");
       await click('menu-'+page);await until(`document.querySelector('[data-testid=information-dialog]')?.dataset.page===${JSON.stringify(page)}`);
       if(!await run(`document.querySelector('#information-title').textContent===${JSON.stringify(informationText(locale,page))}`))throw Error('Information title not localized');
       if(page==='license'&&!await run(`document.querySelector('.license-text').textContent===${JSON.stringify(projectLicense)}`))throw Error('License text changed');

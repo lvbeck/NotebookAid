@@ -22,6 +22,8 @@ export interface LibraryApi extends RegistryApi, SettingsApi {
   onStartupProgress(callback: (progress: import('./startup').StartupProgress) => void): () => void;
   backups(): Promise<Result<import('./backup').BackupState>>;
   onBackupStatus(callback: (value: { ok: boolean; libraryId: string | null }) => void): () => void;
+  backupProgress(): Promise<Result<import('./backup').BackupJob | null>>;
+  onBackupProgress(callback: (value: import('./backup').BackupJob | null) => void): () => void;
   configureBackup(id: string, enabled: boolean, chooseDirectory: boolean): Promise<Result<import('./backup').BackupState | null>>;
   maintenance(id: string, action: import('./backup').MaintenanceAction): Promise<Result<unknown>>;
   printRecovery(mode: 'print' | 'pdf', key: string): Promise<Result<boolean>>;

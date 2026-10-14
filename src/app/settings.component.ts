@@ -1,4 +1,6 @@
+import { settingsLayoutText, type SettingsLayoutKey } from './settings-layout-i18n';
 import { EasterBridge } from './easter-bridge';
+import { UpdatesComponent } from './updates.component';
 import { EasterSettings } from './easter-settings';
 import { Onboarding } from './onboarding';
 import { onboardingText, type OnboardingKey } from './onboarding-i18n';
@@ -12,7 +14,7 @@ import { NotebookAppearanceComponent } from './notebook-appearance.component';
 import { securityText, type SecurityKey } from './security-i18n';
 import { SecurityComponent } from './security.component';
 import { SelectDirective } from './select.directive';
-import { Component, Input, computed, effect, inject, signal } from '@angular/core';
+import { Component, Input, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Preferences } from './preferences';
 import { NoteWorkspace } from './note-workspace';
@@ -22,10 +24,12 @@ import { languages, translate, type Locale, type MessageKey } from './i18n';
 import { effectiveAutosave, notePageSizes, type SettingsLocale, type SettingsTheme } from '../../shared/settings';
 import { pageSizeText } from './startup-i18n';
 import { latestNotebookSchemaVersion } from '../../shared/library';
-@Component({ selector: 'app-settings', standalone: true, imports: [EasterSettings, AiSettingsComponent, NotebookAppearanceComponent, BackupComponent, PasskeyComponent, SecurityComponent, SelectDirective, FormsModule, IconComponent], templateUrl: './settings.component.html' })
+@Component({ selector: 'app-settings', standalone: true, imports: [UpdatesComponent, EasterSettings, AiSettingsComponent, NotebookAppearanceComponent, BackupComponent, PasskeyComponent, SecurityComponent, SelectDirective, FormsModule, IconComponent], templateUrl: './settings.component.html' })
 export class SettingsComponent {
   @Input() locale: Locale = 'zh-CN';
   @Input() active = false;
+  @ViewChild(UpdatesComponent) updatesPanel?: UpdatesComponent;
+  checkUpdates(): void { this.section.set('global'); requestAnimationFrame(() => { void this.updatesPanel?.revealAndCheck(); }); }
   readonly prefs = inject(Preferences);
   readonly onboarding = inject(Onboarding);
   readonly eggs = inject(EasterBridge);
@@ -56,6 +60,7 @@ export class SettingsComponent {
   async translationDefault(event:Event):Promise<void>{const input=event.target as HTMLSelectElement;await this.prefs.update({translationLocale:input.value as SettingsLocale});input.value=this.prefs.state().global.translationLocale??this.prefs.locale();}
   async securityDefault(event: Event): Promise<void> { const input = event.target as HTMLInputElement; await this.prefs.update({ masterPasswordDefault: input.checked }); input.checked = this.prefs.state().global.masterPasswordDefault ?? false; }
   constructor() { effect(() => { const entries = this.workspace.registry().entries; if (!entries.some(item => item.id === this.selectedId())) this.selectedId.set(this.workspace.registry().activeId ?? entries[0]?.id ?? ''); }); }
+  layout(key: SettingsLayoutKey): string { return settingsLayoutText(this.locale, key); }
   t(key: MessageKey): string { return translate(this.locale, key); }
   async globalAuto(field: 'enabled' | 'minutes', event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;

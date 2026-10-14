@@ -14,7 +14,7 @@
   <button cdkMenuItem data-testid="edit-context-paste" (cdkMenuItemTriggered)="editContextAction('paste')"><app-icon name="ClipboardPaste" />{{contextLabel('paste')}}</button>
   <button cdkMenuItem data-testid="edit-context-selectAll" (cdkMenuItemTriggered)="editContextAction('selectAll')"><app-icon name="TextSelect" />{{contextLabel('selectAll')}}</button>
 </div></ng-template>
-<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()" [class.editor-fullscreen]="editorFullscreen()" [attr.inert]="onboarding.active() || notifications.drawerOpen() || workspace.exitLocked() ? '' : null">
+<div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()" [class.editor-fullscreen]="editorFullscreen()" [attr.inert]="onboarding.active() || notifications.drawerOpen() || (workspace.exitLocked() && !backupProgress.active()) ? '' : null">
   <aside class="sidebar">
     <div class="brand"><button type="button" class="brand-logo-button" data-testid="egg-hello" aria-label="NotebookAid" (click)="eggs.logo()"><img class="brand-mark" src="assets/notebookaid-64.png" alt=""></button><strong>NotebookAid</strong></div>
     <p class="tagline">{{ t('tagline') }}</p>
@@ -94,10 +94,12 @@
           <button cdkMenuItem data-testid="menu-license" (cdkMenuItemTriggered)="showInformation('license')"><app-icon name="FileText" />{{informationLabel('license')}}</button>
           <button cdkMenuItem data-testid="menu-privacy" (cdkMenuItemTriggered)="showInformation('privacy')"><app-icon name="Shield" />{{informationLabel('privacy')}}</button>
           <button cdkMenuItem data-testid="menu-settings" (cdkMenuItemTriggered)="tab.set('settings')"><app-icon name="Settings" />{{informationLabel('settings')}}</button>
+          <button cdkMenuItem data-testid="menu-check-updates" (cdkMenuItemTriggered)="checkUpdates()"><app-icon name="RefreshCw" />{{updateLabel()}}</button>
           <button cdkMenuItem data-testid="menu-about" (cdkMenuItemTriggered)="showInformation('about')"><app-icon name="BookOpen" />{{informationLabel('about')}}</button>
         </div></ng-template>
       </div>
     </header>
+    <app-backup-progress />
     @if (uiFailure.visible()) { <div class="library-warning" role="alert" data-testid="ui-failure">{{ ui('unexpected') }} <button class="secondary" data-testid="ui-failure-dismiss" (click)="uiFailure.visible.set(false)"><app-icon name="X" />{{ ui('dismiss') }}</button></div> }
     @if (missedBackup()) { <div class="library-warning backup-missed-warning" role="status" data-testid="backup-missed"><span>{{ backupLabel('missed') }}</span><button class="secondary" data-testid="backup-missed-settings" (click)="showMissedBackupSettings()"><app-icon name="Settings" />{{ backupLabel('settings') }}</button></div> }
     @if (workspace.error()) { <div class="library-warning" role="alert">{{ t('saveFailed') }} · {{ errorText(workspace.error()) }} · {{ t(workspace.error() === 'INVALID_DELTA' || workspace.error() === 'UNSUPPORTED_DELTA' ? 'deltaInvalid' : 'draftRetained') }} <button class="secondary" (click)="workspace.manualSave()" [disabled]="workspace.saving()"><app-icon name="RefreshCw" />{{ t('retry') }}</button></div> }

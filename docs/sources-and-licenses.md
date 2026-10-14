@@ -87,3 +87,7 @@ T12 复用已安装 parse5 8.0.1（MIT）作为明确的运行依赖，在主进
 ## 新手引导
 
 Driver.js 1.9.0，MIT，Copyright Kamran Ahmed。核对 node_modules/driver.js/package.json 和 license，源仓库 https://github.com/nilbuild/driver.js；配置依据 https://driverjs.com/docs/configuration，以安装包类型声明为实际版本依据。仅本地打包前端脚本和样式，保留 DRIVER-JS-LICENSE.txt 及渲染器第三方许可，不加载 CDN 或遥测。未修改库文件；未升级框架及无关依赖。
+
+## T15 分发与安装工具
+
+electron-builder 26.15.3、electron-updater 6.8.9 均由 npm 元数据及本地许可证确认 MIT，既有框架未升级。运行依赖的实际目录闭包生成 distribution-dependencies.json 和 runtime-THIRD-PARTY-LICENSES.txt；保留前端汇总、Electron Chromium、项目 BSD 及 XPI vendor 许可。lazy-val 1.0.5 的 npm 包和上游仓库未包含独立 LICENSE，保留其 package.json 的 MIT/作者声明，并附明确标为重建的标准 MIT 声明，见 third-party/lazy-val-MIT.txt，不将该文本冒充上游文件。NSIS 工具包 3.0.4.1 的原始 COPYING 随包保留，包含 zlib/bzip2/CPL 和 LZMA 链接例外；安装模板来自锁定 electron-builder，保留其 MIT。参考 https://nsis.sourceforge.io/Docs/AppendixI.html 和 https://github.com/electron-userland/electron-builder-binaries 。未修改上游工具或压缩模块。真实在线更新须后续 HTTPS 源与 Windows 签名，本包 NotSigned，构建器的 signing 日志不是已签名证据。npm 运行依赖审计仍有原 Quill 2.0.3 low 告警；新增构建链另有 moderate 告警，不运行无关的 audit fix 或框架升级。

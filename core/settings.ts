@@ -10,11 +10,11 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function check(value: unknown): asserts value { if (!value) throw new LibraryError('INVALID_INPUT'); }
 function object(value: unknown, keys: string[]): asserts value is Record<string, any> { check(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every(key => keys.includes(key))); }
 function autosave(value: unknown): asserts value is AutosaveSettings { object(value, ['enabled', 'minutes']); check(typeof value.enabled === 'boolean' && Number.isInteger(value.minutes) && value.minutes >= 1 && value.minutes <= 60); }
-function global(value: unknown): void { object(value, ['locale', 'theme', 'translationLocale', 'aiEnabled', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault', 'zoomPercent', 'onboarding', 'notePageSize', 'easterEggs']); check(locales.includes(value.locale) && ['system', 'light', 'dark'].includes(value.theme)); check(value.translationLocale === undefined || locales.includes(value.translationLocale)); check(value.aiEnabled === undefined || typeof value.aiEnabled === 'boolean'); check(value.sidebarCollapsed === undefined || typeof value.sidebarCollapsed === 'boolean'); check(value.masterPasswordDefault === undefined || typeof value.masterPasswordDefault === 'boolean'); check(value.onboarding === undefined || validOnboarding(value.onboarding)); check(value.zoomPercent === undefined || validZoom(value.zoomPercent)); check(value.notePageSize === undefined || notePageSizes.includes(value.notePageSize)); check(value.easterEggs === undefined || validEasterState(value.easterEggs)); autosave(value.autosave); }
+function global(value: unknown): void { object(value, ['autoUpdates', 'locale', 'theme', 'translationLocale', 'aiEnabled', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault', 'zoomPercent', 'onboarding', 'notePageSize', 'easterEggs']); check(locales.includes(value.locale) && ['system', 'light', 'dark'].includes(value.theme)); check(value.translationLocale === undefined || locales.includes(value.translationLocale)); check(value.aiEnabled === undefined || typeof value.aiEnabled === 'boolean'); check(value.sidebarCollapsed === undefined || typeof value.sidebarCollapsed === 'boolean'); check(value.masterPasswordDefault === undefined || typeof value.masterPasswordDefault === 'boolean'); check(value.onboarding === undefined || validOnboarding(value.onboarding)); check(value.zoomPercent === undefined || validZoom(value.zoomPercent)); check(value.notePageSize === undefined || notePageSizes.includes(value.notePageSize)); check(value.easterEggs === undefined || validEasterState(value.easterEggs)); check(value.autoUpdates === undefined || typeof value.autoUpdates === 'boolean'); autosave(value.autosave); }
 export class SettingsStore {
   private state!: SettingsState;
   private readonly file: string;
-  constructor(directory: string, legacy: unknown, private readonly fault?: () => void) {
+  constructor(directory: string, legacy: unknown, private readonly fault?: () => void, initialLocale = defaultSettings.global.locale) {
     this.file = join(directory, 'settings.json');
     if (existsSync(this.file)) {
       try {
@@ -31,6 +31,7 @@ export class SettingsStore {
       const backup = join(directory, 'settings-legacy.t03c-backup.json');
       if (!existsSync(backup)) this.write(backup, JSON.stringify(legacy), true);
       const next = structuredClone(defaultSettings);
+      check(locales.includes(initialLocale)); next.global.locale = initialLocale;
       if (legacy.locale !== null) { check(locales.includes(legacy.locale)); next.global.locale = legacy.locale; }
       if (legacy.theme !== null) { check(['light', 'dark', 'system'].includes(legacy.theme)); next.global.theme = legacy.theme; }
       if (legacy.autosave !== null) {
@@ -53,7 +54,7 @@ export class SettingsStore {
   }
   get(): SettingsState { return structuredClone(this.state); }
   update(patch: unknown): SettingsState {
-    object(patch, ['locale', 'theme', 'translationLocale', 'aiEnabled', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault', 'zoomPercent', 'onboarding', 'notePageSize', 'easterEggs']); check(Object.keys(patch).length > 0);
+    object(patch, ['autoUpdates', 'locale', 'theme', 'translationLocale', 'aiEnabled', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault', 'zoomPercent', 'onboarding', 'notePageSize', 'easterEggs']); check(Object.keys(patch).length > 0);
     if (patch.autosave !== undefined) object(patch.autosave, ['enabled', 'minutes']);
     const next = this.get();
     next.global = { ...next.global, ...patch, autosave: { ...next.global.autosave, ...patch.autosave } };

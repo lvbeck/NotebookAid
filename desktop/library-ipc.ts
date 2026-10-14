@@ -1,3 +1,5 @@
+import { installationLocale } from '../core/installation-locale';
+import { updateText } from '../src/app/updates-i18n';
 import { planFolderBulk,executeFolderBulk,type FolderBulkPlan } from '../core/folder-bulk';
 import { decryptNotes } from '../core/decrypt-bulk';
 import { randomUUID } from 'node:crypto';
@@ -41,12 +43,13 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   const showConfirmations = !selfTest || process.env['NOTEBOOKAID_DIALOG_TEST'] === '1' || process.env['NOTEBOOKAID_SECURITY_TEST'] === '1';
   let registry: LibraryRegistry | null = null;
   let settings: SettingsStore | null = null;
+  const installedLocale = app.isPackaged && !selfTest ? installationLocale(dirname(process.execPath)) : null;
   const currentLocale = (): Locale => {
     if (settings) return settings.get().global.locale;
     if (existsSync(join(dataPath, 'settings.json'))) {
       try { return new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }).get().global.locale; } catch { /* Keep startup available for settings recovery. */ }
     }
-    return defaultSettings.global.locale;
+    return installedLocale ?? defaultSettings.global.locale;
   };
   const nativeImports = new NativeImportCache();
   let choosing = false;
@@ -79,6 +82,18 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   let backupStore: BackupStore | null = null;
   const backups = () => backupStore ??= new BackupStore(dataPath);
   const startedAt = Date.now(), backupRetries = new Map<string, number>();
+  let backupJob: import('../shared/backup').BackupJob | null = null;
+  const runBackup = async (id: string, directory: string) => {
+    let sent = 0, phase = ''; batchBusy = true;
+    const publish = (progress: import('../shared/backup').BackupProgress) => {
+      backupJob = { id, progress }; const target = window(), now = Date.now();
+      if (target && !target.isDestroyed() && (phase !== progress.phase || now - sent >= 100)) { target.webContents.send('library:backup-progress', backupJob); sent = now; phase = progress.phase; }
+    };
+    publish({ phase: 'validating', completed: 0, total: null });
+    try { const result = await manager().backupAsync(id, directory, publish); backups().complete(id); return result; }
+    catch (error) { publish({ phase: 'failed', completed: 0, total: null }); throw error; }
+    finally { batchBusy = false; backupJob = null; const target = window(); if (target && !target.isDestroyed()) target.webContents.send('library:backup-progress', null); }
+  };
   let lastActivity = Date.now(), locking = false;
   let pendingImport: { owner: string; plan: ReturnType<typeof planImport> } | null = null;
   let sourceSecurity: NotebookSecurity | null = null;
@@ -110,7 +125,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   const handle = (name: string, callback: (owner: string, ...args: any[]) => unknown) => {
     ipcMain.handle(`library:${name}`, async (event, ...args): Promise<Result<unknown>> => {
       authorize(event);
-      try { if(batchBusy&&!['status','list','query','organization','registry','end'].includes(name))throw new LibraryError('LIBRARY_IN_USE');return { ok: true, value: await callback(String(event.sender.id), ...args) }; }
+      try { if(batchBusy&&!['status','list','query','organization','registry','end','backups','backupProgress'].includes(name)&&!(backupJob&&['settings','updateSettings','librarySettings'].includes(name)))throw new LibraryError('LIBRARY_IN_USE');return { ok: true, value: await callback(String(event.sender.id), ...args) }; }
       catch (error) { return { ok: false, code: (error instanceof LibraryError || error instanceof DeltaError) ? error.code : (error as NodeJS.ErrnoException).code === 'ENOSPC' ? 'DISK_FULL' : ['EACCES','EPERM'].includes((error as NodeJS.ErrnoException).code ?? '') ? 'ACCESS_DENIED' : 'WRITE_FAILED', ...(error instanceof LibraryError && error.details ? { details: error.details } : {}) }; }
     });
   };
@@ -139,6 +154,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     if ((!selfTest && (pathsOverlap(path, app.getAppPath()) || (!same && pathsOverlap(path, dataPath)))) || entries.some(entry => !(same && entry.id === allowNotebookId) && pathsOverlap(path, entry.path))) throw new LibraryError('PATH_OVERLAP');
   };
   handle('backups', () => backups().state());
+  handle('backupProgress', () => backupJob);
   handle('configureBackup', async (_owner, id, enabled, chooseDirectory) => {
     if (!manager().has(id) || typeof enabled !== 'boolean' || typeof chooseDirectory !== 'boolean') throw new LibraryError('INVALID_INPUT');
     if (choosing) throw new LibraryError('LIBRARY_IN_USE'); choosing = true;
@@ -156,7 +172,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       if (action === 'verify') return manager().maintenance(id, action);
       if (action === 'backup') {
         const directory = backups().state().policies[id]?.directory; if (!directory) throw new LibraryError('INVALID_INPUT'); safeDestination(directory);
-        const result = manager().maintenance(id, action, directory); backups().complete(id); return result;
+        return await runBackup(id, directory);
       }
       const backup = action === 'restore' ? await maintenancePath('backup') : null;
       if (action === 'restore' && !backup) return null;
@@ -271,7 +287,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     finally { clearImport(); choosing = false; }
   });
   handle('settings', (_owner, legacy: unknown) => {
-    settings ??= new SettingsStore(dataPath, legacy, selfTest ? () => { if (existsSync(join(dataPath, 'simulate-settings-failure'))) throw new Error('Simulated settings failure'); } : undefined);
+    settings ??= new SettingsStore(dataPath, legacy, selfTest ? () => { if (existsSync(join(dataPath, 'simulate-settings-failure'))) throw new Error('Simulated settings failure'); } : undefined, installedLocale ?? defaultSettings.global.locale);
     localeChanged(settings.get().global.locale);
     return settings.get();
   });
@@ -512,7 +528,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       try {
         const state = await exitState(target, 'save'); if (!state?.saved || state.dirty || state.busy) return;
         const latest = backups().state().policies[id]; if (!latest?.enabled || latest.directory !== policy.directory) return;
-        choosing = true; safeDestination(policy.directory!); manager().maintenance(id, 'backup', policy.directory!); backups().complete(id);
+        choosing = true; safeDestination(policy.directory!); await runBackup(id, policy.directory!);
         if (!target.isDestroyed()) target.webContents.send('library:backup-status', { ok: true, libraryId: manager().state().entries.find(entry => entry.id === id)?.libraryId ?? null });
       } catch { backupRetries.set(id, Date.now() + 300000); if (!target.isDestroyed()) target.webContents.send('library:backup-status', { ok: false, libraryId: null }); }
       finally { choosing = false; if (!target.isDestroyed()) await exitState(target, 'resume'); locking = false; }
@@ -521,6 +537,8 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   return {
     writingContext: () => {if(batchBusy)throw new LibraryError('LIBRARY_IN_USE');return {library:get(),locale:currentLocale()};},
     writingEnabled: () => !!settings && settings.get().global.aiEnabled !== false,
+    autoUpdatesEnabled: () => settings?.get().global.autoUpdates !== false,
+    confirmUpdate: async () => { const target = window(); return !!target && !choosing && !batchBusy && dialogs.ask(target, { kind: 'info', title: updateText(currentLocale(), 'title'), message: updateText(currentLocale(), 'confirm'), cancelLabel: translate(currentLocale(), 'cancelOperation'), confirmLabel: updateText(currentLocale(), 'install') }); },
     confirmWriting: (message: string) => { const target = window(); return target ? dialogs.ask(target, {kind:'warning',title:translate(currentLocale(),'about'),message,cancelLabel:translate(currentLocale(),'cancelOperation'),confirmLabel:securityText(currentLocale(),'confirm')}) : Promise.resolve(false); },
     addonContext: () => { if(batchBusy)throw new LibraryError('LIBRARY_IN_USE');const library = get(); return { library, name: manager().currentName(), unlocked: true, locale: currentLocale(), theme: settings?.get().global.theme ?? 'system' }; },
     locale: currentLocale,
@@ -530,6 +548,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     release: (owner: string) => { if(pendingFolder?.owner===owner)pendingFolder=null; if(pendingTasks?.owner===owner)pendingTasks=null; dialogs.cancel(); nativeImports.clear(owner); clearImport(); registry?.release(owner); if (registry?.state().activeId) registry.get().lockSecurity(); },
     close: () => { pendingFolder=null;pendingTasks=null; clearInterval(tasksTimer); clearInterval(autoLock); clearInterval(backupTimer); clearImport(); dialogs.cancel(); nativeImports.clear(); registry?.close(); registry = null; },
     flush: async (): Promise<boolean> => {
+      if (choosing || batchBusy || locking) return false;
       const target = window(); if (!target || target.webContents.isDestroyed()) return false;
       const state = await exitState(target, 'save');
       const saved = !!state?.saved && !state.dirty && !state.busy;

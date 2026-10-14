@@ -6,6 +6,7 @@ import { NoteLibrary, LibraryError, type CommitStage } from './library';
 import type { LibraryErrorCode } from '../shared/library';
 import type { LibraryEntry, RegistryState } from '../shared/registry';
 import { copyNotebook, createBackup, restoreBackup, pathsOverlap as pathsOverlapLocal } from './backups';
+import { createBackupAsync } from './async-backup';
 import type { MaintenanceAction } from '../shared/backup';
 import { readAppearance } from './notebook-appearance';
 import { defaultNotebookAppearance } from '../shared/notebook-appearance';
@@ -99,6 +100,13 @@ export class LibraryRegistry {
     if (id === this.currentId) return this.get().upgradeSchema(expected);
     const library = new NoteLibrary(entry.path, this.fault, 'existing');
     try { return library.upgradeSchema(expected); } finally { library.close(); }
+  }
+  async backupAsync(id: string, target: string, progress: (value: import('../shared/backup').BackupProgress) => void): Promise<import('../shared/backup').BackupResult> {
+    const entry = this.entry(id), inspected = inspectLibrary(entry.path);
+    valid(entry.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
+    const current = id === this.currentId, source = current ? this.get() : new NoteLibrary(entry.path, this.fault, 'existing');
+    try { await source.verifyIntegrityAsync(progress); return await createBackupAsync(source.path, target, progress); }
+    finally { if (!current) source.close(); }
   }
   maintenance(id: string, action: MaintenanceAction, target?: string, backup?: string): unknown {
     if (action === 'restore') {

@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { PrototypeApi } from '../shared/contracts';
 
 const api: PrototypeApi = {
+  updates: { state: () => ipcRenderer.invoke('updates:state'), check: () => ipcRenderer.invoke('updates:check'), install: () => ipcRenderer.invoke('updates:install'), onState: callback => { const listener = (_event: Electron.IpcRendererEvent, state: import('../shared/updates').UpdateState) => callback(state); ipcRenderer.on('updates:state', listener); return () => ipcRenderer.removeListener('updates:state', listener); } },
   editCommand:action=>ipcRenderer.invoke('prototype:edit-command',action),
   uiZoom: percent => ipcRenderer.invoke('prototype:ui-zoom', percent),
   folderBulk:{preview:(folderId,includeChildren)=>ipcRenderer.invoke('folder-bulk:preview',folderId,includeChildren),confirm:(token,mode)=>ipcRenderer.invoke('folder-bulk:confirm',token,mode),cancel:token=>ipcRenderer.invoke('folder-bulk:cancel',token),onProgress:callback=>{const listener=(_event:Electron.IpcRendererEvent,value:import('../shared/batch').BatchProgress)=>callback(value);ipcRenderer.on('folder-bulk:progress',listener);return()=>ipcRenderer.removeListener('folder-bulk:progress',listener);}},
@@ -38,6 +39,8 @@ const api: PrototypeApi = {
     onBackupStatus: callback => { const listener = (_event: Electron.IpcRendererEvent, value: { ok: boolean; libraryId: string | null }) => callback(value); ipcRenderer.on('library:backup-status', listener); return () => ipcRenderer.removeListener('library:backup-status', listener); },
     configureBackup: (id, enabled, chooseDirectory) => ipcRenderer.invoke('library:configureBackup', id, enabled, chooseDirectory),
     maintenance: (id, action) => ipcRenderer.invoke('library:maintenance', id, action),
+    backupProgress: () => ipcRenderer.invoke('library:backupProgress'),
+    onBackupProgress: callback => { const listener = (_event: Electron.IpcRendererEvent, value: import('../shared/backup').BackupJob | null) => callback(value); ipcRenderer.on('library:backup-progress', listener); return () => ipcRenderer.removeListener('library:backup-progress', listener); },
     printRecovery: (mode, key) => ipcRenderer.invoke('library:printRecovery', mode, key),
     upgradeLibrary: (id, expected) => ipcRenderer.invoke('library:upgradeLibrary', id, expected),
     security: request => ipcRenderer.invoke('library:security', request),
