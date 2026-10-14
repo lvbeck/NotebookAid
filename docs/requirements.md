@@ -343,3 +343,5 @@ T15 安装向导补充：安装器与卸载器声明 DPI 感知；简体中文�
 2026-10-14 T15 补充界面修正：用户要求隐藏侧边栏技术验证入口，并将基础设置的每页笔记数量移到主题设置之后。0.15.3-t15.3 仅隐藏入口、调整顺序及递增交付版本，保留既有设置值与内部验证逻辑。此次小修正仍待用户验收，不提交、不开始下一任务。此前0.15.2-t15.2已验收并提交fe891b8。
 
 2026-10-14 macOS 测试发布追加授权：保留 Windows 功能，支持 macOS arm64 和 x64 独立 DMG／ZIP，由 GitHub Actions 自动构建并在 lvbeck/NotebookAid 上传测试产物，暂不创建正式 Release。Windows Passkey 门禁在 macOS 明确不支持，不自动解除已有门禁；笔记本加密保留。构建工具代码与资源不包含真实笔记、凭据及本地备份。
+
+2026-10-14 T15 Windows CI 补充：Windows x64 安装 EXE 与便携 ZIP 通过 GitHub Actions 构建并作为测试 Artifacts 上传，同时保留插件和 SHA256 校验清单；不创建正式 Release、不启用未配置或未签名的更新源。见 [Windows CI 测试说明](windows-ci-testing.md)。

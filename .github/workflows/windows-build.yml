@@ -1,0 +1,107 @@
+name: Windows test packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-build.yml'
+      - '.npmrc'
+      - 'package*.json'
+      - 'scripts/**'
+      - 'native/**'
+      - 'desktop/**'
+      - 'core/**'
+      - 'shared/**'
+      - 'src/**'
+      - 'assets/**'
+      - 'test/**'
+      - 'thunderbird/**'
+      - 'thunderbird-compat/**'
+      - 'tsconfig*.json'
+      - 'angular.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:platform
+      - run: npm run package
+      - run: npm run installer
+      - name: Create portable ZIP and addon packages
+        shell: powershell
+        run: ./scripts/Build-TestBundle.ps1
+      - name: Verify test artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $expected = @("NotebookAid-$version-win-x64.zip", "NotebookAid-$version-Setup-x64.exe", 'NotebookAid.xpi', 'NotebookAid-Compatibility.xpi')
+          $verified = @()
+          foreach ($line in Get-Content release/SHA256SUMS.txt) {
+            if ($line -notmatch '^([a-f0-9]{64})  ([A-Za-z0-9.-]+)$') { throw 'Invalid checksum entry.' }
+            $digest = $Matches[1]; $name = $Matches[2]
+            $file = if ($name -match '-Setup-x64\.exe') { Join-Path release/installer $name } else { Join-Path release $name }
+            if ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -ne $digest) { throw "Checksum mismatch: $name" }
+            $verified += $name
+          }
+          foreach ($name in $expected) { if ($name -notin $verified) { throw "Missing artifact: $name" } }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path "release/NotebookAid-$version-win-x64.zip"))
+          try {
+            $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
+            foreach ($entry in $entries) { if ($entry -match '(^/|^[A-Za-z]:|(^|/)\.\.(/|$))') { throw 'Unsafe archive entry.' } }
+            foreach ($name in @('NotebookAid.exe', 'resources/app.asar', 'NotebookAid.Bridge.exe', 'NotebookAid.Passkey.exe', 'Register-Bridge.ps1', 'LICENSE', 'installation-files.json', 'NotebookAid.xpi')) {
+              if ("NotebookAid-win32-x64/$name" -notin $entries) { throw "Missing portable resource: $name" }
+            }
+          } finally { $zip.Dispose() }
+          "Windows x64 test artifacts verified for $version. Auto-update source is intentionally unconfigured." >> $env:GITHUB_STEP_SUMMARY
+      - name: Verify packaged UI and editor
+        run: |
+          node scripts/ui-smoke.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/editor-smoke.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify current-user install, reinstall and uninstall
+        shell: powershell
+        run: ./scripts/installer-live-test.ps1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: NotebookAid-windows-x64-test
+          path: |
+            release/installer/NotebookAid-*-Setup-x64.exe
+            release/installer/NotebookAid-*-Setup-x64.exe.blockmap
+            release/NotebookAid-*-win-x64.zip
+            release/NotebookAid.xpi
+            release/NotebookAid-Compatibility.xpi
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: NotebookAid-windows-x64-verification
+          path: |
+            output/ui-packaged/**/ui-report.json
+            output/ui-packaged/**/ui-reopen.json
+            output/ui-packaged/**/smoke-error.txt
+            output/editor-packaged/**/*-report.json
+            output/editor-packaged/**/smoke-error.txt
+            output/installer-live/**/report.json
+          if-no-files-found: ignore
+          retention-days: 14

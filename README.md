@@ -17,6 +17,8 @@ NotebookAid 是面向本地个人使用的开源笔记应用，由独立桌面�
 
 ## 当前测试入口
 
+Windows x64 安装 EXE／便携 ZIP 也由 [Windows GitHub Actions](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) 自动构建并上传测试 Artifacts，不创建正式 Release。下载、验证边界和后续 GitHub 更新源配置见 [Windows CI 测试说明](docs/windows-ci-testing.md)。
+
 macOS arm64／x64 测试包由 [GitHub Actions](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) 生成，DMG／ZIP 位于成功运行的 Artifacts 中，不创建正式 Release。安装、功能范围与限制见 [macOS 测试说明](docs/macos-testing.md)。以下 Windows 包路径是本地已验收交付文件，不包含在源码仓库中。
 
 - [NotebookAid 0.15.3-t15.3 安装器](release/installer/NotebookAid-0.15.3-t15.3-Setup-x64.exe)
