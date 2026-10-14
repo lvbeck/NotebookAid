@@ -8,6 +8,7 @@ import { smokeOnboarding } from './onboarding-smoke';
 import { smokeUi } from './ui-smoke';
 import { smokeContext } from './context-smoke';
 import { smokeDecrypt } from './decrypt-smoke';
+import { smokeStartup } from './startup-smoke';
 import { smokeTasks } from './tasks-smoke';
 import { smokeAddon } from './addon-smoke';
 import { AddonService } from '../core/addon';
@@ -249,6 +250,7 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if(process.env['NOTEBOOKAID_STARTUP_TEST']==='1'){await smokeStartup(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_DECRYPT_TEST']==='1'){await smokeDecrypt(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_CONTEXT_TEST']==='1'){await smokeContext(window,dataPath);await quitByUser(true);return;}
     if (process.env['NOTEBOOKAID_ONBOARDING_TEST'] === '1') { await smokeOnboarding(window,dataPath);await quitByUser(true);return; }

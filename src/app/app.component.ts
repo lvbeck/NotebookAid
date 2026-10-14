@@ -1,4 +1,5 @@
 import { Onboarding } from './onboarding';
+import { StartupProgressComponent } from './startup-progress.component';
 import { firstValueFrom } from 'rxjs';
 import { NoteContextDialog } from './note-context-dialog';
 import { contextText,type ContextKey } from './context-i18n';
@@ -60,7 +61,7 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [StartupProgressComponent,TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
@@ -365,8 +366,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     }
   };
   private readonly stopDesktopTarget = window.notebookAid.openDesktopTarget(async target => {
-    for (let n = 0; n < 150 && (!this.ready() || !this.workspace.status()); n++) await new Promise(resolve => setTimeout(resolve, 100));
-    if (this.workspace.status()?.libraryId !== target.libraryId) return false;
+    for (let n = 0; n < 150 && (!this.ready() || this.workspace.initializing() || !this.workspace.status()); n++) await new Promise(resolve => setTimeout(resolve, 100));
+    if (this.workspace.initializing() || this.workspace.status()?.libraryId !== target.libraryId) return false;
     this.tab.set('editor'); await this.workspace.refresh(); await this.workspace.select(target.noteId);
     return this.workspace.session()?.note.id === target.noteId;
   });

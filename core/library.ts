@@ -17,6 +17,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import { rmSync, unlinkSync, closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { EventEmitter } from 'node:events';
+import { performance } from 'node:perf_hooks';
+import type { StartupProgress, StartupMetrics } from '../shared/startup';
 import { latestNotebookSchemaVersion, maxNoteMetadataBytes, formatExtensions, type LibraryUpgradeResult, type NoteInput, type EditSession, type LibraryErrorCode, type LibraryStatus, type NoteDocument, type NoteSummary, type SaveRequest, type SaveResult } from '../shared/library';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -25,6 +27,7 @@ const digest = (text: string) => createHash('sha256').update(text, 'utf8').diges
 export class LibraryError extends Error { constructor(readonly code: LibraryErrorCode, readonly details?: { targetPath?: string; rollbackPath?: string; stagingPath?: string }) { super(code); } }
 type Head = { formatVersion: 1; id: string; revisionId: string; version: number; metadataHash: string };
 type Metadata = Omit<NoteDocument, 'body'> & { schemaVersion: 1; parentRevisionId: string | null; bodyHash: string; operationId: string; requestHash: string; visibleInThunderbird: boolean };
+type CatalogNote = Omit<NoteDocument, 'body'> & { body?: string };
 type Journal = { schemaVersion: 1; operationId: string; requestHash?: string; head: Head };
 type Session = { noteId: string; owner: string; token: string; generation: string };
 export type CommitStage = 'restore-prepared' | 'restore-original-moved' | 'restore-replacement-moved' | 'restore-verified' | 'restore-rollback' | 'appearance' | 'schema' | 'journal' | 'revision' | 'head' | 'index' | 'organization' | 'purge-journal' | 'purge-moved' | 'history-floor' | 'history-pruned' | 'security-prepared' | 'security-moved';
@@ -42,17 +45,21 @@ export class NoteLibrary {
   private structure: Organization = { schemaVersion: 1, version: 0, folders: [], tags: [] };
   private recent: Record<string, string> = {};
   private manifest!: { schemaVersion: number; libraryId: string; createdAt?: string };
-  private readonly catalog = new Map<string, NoteDocument>();
+  private readonly catalog = new Map<string, CatalogNote>();
   private index: DatabaseSync | null = null;
   private indexed = false;
   private readonly sessions = new Map<string, Session>();
   private readonly issues = new Set<string>();
   private pendingRecovery = 0;
+  private startupActive = true;
+  private readonly startup: StartupMetrics = { totalMs: 0, phasesMs: {} };
   private readonly events = new EventEmitter();
   onChange(listener: (change: { noteId: string; version: number; indexed: boolean }) => void): () => void {
     this.events.on('change', listener); return () => { this.events.off('change', listener); };
   }
-  constructor(directory: string, private readonly fault?: (stage: CommitStage) => void, mode: 'existing' | 'create' | 'legacy' = 'legacy', restoreToken?: string) {
+  constructor(directory: string, private readonly fault?: (stage: CommitStage) => void, mode: 'existing' | 'create' | 'legacy' = 'legacy', restoreToken?: string, private readonly startupObserver?: (progress: StartupProgress) => void) {
+    const started = performance.now(); let phaseStarted = started;
+    const measured = (phase: string) => { const now = performance.now(); this.startup.phasesMs[phase] = now - phaseStarted; phaseStarted = now; };
     if (!restoreAllowed(directory, restoreToken)) throw new LibraryError('RESTORE_INTERRUPTED');
     if (mode === 'existing' && !existsSync(join(directory, 'library.json'))) throw new LibraryError('NOT_FOUND_OR_UNAVAILABLE');
     if (mode === 'create' && existsSync(directory) && readdirSync(directory).length) throw new LibraryError('INVALID_INPUT');
@@ -87,15 +94,28 @@ export class NoteLibrary {
           this.recent = records;
         } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
       }
+      measured('prepare'); this.progress({ phase: 'recovery' });
       this.recoverPurges();
       this.recoverHistoryCleanup();
+      measured('recovery');
       this.rebuild();
+      measured('catalogAndIndex');
       try { for (const note of this.catalog.values()) this.validatePlacement(note); } catch { throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
+      this.progress({ phase: 'history' });
       this.scanRecovery();
+      measured('history'); this.startup.totalMs = performance.now() - started;
     } catch (error) { this.index?.close(); this.lock?.close(); throw error; }
+    finally { this.startupActive = false; }
+  }
+  private progress(value: StartupProgress): void {
+    if (!this.startupActive) return;
+    try { this.startupObserver?.(value); } catch { /* Observers cannot interrupt authoritative checks. */ }
   }
   close(): void { this.security?.lock(); this.catalog.clear(); this.sessions.clear(); this.events.removeAllListeners(); this.index?.close(); this.index = null; this.lock.close(); }
-  status(): LibraryStatus { return { security: this.securityState(), path: this.path, libraryId: this.libraryId, indexed: this.indexed, issues: [...this.issues], pendingRecovery: this.pendingRecovery }; }
+  status(): LibraryStatus {
+    const resumeNoteId = Object.entries(this.recent).sort((a, b) => b[1].localeCompare(a[1])).find(([id]) => this.catalog.has(id) && !this.catalog.get(id)!.deletedAt)?.[0];
+    return { security: this.securityState(), path: this.path, libraryId: this.libraryId, indexed: this.indexed, issues: [...this.issues], pendingRecovery: this.pendingRecovery, resumeNoteId, startup: structuredClone(this.startup) };
+  }
   assertMaintenance(allowDamaged = false): void { if (this.sessions.size) throw new LibraryError('NOTE_IN_USE'); if (!allowDamaged && (this.pendingRecovery || this.issues.size)) throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
   verifyIntegrity(): import('../shared/backup').IntegrityResult {
     if (this.pendingRecovery || this.issues.size) throw new LibraryError('INTEGRITY_CHECK_FAILED');
@@ -238,8 +258,14 @@ export class NoteLibrary {
     if (head.formatVersion !== 1 || head.id !== id || !uuid.test(head.revisionId) || !Number.isSafeInteger(head.version) || head.version < 1 || !/^[a-f0-9]{64}$/.test(head.metadataHash)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
     return head;
   }
-  read(id: string): NoteDocument { this.id(id); if (this.security.encrypted(id) && !this.security.unlocked) throw new LibraryError('NOTEBOOK_LOCKED'); return this.readHead(this.head(id)); }
-  private readHead(head: Head): NoteDocument {
+  read(id: string): NoteDocument {
+    this.id(id); if (this.security.encrypted(id) && !this.security.unlocked) throw new LibraryError('NOTEBOOK_LOCKED');
+    try { return this.readHead(this.head(id)); }
+    catch (error) { if (error instanceof LibraryError && error.code === 'INTEGRITY_CHECK_FAILED') this.issues.add(`DAMAGED_NOTE:${id}`); throw error; }
+  }
+  private readHead(head: Head): NoteDocument;
+  private readHead(head: Head, metadataOnly: boolean): CatalogNote;
+  private readHead(head: Head, metadataOnly = false): CatalogNote {
     try {
       this.id(head.id); this.id(head.revisionId);
       const metaPath = this.safe('notes', head.id, 'revisions', head.revisionId, 'metadata.json');
@@ -253,20 +279,32 @@ export class NoteLibrary {
       this.validateContent(meta.title, ''); this.validatePlacement(meta, false);
       if (!Number.isSafeInteger(meta.contentVersion) || meta.contentVersion < 1 || !uuid.test(meta.operationId) || (meta.parentRevisionId !== null && !uuid.test(meta.parentRevisionId))) throw new Error();
       if (meta.contentVersion > meta.version || !Number.isFinite(Date.parse(meta.createdAt)) || !Number.isFinite(Date.parse(meta.updatedAt)) || (meta.deletedAt !== null && !Number.isFinite(Date.parse(meta.deletedAt))) || (meta.version === 1) !== (meta.parentRevisionId === null)) throw new Error();
+      if (!/^[a-f0-9]{64}$/.test(meta.bodyHash) || (meta.primaryFormat === 'delta' && this.manifest.schemaVersion < 5)) throw new Error();
       const bodyPath = this.safe('notes', head.id, 'revisions', head.revisionId, `content.${formatExtensions[meta.primaryFormat]}`);
-      const body = this.text(bodyPath, maxBody);
-      if (digest(body) !== meta.bodyHash) throw new Error();
-      if (meta.primaryFormat === 'delta') { if (this.manifest.schemaVersion < 5) throw new Error(); parseDelta(body); }
-      return { encrypted: this.security.encrypted(meta.id), visibleInThunderbird: meta.visibleInThunderbird !== false, id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, body, folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned, ...(meta.attachments ? { attachments: meta.attachments } : {}), ...(meta.generatedSummary ? { generatedSummary: meta.generatedSummary } : {}), ...(meta.generatedTranslation ? { generatedTranslation: meta.generatedTranslation } : {}), ...(meta.taskSource ? {taskSource:meta.taskSource} : {}) };
+      let body: string | undefined;
+      if (metadataOnly) { if (!statSync(bodyPath).isFile()) throw new Error(); }
+      else {
+        body = this.text(bodyPath, maxBody);
+        if (digest(body) !== meta.bodyHash) throw new Error();
+        if (meta.primaryFormat === 'delta') parseDelta(body);
+      }
+      return { encrypted: this.security.encrypted(meta.id), visibleInThunderbird: meta.visibleInThunderbird !== false, id: meta.id, title: meta.title, version: meta.version, contentVersion: meta.contentVersion, createdAt: meta.createdAt, updatedAt: meta.updatedAt, deletedAt: meta.deletedAt, primaryFormat: meta.primaryFormat, revisionId: meta.revisionId, ...(body !== undefined ? { body } : {}), folderId: meta.folderId, tagIds: meta.tagIds, pinned: meta.pinned, ...(meta.attachments ? { attachments: meta.attachments } : {}), ...(meta.generatedSummary ? { generatedSummary: meta.generatedSummary } : {}), ...(meta.generatedTranslation ? { generatedTranslation: meta.generatedTranslation } : {}), ...(meta.taskSource ? {taskSource:meta.taskSource} : {}) };
     } catch (error) { if (error instanceof LibraryError && error.code === 'NOTEBOOK_LOCKED') throw error; throw new LibraryError('INTEGRITY_CHECK_FAILED'); }
   }
-  private documents(): NoteDocument[] {
-    const notes: NoteDocument[] = [];
-    for (const id of readdirSync(this.safe('notes'))) {
+  private documents(metadataOnly = false): CatalogNote[] {
+    const notes: CatalogNote[] = [];
+    const ids = readdirSync(this.safe('notes')); let processed = 0, lastProgress = 0;
+    this.progress({ phase: 'notes', processed: 0, total: ids.length });
+    for (const id of ids) {
+      try {
       if (!uuid.test(id)) { this.issues.add('UNRECOGNIZED_NOTE_DIRECTORY'); continue; }
       if (!existsSync(this.safe('notes', id, 'head.json'))) continue;
       if (this.security.encrypted(id) && !this.security.unlocked) continue;
-      try { notes.push(this.read(id)); } catch { this.issues.add(`DAMAGED_NOTE:${id}`); }
+      try { notes.push(this.readHead(this.head(id), metadataOnly)); } catch { this.issues.add(`DAMAGED_NOTE:${id}`); }
+      } finally {
+        processed++; const now = performance.now();
+        if (now - lastProgress >= 40 || processed === ids.length) { this.progress({ phase: 'notes', processed, total: ids.length }); lastProgress = now; }
+      }
     }
     return notes;
   }
@@ -392,19 +430,22 @@ export class NoteLibrary {
     const rows = [...this.catalog.values()].filter(note => {
       if (addon && (note.visibleInThunderbird === false || note.deletedAt)) return false;
       if ((view === 'trash' ? !note.deletedAt : !!note.deletedAt) || (folders.size && !folders.has(note.folderId)) || !tagIds.every(id => note.tagIds.includes(id)) || (view === 'pinned' && !note.pinned) || (view === 'recent' && !this.recent[note.id])) return false;
-      const content = `${note.title}\n${note.primaryFormat === 'delta' ? deltaText(note.body) : note.body}`.normalize('NFKC').toLowerCase();
+      if (!terms.length) return true;
+      if (note.body === undefined) { const loaded = this.read(note.id); this.validatePlacement(loaded); Object.assign(note, loaded); }
+      const content = `${note.title}\n${note.primaryFormat === 'delta' ? deltaText(note.body!) : note.body}`.normalize('NFKC').toLowerCase();
       return terms.every(term => content.includes(term));
     });
     rows.sort((a, b) => view === 'trash' ? b.deletedAt!.localeCompare(a.deletedAt!) || a.id.localeCompare(b.id) : view === 'recent' ? this.recent[b.id].localeCompare(this.recent[a.id]) || a.id.localeCompare(b.id) : Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
     return { total: rows.length, notes: rows.slice(offset, offset + limit).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, taskSource: _taskSource, ...summary }) => ({ ...summary, tagIds: [...summary.tagIds] })) };
   }
   list(): NoteSummary[] {
-    return this.documents().filter(note => !note.deletedAt).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, taskSource: _taskSource, ...summary }) => summary)
+    // The single-writer catalog is rebuilt on open, import, restore and security changes.
+    return [...this.catalog.values()].filter(note => !note.deletedAt).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, taskSource: _taskSource, ...summary }) => structuredClone(summary))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
   }
   rebuild(): LibraryStatus {
     this.index?.close(); this.index = null; this.indexed = false; this.issues.clear();
-    const notes = this.documents();
+    const notes = this.documents(this.startupActive);
     this.catalog.clear(); for (const note of notes) this.catalog.set(note.id, note);
     const path = this.safe('index', 'catalog.sqlite');
     if (this.security.configured) this.clearDiskIndex();
@@ -426,7 +467,7 @@ export class NoteLibrary {
     if (!this.indexed) this.issues.add('INDEX_REBUILD_REQUIRED');
     return this.status();
   }
-  private indexNote(note: NoteDocument): void {
+  private indexNote(note: NoteSummary): void {
     if (!this.index) throw new Error('Index unavailable');
     this.index.prepare('INSERT OR REPLACE INTO notes VALUES (?, ?, ?, ?, ?)').run(note.id, note.title, note.version, note.updatedAt, note.deletedAt);
   }
@@ -439,6 +480,7 @@ export class NoteLibrary {
     const timestamp = Math.max(Date.now(), ...Object.values(this.recent).map(value => Date.parse(value) + 1));
     const nextRecent = Object.fromEntries([[id, new Date(timestamp).toISOString()], ...Object.entries(this.recent).filter(([key]) => key !== id)].slice(0, 100));
     this.atomic(this.safe('recent.json'), JSON.stringify(nextRecent)); this.recent = nextRecent;
+    this.catalog.set(note.id, note);
     this.sessions.set(id, session);
     return { token: session.token, generation: session.generation, note };
   }
@@ -859,8 +901,14 @@ export class NoteLibrary {
   private scanRecovery(): void {
     this.pendingRecovery = 0;
     const committed = new Set<string>();
-    for (const note of this.documents()) {
-      const floor = this.historyFloor(note.id);
+    // A scan is synchronous: each validated floor remains unchanged throughout it.
+    const floors = new Map<string, ReturnType<NoteLibrary['historyFloor']>>();
+    const floorFor = (id: string) => {
+      if (!floors.has(id)) floors.set(id, existsSync(this.safe('notes', id, 'head.json')) ? this.historyFloor(id) : null);
+      return floors.get(id)!;
+    };
+    for (const note of this.catalog.values()) {
+      const floor = floorFor(note.id);
       let revision: string | null = note.revisionId;
       const visited = new Set<string>();
       try {
@@ -880,7 +928,7 @@ export class NoteLibrary {
         const journal = this.json(this.safe('recovery', name)) as Journal;
         if (journal.schemaVersion !== 1 || journal.operationId + '.json' !== name) throw new Error('Invalid journal');
         this.id(journal.head.id); this.id(journal.head.revisionId);
-        const floor = existsSync(this.safe('notes', journal.head.id, 'head.json')) ? this.historyFloor(journal.head.id) : null;
+        const floor = floorFor(journal.head.id);
         if (this.security.encrypted(journal.head.id) && !this.security.unlocked) continue;
         if (!committed.has(`${journal.head.id}/${journal.head.revisionId}`) && !(floor && journal.head.version < floor.firstVersion)) this.pendingRecovery++;
       } catch { this.issues.add('RECOVERY_RECORD_DAMAGED'); }

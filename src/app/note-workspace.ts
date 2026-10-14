@@ -6,6 +6,7 @@ import { NotificationService } from './notification-service';
 import { notificationErrorCodes, type NotificationCode, type NotificationOperation } from '../../shared/notifications';
 import type { RegistryState } from '../../shared/registry';
 import type { Organization, OrganizationEditInput, NotePlacement, NoteQuery, PlacementRequest } from '../../shared/organization';
+import type { StartupProgress } from '../../shared/startup';
 
 @Injectable({ providedIn: 'root' })
 export class NoteWorkspace {
@@ -14,6 +15,9 @@ export class NoteWorkspace {
   readonly results = signal<NoteSummary[]>([]);
   readonly total = signal(0);
   readonly searching = signal(false);
+  readonly initializing = signal(true);
+  readonly loadProgress = signal<StartupProgress>({ phase: 'opening' });
+  private initialization: Promise<void> | null = null;
   readonly organizationBusy = signal(false);
   readonly organizationError = signal('');
   readonly sortedTags = computed(() => [...this.organization().tags].sort((a, b) => a.name.localeCompare(b.name, this.preferences.locale(), { sensitivity: 'base', numeric: true }) || a.id.localeCompare(b.id)));
@@ -33,6 +37,7 @@ export class NoteWorkspace {
   });
   folderPath(id: string | null): string { return this.folderRows().find(item => item.id === id)?.path ?? ''; }
   filter(patch: NoteQuery, debounce = false): void {
+    if (this.initializing()) return;
     this.query.update(value => ({ ...value, ...patch, offset: patch.offset ?? 0 }));
     this.queryEpoch++; clearTimeout(this.searchTimer);
     if (debounce) this.searchTimer = setTimeout(() => void this.search(), 200); else void this.search();
@@ -147,8 +152,10 @@ export class NoteWorkspace {
   readonly registry = signal<RegistryState>({ entries: [], activeId: null });
   readonly registryError = signal<LibraryErrorCode | ''>('');
   readonly libraryUnavailable = signal(false);
+  readonly lockedEmpty = computed(() => !this.initializing() && !this.libraryUnavailable() && !this.notes().length && !!this.status()?.security?.configured && !this.status()?.security?.unlocked && !!this.status()?.security?.encryptedNotes);
   private readonly notifications = inject(NotificationService);
   readonly preferences = inject(Preferences);
+  readonly pageSize = computed(() => this.preferences.state().global.notePageSize ?? 30);
   readonly effectiveAutosave = computed(() => effectiveAutosave(this.preferences.state(), this.registry().activeId));
   readonly autosaveEnabled = computed(() => this.preferences.ready() && this.effectiveAutosave().enabled);
   readonly autosaveMinutes = computed(() => this.effectiveAutosave().minutes);
@@ -166,9 +173,10 @@ export class NoteWorkspace {
   private readonly api = window.notebookAid.library;
   clearSensitiveView(): void {
     this.viewEpoch++;
+    if (this.initializing()) { this.initializing.set(false); this.switching.set(false); }
     this.cancelTimer(); this.queryEpoch++; clearTimeout(this.searchTimer);
     this.session.set(null); this.title.set(''); this.body.set(''); this.notes.set([]); this.results.set([]); this.total.set(0);
-    this.query.set({ view: 'all', offset: 0, limit: 30 }); this.pending = null; this.pendingPlacement = null;
+    this.query.set({ view: 'all', offset: 0, limit: this.pageSize() }); this.pending = null; this.pendingPlacement = null;
     this.createInput = undefined; this.createId = null; this.dirty.set(false); this.opened.update(value => value + 1);
     this.duplicatePending=undefined;
   }
@@ -187,12 +195,17 @@ export class NoteWorkspace {
     return result;
   }
   constructor() {
+    this.api.onStartupProgress(value => { if (this.initializing()) this.loadProgress.set(value); });
     window.notebookAid.onAddonChanged(() => { void this.refresh(); });
     this.api.onBackupStatus(value => { void this.notifications.publish(value.ok ? 'lifecycleComplete' : 'operationFailed', 'settings', value.libraryId, value.ok ? null : 'WRITE_FAILED'); });
     this.api.onSecurityLocked(() => { this.clearSensitiveView(); void (async () => { const result = await this.api.status(); if (result.ok) this.status.set(result.value); await this.refresh(); })(); });
     effect(() => {
       this.autosaveContext();
       untracked(() => { this.cancelTimer(); this.schedule(); });
+    });
+    effect(() => {
+      const limit = this.pageSize();
+      untracked(() => { if (this.query().limit !== limit) { this.query.update(value => ({ ...value, offset: 0, limit })); this.queryEpoch++; if (this.status() && !this.initializing()) void this.search(); } });
     });
     this.api.onExit(async command => {
       if (command === 'resume') { this.exitLocked.set(false); this.schedule(); requestAnimationFrame(() => this.exitFocus?.focus()); return { dirty: this.dirty(), busy: false, saved: false }; }
@@ -228,21 +241,43 @@ export class NoteWorkspace {
   }
   private cancelTimer(): void { this.timerEpoch++; clearTimeout(this.timer); this.timer = undefined; }
   async init(): Promise<void> {
-    await this.preferences.initialized;
-    const result = await this.api.status();
-    await this.refreshRegistry();
-    if (!result.ok) { this.registryError.set(result.code); this.libraryUnavailable.set(true); return; }
-    this.status.set(result.value);
-    await this.refresh();
-    const first = this.notes()[0]; if (first) await this.select(first.id);
+    if (this.initialization) return this.initialization;
+    const epoch = ++this.viewEpoch;
+    this.initializing.set(true); this.switching.set(true); this.libraryUnavailable.set(false); this.registryError.set(''); this.error.set(''); this.loadProgress.set({ phase: 'opening' });
+    this.initialization = (async () => {
+      try {
+        await this.preferences.initialized;
+        const result = await this.api.status();
+        if (epoch !== this.viewEpoch) return;
+        if (!result.ok) { this.registryError.set(result.code); this.libraryUnavailable.set(true); await this.refreshRegistry(); return; }
+        this.status.set(result.value);
+        this.loadProgress.set({ phase: 'notes' });
+        await this.refresh();
+        if (epoch !== this.viewEpoch) return;
+        if (this.error() || (!this.notes().length && result.value.issues.some(issue => issue.startsWith('DAMAGED_NOTE:')))) { this.registryError.set(this.error() || 'INTEGRITY_CHECK_FAILED'); this.libraryUnavailable.set(true); return; }
+        this.loadProgress.set({ phase: 'restoring' });
+        await this.restoreSelection(epoch);
+        if (epoch !== this.viewEpoch) return;
+        await this.refreshRegistry();
+      } catch { if (epoch === this.viewEpoch) { this.registryError.set('NOT_FOUND_OR_UNAVAILABLE'); this.libraryUnavailable.set(true); } }
+      finally { if (epoch === this.viewEpoch) { this.initializing.set(false); this.switching.set(false); } }
+    })();
+    try { await this.initialization; } finally { this.initialization = null; }
+  }
+  private async restoreSelection(epoch: number): Promise<void> {
+    const id = this.status()?.resumeNoteId ?? this.notes()[0]?.id;
+    if (!id) return;
+    const result = await this.api.begin(id);
+    if (epoch !== this.viewEpoch) return;
+    if (!result.ok) { this.reportError(result.code, 'open'); this.registryError.set(result.code); this.libraryUnavailable.set(true); return; }
+    this.session.set(result.value); this.title.set(result.value.note.title); this.body.set(result.value.note.body);
+    this.dirty.set(false); this.pending = null; this.opened.update(value => value + 1);
   }
   async refresh(): Promise<void> {
     const epoch = this.viewEpoch;
-    const result = await this.api.list();
+    const [result, organization] = await Promise.all([this.api.list(), this.api.organization()]);
     if (epoch !== this.viewEpoch) return;
     if (result.ok) this.notes.set(result.value); else this.reportError(result.code, 'open');
-    const organization = await this.api.organization();
-    if (epoch !== this.viewEpoch) return;
     if (organization.ok) this.organization.set(organization.value); else this.reportError(organization.code, 'open');
     await this.search();
   }
@@ -308,8 +343,8 @@ export class NoteWorkspace {
       if (previous) await this.api.end(previous.token, previous.generation);
       if (epoch !== this.viewEpoch) return;
       this.session.set(result.value); this.title.set(result.value.note.title); this.body.set(result.value.note.body);
-      this.dirty.set(false); this.pending = null; this.error.set(''); this.opened.update(value => value + 1);
-      await this.search();
+      this.dirty.set(false); this.pending = null; this.error.set(''); this.libraryUnavailable.set(false); this.registryError.set(''); this.opened.update(value => value + 1);
+      if (this.query().view === 'recent') await this.search();
     } finally { this.switching.set(false); }
   }
   async importFile(): Promise<void> {
@@ -356,7 +391,9 @@ export class NoteWorkspace {
     if (id) await this.select(id);
   }
   async refreshRegistry(): Promise<void> {
+    const epoch = this.viewEpoch;
     const result = await this.api.registry();
+    if (epoch !== this.viewEpoch) return;
     if (result.ok) this.registry.set(result.value); else this.registryError.set(result.code);
   }
   async manage(action: 'existing' | 'create' | 'rename' | 'remove' | 'relocate', id = '', name = ''): Promise<void> {
@@ -371,20 +408,22 @@ export class NoteWorkspace {
   }
   async activate(id: string): Promise<void> {
     if (this.switching() || this.rebuilding() || this.organizationBusy() || id === this.registry().activeId) return;
-    this.switching.set(true);
+    this.switching.set(true); this.initializing.set(true); this.loadProgress.set({ phase: 'opening' });
+    const epoch = ++this.viewEpoch;
     this.registryError.set('');
     try {
       if (!await this.flush()) return;
       const result = await this.api.activate(id);
+      if (epoch !== this.viewEpoch) return;
       if (!result.ok) { this.registryError.set(result.code); void this.notifications.publish('operationFailed', 'open', this.registry().entries.find(item => item.id === id)?.libraryId ?? null, this.noticeError(result.code)); await this.refreshRegistry(); return; }
       this.status.set(result.value); this.notify('libraryOpened', 'open'); this.session.set(null); this.title.set(''); this.body.set('');
-      clearTimeout(this.searchTimer); this.queryEpoch++; this.query.set({ view: 'all', offset: 0, limit: 30 }); this.results.set([]); this.total.set(0); this.organizationError.set('');
+      clearTimeout(this.searchTimer); this.queryEpoch++; this.query.set({ view: 'all', offset: 0, limit: this.pageSize() }); this.results.set([]); this.total.set(0); this.organizationError.set('');
       this.pending = null; this.createId = null; this.error.set(''); this.dirty.set(false); this.libraryUnavailable.set(false); this.opened.update(value => value + 1);
       await this.refreshRegistry();
       await this.refresh();
+      if (epoch === this.viewEpoch) { this.loadProgress.set({ phase: 'restoring' }); await this.restoreSelection(epoch); }
     } catch { this.registryError.set('WRITE_FAILED'); }
-    finally { this.switching.set(false); }
-    const first = this.notes()[0]; if (first) await this.select(first.id);
+    finally { if (epoch === this.viewEpoch) { this.switching.set(false); this.initializing.set(false); } }
   }
   async rebuild(): Promise<void> {
     if (this.rebuilding() || this.switching() || !this.status()) return;

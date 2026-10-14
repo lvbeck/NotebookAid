@@ -87,7 +87,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   const manager = () => registry ??= new LibraryRegistry(dataPath, process.env['NOTEBOOKAID_TEST_HOME'] ? join(dataPath, 'library') : join(app.getPath('appData'), 'NotebookAid', 'library'), selfTest ? stage => {
     if (stage.startsWith('restore-') && existsSync(join(dataPath, 'simulate-restore-failure')) && readFileSync(join(dataPath, 'simulate-restore-failure'), 'utf8').trim() === stage) throw new Error('Simulated restore failure');
     if ((stage === 'journal' && existsSync(join(dataPath, 'simulate-write-failure'))) || (stage === 'appearance' && existsSync(join(dataPath, 'simulate-appearance-failure'))) || (stage === 'registry' && existsSync(join(dataPath, 'simulate-registry-failure')))) throw new Error('Simulated write failure');
-  } : undefined);
+  } : undefined, progress => { const target = window(); if (target && !target.webContents.isDestroyed()) target.webContents.send('library:startup-progress', progress); });
   const get = () => manager().get();
   const choosePath = async (): Promise<string | null> => {
     const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
@@ -246,7 +246,8 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   handle('restoreRevision', (_owner, id, revision, version, op) => confirmLifecycle('confirmRestore', () => get().restore(id, version, op, revision)));
   handle('purgeNote', async (_owner, id, version, op) => !!await confirmLifecycle('confirmPurge', () => { get().purge(id, version, op); return true; }));
   handle('deleteOrganization', (_owner, kind, id, version) => confirmLifecycle('confirmRemove', () => get().deleteOrganization(kind, id, version), JSON.parse(readFileSync(join(get().path, 'library.json'), 'utf8')).schemaVersion < 6));
-  handle('status', () => get().status());
+  let delayStartupTest = selfTest && process.env['NOTEBOOKAID_STARTUP_TEST'] === '1';
+  handle('status', async () => { if (delayStartupTest) { delayStartupTest = false; await new Promise(resolve => setTimeout(resolve, 1200)); } return get().status(); });
   handle('cancelImport', () => { if (choosing) throw new LibraryError('LIBRARY_IN_USE'); clearImport(); });
   handle('previewImport', async (owner, credential?: string) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');

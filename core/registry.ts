@@ -11,6 +11,7 @@ import { readAppearance } from './notebook-appearance';
 import { defaultNotebookAppearance } from '../shared/notebook-appearance';
 import { restoreGuardPath } from './restore-guard';
 import { plainPath } from './library-import';
+import type { StartupProgress } from '../shared/startup';
 
 interface Config { schemaVersion: 1; activeId: string | null; entries: LibraryEntry[]; }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,7 +41,7 @@ export class LibraryRegistry {
   private library: NoteLibrary | null = null;
   private currentId: string | null = null;
   private readonly file: string;
-  constructor(private readonly dataPath: string, defaultPath: string, private readonly fault?: (stage: CommitStage | 'registry') => void) {
+  constructor(private readonly dataPath: string, defaultPath: string, private readonly fault?: (stage: CommitStage | 'registry') => void, private readonly startupObserver?: (progress: StartupProgress) => void) {
     this.file = join(dataPath, 'libraries.json');
     if (existsSync(this.file)) {
       try {
@@ -239,7 +240,7 @@ export class LibraryRegistry {
     const inspected = inspectLibrary(entry.path);
     valid(!entry.libraryId || inspected.libraryId === entry.libraryId, 'LIBRARY_ID_MISMATCH');
     this.checkDuplicate(inspected.path, inspected.libraryId, entry.id);
-    const next = new NoteLibrary(inspected.path, this.fault, 'existing');
+    const next = new NoteLibrary(inspected.path, this.fault, 'existing', undefined, this.startupObserver);
     try {
       valid(next.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
       this.persist({ ...this.config, activeId: entry.id, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, path: inspected.path, libraryId: inspected.libraryId, lastOpenedAt: new Date().toISOString() } : item) });

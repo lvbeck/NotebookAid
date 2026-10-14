@@ -3,10 +3,11 @@ export const locales = ['en', 'de', 'fr', 'it', 'es', 'pt-PT', 'zh-CN', 'zh-TW']
 export type SettingsLocale = typeof locales[number];
 export type SettingsTheme = 'light' | 'dark' | 'system';
 export interface AutosaveSettings { enabled: boolean; minutes: number; }
-export interface GlobalSettings { onboarding?: import('./onboarding').OnboardingState; zoomPercent?: number; locale: SettingsLocale; theme: SettingsTheme; translationLocale?: SettingsLocale; aiEnabled?: boolean; masterPasswordDefault?: boolean; sidebarCollapsed?: boolean; autosave: AutosaveSettings; }
+export const notePageSizes = [10, 20, 30, 50, 100] as const;
+export interface GlobalSettings { notePageSize?: number; onboarding?: import('./onboarding').OnboardingState; zoomPercent?: number; locale: SettingsLocale; theme: SettingsTheme; translationLocale?: SettingsLocale; aiEnabled?: boolean; masterPasswordDefault?: boolean; sidebarCollapsed?: boolean; autosave: AutosaveSettings; }
 export interface SettingsState { schemaVersion: 1; global: GlobalSettings; libraries: Record<string, AutosaveSettings>; }
 export interface LegacySettings { locale: string | null; theme: string | null; autosave: string | null; }
-export interface GlobalSettingsPatch { onboarding?: import('./onboarding').OnboardingState; zoomPercent?: number; locale?: SettingsLocale; theme?: SettingsTheme; translationLocale?: SettingsLocale; aiEnabled?: boolean; masterPasswordDefault?: boolean; sidebarCollapsed?: boolean; autosave?: Partial<AutosaveSettings>; }
+export interface GlobalSettingsPatch { notePageSize?: number; onboarding?: import('./onboarding').OnboardingState; zoomPercent?: number; locale?: SettingsLocale; theme?: SettingsTheme; translationLocale?: SettingsLocale; aiEnabled?: boolean; masterPasswordDefault?: boolean; sidebarCollapsed?: boolean; autosave?: Partial<AutosaveSettings>; }
 export const defaultSettings: SettingsState = { schemaVersion: 1, global: { locale: 'zh-CN', theme: 'system', masterPasswordDefault: false, autosave: { enabled: true, minutes: 5 } }, libraries: {} };
 export function effectiveAutosave(state: SettingsState, entryId: string | null): AutosaveSettings { return (entryId && state.libraries[entryId]) || state.global.autosave; }
 export interface SettingsApi {

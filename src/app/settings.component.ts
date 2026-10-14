@@ -17,7 +17,8 @@ import { NoteWorkspace } from './note-workspace';
 import { NotificationService } from './notification-service';
 import { IconComponent } from './icon.component';
 import { languages, translate, type Locale, type MessageKey } from './i18n';
-import { effectiveAutosave, type SettingsLocale, type SettingsTheme } from '../../shared/settings';
+import { effectiveAutosave, notePageSizes, type SettingsLocale, type SettingsTheme } from '../../shared/settings';
+import { pageSizeText } from './startup-i18n';
 import { latestNotebookSchemaVersion } from '../../shared/library';
 @Component({ selector: 'app-settings', standalone: true, imports: [AiSettingsComponent, NotebookAppearanceComponent, BackupComponent, PasskeyComponent, SecurityComponent, SelectDirective, FormsModule, IconComponent], templateUrl: './settings.component.html' })
 export class SettingsComponent {
@@ -36,6 +37,9 @@ export class SettingsComponent {
   readonly effective = computed(() => effectiveAutosave(this.prefs.state(), this.selectedId()));
   readonly languages = languages;
   readonly zoomPercentages = zoomPercentages;
+  readonly notePageSizes = notePageSizes;
+  pageSizeLabel(): string { return pageSizeText(this.locale); }
+  async pageSize(event: Event): Promise<void> { const input = event.target as HTMLSelectElement; await this.prefs.update({ notePageSize: Number(input.value) }); input.value = String(this.prefs.state().global.notePageSize ?? 30); }
   ui(key: UiKey): string { return uiText(this.locale, key); }
   errorText(code: string): string { return errorText(this.locale, code); }
   async zoom(event: Event): Promise<void> { const input = event.target as HTMLSelectElement; await this.prefs.update({ zoomPercent: Number(input.value) }); input.value = String(this.prefs.state().global.zoomPercent ?? 100); }

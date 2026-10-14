@@ -8,5 +8,5 @@
     "types": ["node"],
     "lib": ["ES2022"]
   },
-  "include": ["desktop/**/*.ts", "core/**/*.ts", "shared/**/*.ts"]
+  "include": ["desktop/**/*.ts", "core/**/*.ts", "shared/**/*.ts", "src/app/startup-i18n.ts"]
 }

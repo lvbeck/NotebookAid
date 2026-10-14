@@ -17,8 +17,9 @@ export interface NoteDocument extends NoteSummary { taskSource?: import('./task-
 export interface EditSession { token: string; generation: string; note: NoteDocument; }
 export interface SaveRequest { noteId: string; token: string; generation: string; expectedVersion: number; operationId: string; title: string; body: string; }
 export interface SaveResult { removedUnsafeSvg?: number; note: NoteDocument; saved: true; indexed: boolean; }
-export interface LibraryStatus { security?: import('./security').SecurityState; path: string; libraryId: string; indexed: boolean; issues: string[]; pendingRecovery: number; }
+export interface LibraryStatus { security?: import('./security').SecurityState; path: string; libraryId: string; indexed: boolean; issues: string[]; pendingRecovery: number; resumeNoteId?: string; startup?: import('./startup').StartupMetrics; }
 export interface LibraryApi extends RegistryApi, SettingsApi {
+  onStartupProgress(callback: (progress: import('./startup').StartupProgress) => void): () => void;
   backups(): Promise<Result<import('./backup').BackupState>>;
   onBackupStatus(callback: (value: { ok: boolean; libraryId: string | null }) => void): () => void;
   configureBackup(id: string, enabled: boolean, chooseDirectory: boolean): Promise<Result<import('./backup').BackupState | null>>;

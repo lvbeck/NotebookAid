@@ -33,6 +33,7 @@ const api: PrototypeApi = {
     position: value => ipcRenderer.invoke('notifications:position', value)
   },
   library: {
+    onStartupProgress: callback => { const listener = (_event: Electron.IpcRendererEvent, value: import('../shared/startup').StartupProgress) => callback(value); ipcRenderer.on('library:startup-progress', listener); return () => ipcRenderer.removeListener('library:startup-progress', listener); },
     backups: () => ipcRenderer.invoke('library:backups'),
     onBackupStatus: callback => { const listener = (_event: Electron.IpcRendererEvent, value: { ok: boolean; libraryId: string | null }) => callback(value); ipcRenderer.on('library:backup-status', listener); return () => ipcRenderer.removeListener('library:backup-status', listener); },
     configureBackup: (id, enabled, chooseDirectory) => ipcRenderer.invoke('library:configureBackup', id, enabled, chooseDirectory),
