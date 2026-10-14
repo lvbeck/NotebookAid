@@ -8,7 +8,7 @@ const root = path.resolve('release', project.version, 'NotebookAid-win32-x64');
 const resources = path.resolve('dist/installer-resources');
 fs.mkdirSync(resources, { recursive: true });
 const helper = path.join(root, 'NotebookAid.SetupSupport.exe');
-execFileSync(path.join(process.env.WINDIR, 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'), ['/nologo', '/target:exe', '/platform:x64', '/reference:System.Web.Extensions.dll', '/reference:System.Core.dll', '/out:' + helper, path.resolve('native/SetupSupport.cs')], { stdio: 'inherit', windowsHide: true });
+execFileSync(path.join(process.env.WINDIR, 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'), ['/nologo', '/target:exe', '/platform:x64', '/reference:System.Web.Extensions.dll', '/reference:System.Core.dll', '/out:' + helper, path.resolve('native/SetupSupport.cs'), require('./native-assembly-info.cjs').writeNativeAssemblyInfo()], { stdio: 'inherit', windowsHide: true });
 fs.copyFileSync(helper, path.join(resources, 'NotebookAid.SetupSupport.exe'));
 const elevate = await require('app-builder-lib/out/toolsets/windows').getNsisElevatePath();
 fs.copyFileSync(elevate, path.join(root, 'resources/elevate.exe'));

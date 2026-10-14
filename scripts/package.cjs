@@ -63,7 +63,7 @@ const { execFileSync } = require('node:child_process');
   } else {
   cpSync('dist/NotebookAid.Passkey.exe', join(packageRoot, 'NotebookAid.Passkey.exe'));
   const compiler = join(process.env.WINDIR || 'C:/Windows', 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
-  execFileSync(compiler, ['/nologo', '/target:exe', '/platform:x64', '/reference:System.Web.Extensions.dll', '/out:' + join(packageRoot, 'NotebookAid.Bridge.exe'), resolve('native/Bridge.cs')], { stdio: 'inherit', windowsHide: true });
+  execFileSync(compiler, ['/nologo', '/target:exe', '/platform:x64', '/reference:System.Web.Extensions.dll', '/out:' + join(packageRoot, 'NotebookAid.Bridge.exe'), resolve('native/Bridge.cs'), require('./native-assembly-info.cjs').writeNativeAssemblyInfo()], { stdio: 'inherit', windowsHide: true });
   cpSync('scripts/Register-Bridge.ps1', join(packageRoot, 'Register-Bridge.ps1'));
   cpSync('scripts/Recover-Installation.ps1', join(packageRoot, 'Recover-Installation.ps1'));
   }

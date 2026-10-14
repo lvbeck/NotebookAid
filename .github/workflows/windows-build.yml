@@ -61,6 +61,11 @@ jobs:
             $verified += $name
           }
           foreach ($name in $expected) { if ($name -notin $verified) { throw "Missing artifact: $name" } }
+          $numericVersion = ($version -replace '^([0-9]+\.[0-9]+\.[0-9]+).*$', '$1') + '.0'
+          foreach ($name in @('Bridge', 'Passkey', 'SetupSupport')) {
+            $metadata = (Get-Item -LiteralPath "release/$version/NotebookAid-win32-x64/NotebookAid.$name.exe").VersionInfo
+            if ($metadata.ProductName -ne 'NotebookAid' -or $metadata.ProductVersion -ne $version -or $metadata.FileVersion -ne $numericVersion) { throw "Native metadata mismatch: $name" }
+          }
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path "release/NotebookAid-$version-win-x64.zip"))
           try {
