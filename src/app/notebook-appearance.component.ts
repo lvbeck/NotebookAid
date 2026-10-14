@@ -1,3 +1,4 @@
+import { EasterBridge } from './easter-bridge';
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnDestroy, ViewChild, inject, signal } from '@angular/core';
 import { Dialog, DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { FormsModule } from '@angular/forms';
@@ -66,13 +67,14 @@ export class CoverCropDialog implements AfterViewInit, OnDestroy {
     <h2>{{ t('color') }}</h2>
     <div class="appearance-color-row"><label><input type="color" data-testid="notebook-color" [(ngModel)]="color" [disabled]="busy()" [attr.aria-label]="t('color')"></label><span>{{ color.toUpperCase() }}</span><span class="muted">{{ t('default') }}</span></div>
     <div class="notebook-swatches">@for (swatch of colors; track swatch) { <button type="button" class="secondary notebook-swatch" [class.selected]="color === swatch" [attr.aria-pressed]="color === swatch" [attr.aria-label]="swatch" [title]="swatch" [disabled]="busy()" (click)="color = swatch"><span [style.background]="swatch"></span></button> }</div>
-    <h2>{{ t('cover') }}</h2><div class="notebook-cover-actions"><div class="notebook-cover">@if (cover) { <img [src]="cover" [alt]="t('cover')"> } @else { <span class="notebook-cover-placeholder" [style.color]="color"><app-icon name="Image" /><small>{{ t('empty') }}</small></span> }</div><div><div class="actions"><button class="secondary" data-testid="notebook-cover-choose" [disabled]="busy() || workspace.switching() || entry.availability !== 'available'" (click)="choose()"><app-icon name="ImagePlus" />{{ t('choose') }}</button><button class="secondary" data-testid="notebook-cover-remove" [disabled]="busy() || !cover" (click)="cover = null; preset = ''"><app-icon name="X" />{{ t('remove') }}</button></div><p class="muted">1:1 · 512 × 512</p></div></div>
+    <h2>{{ t('cover') }} <button class="icon-button" data-testid="egg-dawn" [attr.aria-label]="t('cover')" (click)="eggs.collect('dawn')"><app-icon name="Sun" /></button></h2><div class="notebook-cover-actions"><div class="notebook-cover">@if (cover) { <img [src]="cover" [alt]="t('cover')"> } @else { <span class="notebook-cover-placeholder" [style.color]="color"><app-icon name="Image" /><small>{{ t('empty') }}</small></span> }</div><div><div class="actions"><button class="secondary" data-testid="notebook-cover-choose" [disabled]="busy() || workspace.switching() || entry.availability !== 'available'" (click)="choose()"><app-icon name="ImagePlus" />{{ t('choose') }}</button><button class="secondary" data-testid="notebook-cover-remove" [disabled]="busy() || !cover" (click)="cover = null; preset = ''"><app-icon name="X" />{{ t('remove') }}</button></div><p class="muted">1:1 · 512 × 512</p></div></div>
     <h3>{{ t('presets') }}</h3><div class="notebook-preset-grid">@for (name of presets; track name; let i = $index) { <button class="notebook-preset" [attr.aria-label]="coverLabel(i)" [title]="coverLabel(i)" [attr.aria-pressed]="preset === name" [disabled]="busy()" [attr.data-cover-preset]="name" (click)="choosePreset(name)"><img [src]="'assets/notebook-covers/' + name + '.svg'" [alt]="coverLabel(i)"><span>{{ coverLabel(i) }}</span></button> }</div>
     <p class="muted">{{ t('hint') }}</p>@if (entry.appearanceIssue) { <p class="warning">{{ t('damaged') }}</p> }
     <button class="primary" data-testid="notebook-appearance-save" [disabled]="busy() || workspace.switching() || entry.availability !== 'available'" (click)="save()"><app-icon name="Save" />{{ t('save') }}</button>
     @if (message()) { <p role="status" data-testid="notebook-appearance-result" [class.warning]="failed()">{{ message() }}</p> }
   </article>` })
 export class NotebookAppearanceComponent implements OnChanges, OnDestroy {
+  readonly eggs = inject(EasterBridge);
   @Input({ required: true }) entry!: LibraryEntryState;
   @Input() locale: Locale = 'zh-CN';
   readonly workspace = inject(NoteWorkspace);

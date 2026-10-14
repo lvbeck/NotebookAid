@@ -528,3 +528,8 @@ summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .notebookaid-guide .driver-popover-arrow { display:none; }
 .notebookaid-guide button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .notebookaid-guide button.driver-popover-close-btn:focus-visible, .onboarding-prompt header > .icon-button:focus-visible { outline:none; background:var(--accent-soft); }
+
+.easter-slogan { background: transparent; border: 0; padding: 0; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.brand-logo-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; padding: 0; border: 0; background: transparent; cursor: pointer; }
+
+.notebook-appearance h2 { display: flex; align-items: center; gap: 8px; }

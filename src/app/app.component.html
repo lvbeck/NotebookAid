@@ -16,7 +16,7 @@
 </div></ng-template>
 <div class="app-shell" [class.sidebar-collapsed]="sidebarCollapsed()" [class.editor-fullscreen]="editorFullscreen()" [attr.inert]="onboarding.active() || notifications.drawerOpen() || workspace.exitLocked() ? '' : null">
   <aside class="sidebar">
-    <div class="brand"><img class="brand-mark" src="assets/notebookaid-64.png" alt=""><strong>NotebookAid</strong></div>
+    <div class="brand"><button type="button" class="brand-logo-button" data-testid="egg-hello" aria-label="NotebookAid" (click)="eggs.logo()"><img class="brand-mark" src="assets/notebookaid-64.png" alt=""></button><strong>NotebookAid</strong></div>
     <p class="tagline">{{ t('tagline') }}</p>
     <div class="sidebar-actions">
       <button class="nav-item" data-testid="libraries-tab" [class.active]="tab() === 'libraries'" (click)="showLibraries()" [disabled]="workspace.switching()" [appTooltip]="sidebarCollapsed() && !editorFullscreen() ? t('chooseLibrary') : ''" [attr.aria-label]="t('chooseLibrary')"><app-icon name="BookOpen" /><span class="sidebar-text">{{ t('chooseLibrary') }}</span></button>
@@ -99,7 +99,6 @@
       </div>
     </header>
     @if (uiFailure.visible()) { <div class="library-warning" role="alert" data-testid="ui-failure">{{ ui('unexpected') }} <button class="secondary" data-testid="ui-failure-dismiss" (click)="uiFailure.visible.set(false)"><app-icon name="X" />{{ ui('dismiss') }}</button></div> }
-    <div class="preview-banner"><span>{{ t('preview') }}</span>{{ t('previewHint') }}</div>
     @if (missedBackup()) { <div class="library-warning backup-missed-warning" role="status" data-testid="backup-missed"><span>{{ backupLabel('missed') }}</span><button class="secondary" data-testid="backup-missed-settings" (click)="showMissedBackupSettings()"><app-icon name="Settings" />{{ backupLabel('settings') }}</button></div> }
     @if (workspace.error()) { <div class="library-warning" role="alert">{{ t('saveFailed') }} · {{ errorText(workspace.error()) }} · {{ t(workspace.error() === 'INVALID_DELTA' || workspace.error() === 'UNSUPPORTED_DELTA' ? 'deltaInvalid' : 'draftRetained') }} <button class="secondary" (click)="workspace.manualSave()" [disabled]="workspace.saving()"><app-icon name="RefreshCw" />{{ t('retry') }}</button></div> }
     @if (workspace.status() && (!workspace.status()!.indexed || workspace.status()!.issues.length || workspace.status()!.pendingRecovery)) { <div class="library-warning">{{ t('recoveryNotice') }} {{ workspace.status()!.issues.join(', ') }} · {{ workspace.status()!.pendingRecovery }} <button class="secondary rebuild-button" data-testid="rebuild-index" (click)="workspace.rebuild()" [disabled]="workspace.rebuilding()"><app-icon name="RefreshCw" [class.spinning]="workspace.rebuilding()" />{{ t(workspace.rebuilding() ? 'rebuilding' : 'rebuild') }}</button></div> }

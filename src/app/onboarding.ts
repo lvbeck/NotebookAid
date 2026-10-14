@@ -1,3 +1,4 @@
+import { EasterBridge } from './easter-bridge';
 import { Component, Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog';
 import { firstValueFrom } from 'rxjs';
@@ -30,6 +31,7 @@ export class Onboarding implements OnDestroy {
   readonly active = signal(false);
   readonly busy = signal(false);
   readonly error = signal(false);
+  private readonly eggs = inject(EasterBridge);
   readonly state = computed(() => this.prefs.state().global.onboarding ?? defaultOnboarding);
   private context?: GuideContext;
   private tour?: Driver;
@@ -112,7 +114,7 @@ export class Onboarding implements OnDestroy {
       if(!await this.persist({...this.state(),started:true,completed:true,step:5})||epoch!==this.epoch)return;
       this.tour?.destroy();this.tour=undefined;
       const accepted=await this.showPrompt('done');
-      if(epoch===this.epoch){this.active.set(false);if(accepted)this.context?.settings();}
+      if(epoch===this.epoch){this.active.set(false);if(accepted)this.context?.settings(); void this.eggs.collect('explorer');}
     } finally {this.busy.set(false);if(this.error()&&epoch===this.epoch){this.stop();this.context?.settings();}}
   }
   stop():void{this.epoch++;this.tour?.destroy();this.tour=undefined;this.prompt?.close();this.prompt=undefined;this.active.set(false);const focus=this.focus;this.focus=undefined;requestAnimationFrame(()=>{if(!this.active()&&!this.dialogs.openDialogs.length){const target=focus?.isConnected&&focus.getClientRects().length?focus:document.querySelector<HTMLElement>('[data-testid=settings-tab]');target?.focus({preventScroll:true});}});}

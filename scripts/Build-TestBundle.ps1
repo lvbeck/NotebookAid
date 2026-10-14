@@ -26,6 +26,7 @@ Copy-Item -LiteralPath (Join-Path $workspace 'docs/onboarding-testing.md') -Dest
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/menu-testing.md') -Destination (Join-Path $packageRoot 'MENU-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/context-testing.md') -Destination (Join-Path $packageRoot 'CONTEXT-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/decrypt-testing.md') -Destination (Join-Path $packageRoot 'DECRYPT-TESTING.md') -Force
+Copy-Item -LiteralPath (Join-Path $workspace 'docs/easter-testing.md') -Destination (Join-Path $packageRoot 'EASTER-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/startup-testing.md') -Destination (Join-Path $packageRoot 'STARTUP-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t14-testing.md') -Destination (Join-Path $packageRoot 'T14-TESTING.md') -Force
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t13-testing.md') -Destination (Join-Path $packageRoot 'T13-TESTING.md') -Force

@@ -1,3 +1,4 @@
+import { smokeEaster } from './easter-smoke';
 import { migrateAppData } from '../core/app-data';
 import { validZoom } from '../shared/ui';
 import { registerAi } from './ai-ipc';
@@ -31,6 +32,7 @@ import { registerNotifications } from './notifications-ipc';
 import { passkeyClient } from './passkeys';
 import { smokePasskey } from './passkey-smoke';
 
+const easterRequests: string[] = [];
 const selfTest = process.argv.includes('--self-test') || process.argv.includes('--self-test-reopen');
 const background = process.argv.includes('--background');
 const dataPath = process.env['NOTEBOOKAID_TEST_HOME'] || migrateAppData(app.getPath('appData'), pid => { try { process.kill(pid,0); return true; } catch { return false; } });
@@ -97,6 +99,9 @@ async function createWindow(show = true): Promise<BrowserWindow> {
   mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
   mainWindow.webContents.session.setPermissionCheckHandler(() => false);
   mainWindow.webContents.session.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (_details, callback) => callback({ cancel: true }));
+  if (selfTest && process.env['NOTEBOOKAID_EASTER_TEST'] === '1') {
+    mainWindow.webContents.session.webRequest.onCompleted({ urls: ['file://*/*'] }, details => easterRequests.push(details.url));
+  }
   mainWindow.on('close', event => { if (!quitting) { event.preventDefault(); void quitByUser(false, true); } });
   mainWindow.on('closed', () => { storage.release(owner); mainWindow = null; });
   mainWindow.webContents.on('did-finish-load', () => mainWindow?.webContents.setZoomFactor(storage.zoom() / 100));
@@ -250,6 +255,7 @@ app.on('before-quit', event => {
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
   try {
+    if(process.env['NOTEBOOKAID_EASTER_TEST']==='1'){await smokeEaster(window,dataPath,easterRequests);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_STARTUP_TEST']==='1'){await smokeStartup(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_DECRYPT_TEST']==='1'){await smokeDecrypt(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_CONTEXT_TEST']==='1'){await smokeContext(window,dataPath);await quitByUser(true);return;}

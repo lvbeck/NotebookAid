@@ -1,3 +1,5 @@
+import { EasterBridge } from './easter-bridge';
+import { EasterSettings } from './easter-settings';
 import { Onboarding } from './onboarding';
 import { onboardingText, type OnboardingKey } from './onboarding-i18n';
 import { zoomPercentages } from '../../shared/ui';
@@ -20,12 +22,13 @@ import { languages, translate, type Locale, type MessageKey } from './i18n';
 import { effectiveAutosave, notePageSizes, type SettingsLocale, type SettingsTheme } from '../../shared/settings';
 import { pageSizeText } from './startup-i18n';
 import { latestNotebookSchemaVersion } from '../../shared/library';
-@Component({ selector: 'app-settings', standalone: true, imports: [AiSettingsComponent, NotebookAppearanceComponent, BackupComponent, PasskeyComponent, SecurityComponent, SelectDirective, FormsModule, IconComponent], templateUrl: './settings.component.html' })
+@Component({ selector: 'app-settings', standalone: true, imports: [EasterSettings, AiSettingsComponent, NotebookAppearanceComponent, BackupComponent, PasskeyComponent, SecurityComponent, SelectDirective, FormsModule, IconComponent], templateUrl: './settings.component.html' })
 export class SettingsComponent {
   @Input() locale: Locale = 'zh-CN';
   @Input() active = false;
   readonly prefs = inject(Preferences);
   readonly onboarding = inject(Onboarding);
+  readonly eggs = inject(EasterBridge);
   guide(key: OnboardingKey): string { return onboardingText(this.locale,key,this.onboarding.state().step); }
   async guideEnable(event: Event): Promise<void> { const input=event.target as HTMLInputElement;await this.onboarding.enable(input.checked);input.checked=this.onboarding.state().enabled; }
   readonly workspace = inject(NoteWorkspace);

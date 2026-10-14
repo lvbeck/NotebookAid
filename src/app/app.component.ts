@@ -1,3 +1,4 @@
+import { EasterBridge } from './easter-bridge';
 import { Onboarding } from './onboarding';
 import { StartupProgressComponent } from './startup-progress.component';
 import { firstValueFrom } from 'rxjs';
@@ -398,7 +399,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     effect(() => { this.theme(); this.locale(); this.applyTheme(); });
     effect(() => { if (this.prefs.ready()) void window.notebookAid.uiZoom(this.prefs.state().global.zoomPercent ?? 100).catch(() => this.uiFailure.visible.set(true)); });
     effect(() => { if (this.ready() && this.prefs.ready() && this.runtime()?.onboardingAutoStart && (this.workspace.status() || this.workspace.libraryUnavailable()) && !this.workspace.switching() && !this.workspace.exitLocked() && !this.notifications.drawerOpen()) untracked(()=>this.onboarding.offer()); });
-    effect(() => { if(this.workspace.exitLocked() && this.onboarding.active()) untracked(()=>this.onboarding.stop()); });
+    effect(() => { if(this.workspace.exitLocked()) untracked(()=>this.eggs.stop()); if(this.workspace.exitLocked() && this.onboarding.active()) untracked(()=>this.onboarding.stop()); });
     effect(() => { if (this.workspace.libraryUnavailable()) this.tab.set('libraries'); });
     effect(() => {
       const ready = this.ready(); this.workspace.opened();
@@ -440,6 +441,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.editor.on('text-change', this.onEditorChange);
     this.editor.on('editor-change', () => this.updateEditorContext());
     this.localizeEditor();
+    this.eggs.attachFinder(id=>{ if(this.workspace.exitLocked())return; if(id==='hello'){this.editorFullscreen.set(false);document.querySelector<HTMLElement>('[data-testid=egg-hello]')?.focus();return;} if(id==='echo'){this.showInformation('about');return;} if(id==='opensource'){this.showInformation('license');return;} if(id==='moon'){document.querySelector<HTMLElement>('[data-select-trigger=theme]')?.focus();return;} this.tab.set('settings');this.settingsPanel?.section.set(id==='dawn'?'library':'global'); if(id==='dawn')this.settingsPanel?.selectedId.set(this.workspace.registry().activeId??''); requestAnimationFrame(()=>document.querySelector(id==='dawn'?'[data-testid=notebook-appearance]':'[data-testid=onboarding-settings]')?.scrollIntoView({block:'center'})); });
     this.onboarding.attach({prepare:()=>{this.editorFullscreen.set(false);this.newNoteMenuOpen.set(false);this.folderTrigger?.close();this.tagMenuOpen.set(false);this.editorToolsOpen.set(false);this.exportMenuOpen.set(false);this.tab.set('editor');},settings:()=>{this.tab.set('settings');this.settingsPanel?.section.set('global');requestAnimationFrame(()=>document.querySelector('[data-testid=onboarding-settings]')?.scrollIntoView({block:'center'}));},available:()=>this.ready()&&!this.workspace.switching()&&!this.workspace.exitLocked()&&!this.notifications.drawerOpen()&&!this.composing});
     document.addEventListener('contextmenu',this.captureEditContext,true);
     this.ready.set(true);
@@ -450,6 +452,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     document.removeEventListener('contextmenu',this.captureEditContext,true);
     this.onboarding.stop();
+    this.eggs.stop();
     this.stopDesktopTarget();
     document.removeEventListener('pointerdown', this.closeEditorMenus);
     this.editor?.off('text-change', this.onEditorChange);
@@ -462,6 +465,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
   focusMain(): void { document.getElementById('main-content')?.focus(); }
   readonly onboarding = inject(Onboarding);
+  readonly eggs = inject(EasterBridge);
   readonly uiFailure = inject(UiFailure);
   ui(key: UiKey): string { return uiText(this.locale(), key); }
   errorText(code: string): string { return errorText(this.locale(), code); }

@@ -1,5 +1,5 @@
 const { packager } = require('@electron/packager');
-const { mkdirSync, cpSync, writeFileSync, readFileSync, existsSync } = require('node:fs');
+const { mkdirSync, cpSync, writeFileSync, readFileSync, existsSync, rmSync } = require('node:fs');
 const { resolve, join, dirname, relative, sep } = require('node:path');
 const { execFileSync } = require('node:child_process');
 
@@ -14,6 +14,7 @@ const { execFileSync } = require('node:child_process');
   mkdirSync(temporaryRoot, { recursive: true });
   process.env.TEMP = temporaryRoot;
   process.env.TMP = temporaryRoot;
+  if (existsSync(stage)) rmSync(stage, { recursive: true, force: true });
   mkdirSync(stage, { recursive: true });
   cpSync('thunderbird', join(stage, 'addon'), { recursive: true });
   cpSync('dist/runtime', join(stage, 'runtime'), { recursive: true });
@@ -65,6 +66,7 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/menu-testing.md', join(packageRoot, 'MENU-TESTING.md'));
   cpSync('docs/context-testing.md', join(packageRoot, 'CONTEXT-TESTING.md'));
   cpSync('docs/decrypt-testing.md', join(packageRoot, 'DECRYPT-TESTING.md'));
+  cpSync('docs/easter-testing.md', join(packageRoot, 'EASTER-TESTING.md'));
   cpSync('docs/startup-testing.md', join(packageRoot, 'STARTUP-TESTING.md'));
   cpSync('node_modules/driver.js/license', join(packageRoot, 'DRIVER-JS-LICENSE.txt'));
   cpSync('node_modules/ical.js/LICENSE', join(packageRoot, 'ICAL-LICENSE.txt'));

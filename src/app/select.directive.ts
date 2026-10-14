@@ -1,7 +1,8 @@
 import { AfterViewInit, Directive, DoCheck, ElementRef, OnDestroy, inject } from '@angular/core';
 import { Overlay, type OverlayRef } from '@angular/cdk/overlay';
 import { DomPortal } from '@angular/cdk/portal';
-import { Check, ChevronDown, Languages, SunMoon, createElement } from 'lucide';
+import { Check, ChevronDown, Languages, SunMoon, Sun, Moon, createElement } from 'lucide';
+import { EasterBridge } from './easter-bridge';
 import { Subscription } from 'rxjs';
 
 let nextId = 0;
@@ -11,6 +12,8 @@ let nextId = 0;
 export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
   private readonly select: HTMLSelectElement = inject<ElementRef<HTMLSelectElement>>(ElementRef).nativeElement;
   private readonly overlay = inject(Overlay);
+  private readonly eggs = inject(EasterBridge);
+  private themeValue = '';
   private readonly id = `notebookaid-select-${++nextId}`;
   private button?: HTMLButtonElement;
   private label?: HTMLSpanElement;
@@ -60,6 +63,12 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
   private sync(): void {
     const button = this.button; if (!button || !this.label) return;
     const options = this.options();
+    if (['theme', 'settings-theme'].includes(this.select.dataset['testid'] ?? '') && this.themeValue !== this.select.value) {
+      this.themeValue = this.select.value;
+      button.querySelector('.select-leading-icon')?.remove();
+      const icon = createElement(this.themeValue === 'light' ? Sun : this.themeValue === 'dark' ? Moon : SunMoon, { width: '18', height: '18', 'stroke-width': '1.65', 'aria-hidden': 'true', class: 'select-leading-icon' });
+      icon.dataset['themeIcon'] = this.themeValue; button.prepend(icon);
+    }
     this.label.textContent = this.select.selectedOptions[0]?.label ?? '';
     if (this.select.dataset['testid'] === 'export-format') {
       const context = document.createElement('canvas').getContext('2d');
@@ -82,7 +91,10 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
     if (this.ref && snapshot !== this.snapshot) { this.active = this.select.selectedIndex; this.renderOptions(); }
     this.snapshot = snapshot;
   }
-  private readonly click = () => { if (this.ref) this.close(); else this.open(); };
+  private readonly click = (event: MouseEvent) => {
+    if (this.themeValue === 'dark' && this.eggs.state().enabled && !this.eggs.state().found.includes('moon') && (event.target as Element)?.closest('.select-leading-icon')) { this.close(); void this.eggs.collect('moon'); return; }
+    if (this.ref) this.close(); else this.open();
+  };
   private readonly blur = () => { this.close(); this.select.dispatchEvent(new Event('blur')); };
   private open(): void {
     this.sync(); if (!this.button || this.button.disabled || this.ref) return;
@@ -146,6 +158,7 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
   private readonly keydown = (event: KeyboardEvent) => {
     if (event.isComposing || this.button?.disabled || event.ctrlKey || event.metaKey) return;
     const key = event.key;
+    if (this.themeValue === 'dark' && event.altKey && key === 'Enter') { event.preventDefault(); event.stopPropagation(); this.close(); void this.eggs.collect('moon'); return; }
     if (key === 'Tab') { this.close(); return; }
     if (key === 'Escape') { if (this.ref) { event.preventDefault(); event.stopPropagation(); this.close(); } return; }
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End', 'Enter', ' '].includes(key) && (key.length !== 1 || event.altKey)) return;

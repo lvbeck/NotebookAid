@@ -1,3 +1,4 @@
+import { EasterBridge } from './easter-bridge';
 import { Component, inject } from '@angular/core';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { IconComponent } from './icon.component';
@@ -13,7 +14,7 @@ export type InformationPage = 'license' | 'privacy' | 'about';
       @case('license'){
         <h3>{{t('project')}}</h3><pre class="license-text">{{license}}</pre>
         <h3>{{t('thirdParty')}}</h3><p>{{t('thirdPartyHint')}}</p>
-        <ul>@for(file of notices;track file){<li>{{file}}</li>}</ul>
+        <ul>@for(file of notices;track file){<li>{{file}}</li>}</ul><button class="icon-button" data-testid="egg-opensource" [attr.aria-label]="t('project')" (click)="eggs.collect('opensource')"><app-icon name="Heart" /></button>
       }
       @case('privacy'){
         <h3>{{t('privacyTitle')}}</h3>
@@ -21,7 +22,7 @@ export type InformationPage = 'license' | 'privacy' | 'about';
       }
       @case('about'){
         <div class="information-brand"><img src="assets/notebookaid-64.png" alt=""><div><h3>NotebookAid</h3><p>{{t('description')}}</p></div></div>
-        <p>{{t('tagline')}}</p><dl><dt>{{t('version')}}</dt><dd data-testid="information-version">{{data.version}}</dd><dt>{{t('author')}}</dt><dd>Jin Lu</dd><dt>{{t('contact')}}</dt><dd>it@live.cn</dd></dl><p>Copyright © 2026 Jin Lu · BSD-3-Clause</p>
+        <p>{{taglinePrefix()}}<button class="easter-slogan" data-testid="egg-echo" (click)="eggs.collect('echo')">{{taglineEcho()}}</button></p><dl><dt>{{t('version')}}</dt><dd data-testid="information-version">{{data.version}}</dd><dt>{{t('author')}}</dt><dd>Jin Lu</dd><dt>{{t('contact')}}</dt><dd>it@live.cn</dd></dl><p>Copyright © 2026 Jin Lu · BSD-3-Clause</p>
       }
     }
     <footer><button class="secondary" data-testid="information-dismiss" (click)="ref.close()"><app-icon name="X" />{{t('close')}}</button></footer>
@@ -29,8 +30,12 @@ export type InformationPage = 'license' | 'privacy' | 'about';
 export class InformationDialog {
   readonly data=inject<{page:InformationPage;locale:Locale;version:string}>(DIALOG_DATA);
   readonly ref=inject(DialogRef);
+  readonly eggs=inject(EasterBridge);
   readonly license=projectLicense;
   readonly privacyKeys:InformationKey[]=['privacyLocal','privacyAi','privacyCredentials','privacyBridge','privacyBackup'];
   readonly notices=['NotebookAid-LICENSE.txt','renderer-THIRD-PARTY-LICENSES.txt','CDK-LICENSE.txt','DRIVER-JS-LICENSE.txt','ICAL-LICENSE.txt','PARSE5-LICENSE.txt','MARKED-LICENSE.txt','JOSE-LICENSE.txt'];
   t(key:InformationKey):string{return informationText(this.data.locale,key);}
+  private taglineBreak():number { const text=this.t('tagline');return Math.max(text.lastIndexOf(','),text.lastIndexOf('，'))+1; }
+  taglinePrefix():string { return this.t('tagline').slice(0,this.taglineBreak()); }
+  taglineEcho():string { return this.t('tagline').slice(this.taglineBreak()); }
 }
