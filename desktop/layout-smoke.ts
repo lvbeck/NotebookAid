@@ -43,7 +43,7 @@ export async function smokeLayout(window: BrowserWindow, directory: string): Pro
   await click('[data-testid=editor-fullscreen]');
   await checkSticky();
   if (!await run("document.querySelector('[data-testid=editor-fullscreen]').textContent.includes('开启')")) throw Error('Fullscreen on label missing');
-  if (!await run("['.sidebar','.topbar','.note-list','.preview-banner'].every(s=>getComputedStyle(document.querySelector(s)).display==='none')")) throw Error('Fullscreen still shows navigation');
+  if (!await run("['.sidebar','.topbar','.note-list','.preview-banner'].every(s=>{const e=document.querySelector(s);return (!e && s==='.preview-banner') || !!e && getComputedStyle(e).display==='none';})")) throw Error('Fullscreen still shows navigation');
   await window.webContents.capturePage(); await wait();
   writeFileSync(join(directory, 'editor-fullscreen.png'), (await window.webContents.capturePage()).toPNG());
   await run("window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))"); await wait();

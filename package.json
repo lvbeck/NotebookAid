@@ -1,6 +1,6 @@
 {
   "name": "notebookaid",
-  "version": "0.15.3-t15.3",
+  "version": "0.15.4-mac.0",
   "private": true,
   "description": "Local notes and writing assistant",
   "author": "Jin Lu <it@live.cn>",
@@ -13,6 +13,9 @@
     "build": "ng build && tsc -p tsconfig.desktop.json && node scripts/copy-html-runtime.cjs",
     "start": "electron .",
     "test": "node --test test/*.test.cjs",
+    "test:platform": "node scripts/test-platform.cjs",
+    "package:mac": "node scripts/package.cjs --mac",
+    "installer:mac": "node scripts/build-macos.cjs",
     "smoke": "node scripts/smoke.cjs",
     "package": "node scripts/package.cjs",
     "installer": "node scripts/build-installer.cjs"
@@ -48,6 +51,7 @@
     "@types/turndown": "5.0.6",
     "electron": "44.7.0",
     "electron-builder": "26.15.3",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "@electron/osx-sign": "2.7.1"
   }
 }

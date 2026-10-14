@@ -1,6 +1,8 @@
 const { copyFileSync } = require('node:fs');
 copyFileSync('node_modules/dompurify/dist/purify.js', 'dist/runtime/desktop/purify.js');
-require('./build-passkey.cjs');
+if (process.platform === 'win32') require('./build-passkey.cjs');
 
 const {cpSync}=require("node:fs"); cpSync("thunderbird", "dist/addon", {recursive:true});
-const {execFileSync}=require("node:child_process"),{join,resolve}=require("node:path");execFileSync(join(process.env.WINDIR||"C:/Windows","Microsoft.NET/Framework64/v4.0.30319/csc.exe"),["/nologo","/target:exe","/platform:x64","/reference:System.Web.Extensions.dll","/out:"+resolve("dist/NotebookAid.Bridge.exe"),resolve("native/Bridge.cs")],{stdio:"inherit",windowsHide:true});
+if (process.platform === 'win32') {
+  const {execFileSync}=require("node:child_process"),{join,resolve}=require("node:path");execFileSync(join(process.env.WINDIR||"C:/Windows","Microsoft.NET/Framework64/v4.0.30319/csc.exe"),["/nologo","/target:exe","/platform:x64","/reference:System.Web.Extensions.dll","/out:"+resolve("dist/NotebookAid.Bridge.exe"),resolve("native/Bridge.cs")],{stdio:"inherit",windowsHide:true});
+}

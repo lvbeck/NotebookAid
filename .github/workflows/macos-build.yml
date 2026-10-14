@@ -1,0 +1,70 @@
+name: macOS test packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/macos-build.yml'
+      - 'package*.json'
+      - 'scripts/**'
+      - 'native/macos/**'
+      - 'desktop/**'
+      - 'core/**'
+      - 'shared/**'
+      - 'src/**'
+      - 'assets/**'
+      - 'test/**'
+      - 'tsconfig*.json'
+      - 'angular.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:platform
+      - run: node scripts/create-macos-icon.cjs
+      - run: node scripts/package.cjs --mac ${{ matrix.arch }}
+      - run: node scripts/build-macos.cjs ${{ matrix.arch }}
+      - run: node scripts/macos-smoke.cjs ${{ matrix.arch }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: NotebookAid-macos-${{ matrix.arch }}-test
+          path: |
+            release/macos/*.dmg
+            release/macos/*.zip
+            release/macos/SHA256-*.txt
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: NotebookAid-macos-${{ matrix.arch }}-verification
+          path: output/macos-smoke/**
+          if-no-files-found: ignore
+          retention-days: 14

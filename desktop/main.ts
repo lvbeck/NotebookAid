@@ -1,5 +1,6 @@
 import { smokeEaster } from './easter-smoke';
 import { registerUpdates, updateSourceReady } from './updates';
+import { bridgeEndpoint, prepareBridgeEndpoint } from './bridge-endpoint';
 import { migrateAppData } from '../core/app-data';
 import { validZoom } from '../shared/ui';
 import { registerAi } from './ai-ipc';
@@ -19,11 +20,11 @@ import { translate, type Locale } from '../src/app/i18n';
 import { smokeHtmlImport } from './html-import-smoke';
 import { smokeLibrary } from './smoke';
 import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain } from 'electron';
-import { mkdirSync, writeFileSync, existsSync, unlinkSync, readFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, writeFileSync, existsSync, unlinkSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createServer, Server } from 'node:net';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { release } from 'node:os';
 import { runSqliteProbe } from '../core/probe';
 import { FrameDecoder, encodeFrame } from './framing';
@@ -127,7 +128,7 @@ function updateTray(locale: Locale): void {
 }
 async function start(): Promise<void> {
   if (existsSync(stoppedFile)) unlinkSync(stoppedFile);
-  Menu.setApplicationMenu(null);
+  Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
   passkeys = passkeyClient(dataPath);
   const protectedCaller = (event: Electron.IpcMainInvokeEvent) => { authorize(event); if (!passkeys.gate.unlocked) throw Error('APP_LOCKED'); };
   storage = registerLibrary(dataPath, () => mainWindow, protectedCaller, selfTest, updateTray, { enabled: () => passkeys.gate.enabled && passkeys.gate.unlocked, lock: () => { passkeys.gate.lock(); mainWindow?.webContents.reload(); } }, authorize);
@@ -194,8 +195,9 @@ async function openDesktopNote(target: DesktopNoteTarget): Promise<boolean> {
   });
 }
 async function startBridge(): Promise<void> {
-  const name = 'NotebookAid-' + createHash('sha256').update(dataPath.toLowerCase()).digest('hex').slice(0, 24);
-  const pipePath = '\\\\.\\pipe\\' + name;
+  const endpoint = bridgeEndpoint(dataPath);
+  const name = endpoint.name, pipePath = endpoint.address;
+  prepareBridgeEndpoint(endpoint);
   server = createServer(socket => {
     socket.setTimeout(25000, () => socket.destroy());
     socket.on('error', () => socket.destroy());
@@ -227,7 +229,9 @@ async function startBridge(): Promise<void> {
     });
   });
   await new Promise<void>((resolveReady, reject) => { server!.once('error', reject); server!.listen(pipePath, resolveReady); });
-  writeFileSync(runtimeFile, JSON.stringify({ pipe: name, token: sessionToken, pid: process.pid }), { mode: 0o600 });
+  if (endpoint.directory) chmodSync(pipePath, 0o600);
+  writeFileSync(runtimeFile, JSON.stringify({ pipe: name, ...(endpoint.directory ? { socket: pipePath } : {}), token: sessionToken, pid: process.pid }), { mode: 0o600 });
+  if (endpoint.directory) chmodSync(runtimeFile, 0o600);
 }
 
 async function quitByUser(testShutdown = false, allowTray = false): Promise<void> {

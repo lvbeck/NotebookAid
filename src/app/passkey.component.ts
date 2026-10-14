@@ -14,7 +14,7 @@ type PasskeyState = Awaited<ReturnType<PrototypeApi['appPasskeys']>>;
   @if (compact) {
     @if (state()?.enabled) { <button class="nav-item" data-testid="lock-app" (click)="act('lock')" [disabled]="busy()" [appTooltip]="t('lock')"><app-icon name="Shield" /><span class="sidebar-text">{{ t('lock') }}</span></button> }
   } @else {
-    @if (grouped) { <h3>{{ t('title') }}</h3> } @else { <h2>{{ t('title') }}</h2> }<p>{{ t('hint') }}</p><p class="muted">{{ t('phone') }}</p>
+    @if (grouped) { <h3>{{ t('title') }}</h3> } @else { <h2>{{ t('title') }}</h2> }<p>{{ t('hint') }}</p>@if (state()?.supported) { <p class="muted">{{ t('phone') }}</p> }
     <p>{{ t(state()?.enabled ? 'on' : 'off') }} · {{ t('count') }}: {{ state()?.count ?? 0 }}</p>
     <div class="actions"><button class="primary" data-testid="passkey-enable" (click)="act('enable')" [disabled]="busy() || !state()?.supported || (state()?.count ?? 0) >= 10"><app-icon name="Shield" />{{ t(state()?.enabled ? 'add' : 'enable') }}</button>
     @if (state()?.enabled) { <button class="secondary" (click)="act('disable')" [disabled]="busy()"><app-icon name="X" />{{ t('disable') }}</button><button class="secondary" (click)="act('lock')" [disabled]="busy()"><app-icon name="LockKeyhole" />{{ t('lock') }}</button> }</div>
@@ -46,7 +46,7 @@ export class PasskeyComponent implements OnDestroy {
     @if (busy()) { <p role="status">{{ t('waiting') }}</p> } @if (error()) { <p class="warning" role="alert">{{ t('failed') }}</p> }
     @if (uiFailure.visible()) { <p class="warning" role="alert">{{ ui('unexpected') }}</p><button class="secondary" (click)="uiFailure.visible.set(false)"><app-icon name="X" />{{ ui('dismiss') }}</button> }
     @if (!initial.supported) { <p class="warning">{{ t('unavailable') }}</p> }
-    <p class="muted">{{ t('phone') }}</p><button class="secondary" (click)="quit()"><app-icon name="Power" />{{ exitLabel }}</button>
+    @if (initial.supported) { <p class="muted">{{ t('phone') }}</p> }<button class="secondary" (click)="quit()"><app-icon name="Power" />{{ exitLabel }}</button>
   </section></main>
 ` })
 export class PasskeyScreenComponent implements OnDestroy {

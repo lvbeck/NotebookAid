@@ -19,8 +19,9 @@ export function passkeyClient(directory: string) {
   let supported: boolean | undefined;
   return {
     gate,
-    async supported(): Promise<boolean> { if (supported === undefined) { try { supported = (await run({ action: 'probe' })).supported === true; } catch { supported = false; } } return supported; },
+    async supported(): Promise<boolean> { if (process.platform !== 'win32') return false; if (supported === undefined) { try { supported = (await run({ action: 'probe' })).supported === true; } catch { supported = false; } } return supported; },
     async action(action: 'enable' | 'unlock' | 'disable', window: BrowserWindow): Promise<void> {
+      if (process.platform !== 'win32') throw Error('PASSKEY_UNAVAILABLE');
       if (busy) throw Error('PASSKEY_BUSY'); busy = true;
       try {
         const authenticate = async (mode: 'create' | 'get') => {
