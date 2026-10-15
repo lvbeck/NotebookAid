@@ -62,7 +62,7 @@ Before switching from a registered portable copy, fully exit NotebookAid and Thu
 
 ## Version 0.15.7 localization verification
 
-The installer language can also be selected for unattended deployment using `NA_LANGUAGE=en`, `zh-CN`, `zh-TW` (Hong Kong wording), `de`, `fr`, `it`, `es`, `pt-PT`, `ja` or `ko`. For example, `msiexec.exe /i "NotebookAid-0.15.7-Setup-x64.msi" NA_LANGUAGE=ja ALLUSERS=2 MSIINSTALLPERUSER=1`. Invalid language IDs fail closed. The installer writes the selected language into its owned installation metadata; existing application preferences remain authoritative.
+The installer language can also be selected for unattended deployment using `NA_LANGUAGE=en`, `zh-CN`, `zh-TW` (Hong Kong wording), `de`, `fr`, `it`, `es`, `pt-PT`, `ja` or `ko`. For example, `msiexec.exe /i "NotebookAid-0.15.7-Setup-x64.msi" NA_LANGUAGE=ja ALLUSERS=2 MSIINSTALLPERUSER=1`. Invalid language IDs fail closed. A fresh installation writes the selected language into its owned metadata. Maintenance and upgrades retain the existing installation language, including rollback through a cached MSI; existing application preferences remain authoritative.
 
 `scripts/verify-msi-localization.ps1` opens the built MSI and executes only its property-setting localization action for all ten languages, checking 37 texts and both font properties for each. It does not execute an installation sequence. This does not prove visual layout, high-DPI behavior or screen-reader interaction. The disposable CI installation test additionally exercises Simplified Chinese current-user and Japanese all-user installations, upgrades, repair and rollback.
 

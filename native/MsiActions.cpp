@@ -24,6 +24,7 @@ static std::wstring Get(MSIHANDLE h, const wchar_t* key) {
 static void Set(MSIHANDLE h, const wchar_t* key, const std::wstring& value) {
     if (MsiSetPropertyW(h, key, value.c_str()) != ERROR_SUCCESS) throw std::runtime_error("Cannot set installer property.");
 }
+static std::wstring ExistingLocale(MSIHANDLE h);
 #include "MsiLocalization.h"
 
 static bool Exists(const std::wstring& path) { return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
@@ -132,6 +133,18 @@ static std::wstring Content(const std::wstring& root, bool machine, int n, const
     if (n == 0) return L"{\"owner\":\"NotebookAid.Installation.v1\",\"installer\":\"msi\",\"scope\":\"" + std::wstring(machine ? L"machine" : L"user") + L"\",\"locale\":\"" + locale + L"\"}";
     return L"{\"name\":\"" + std::wstring(Hosts[n - 1]) + L"\",\"description\":\"NotebookAid bridge\",\"path\":\"" + Escape(root + L"\\NotebookAid.Bridge.exe") + L"\",\"type\":\"stdio\",\"allowed_extensions\":[\"" + std::wstring(n == 1 ? L"notebookaid@zub-systems.de" : L"notebookaid-t02@zub-systems.de") + L"\"]}";
 }
+// Cached packages also run during upgrade rollback without command-line language properties.
+static std::wstring ExistingLocale(MSIHANDLE h) {
+    try {
+        auto root = Get(h,L"INSTALLFOLDER");
+        if (root.empty()) return L"";
+        root = Root(root,false);
+        auto previous = Read(root + L"\\installation.json");
+        bool machine = Get(h,L"ALLUSERS") == L"1";
+        for (auto locale : InstallerLocales) if (previous == Content(root,machine,0,locale)) return locale;
+    } catch (...) { }
+    return L"";
+}
 static bool Owned(const std::wstring& value, const std::wstring& root, bool machine, int n) {
     if(n != 0) return value == Content(root,machine,n);
     for(auto locale : InstallerLocales) if(value == Content(root,machine,n,locale)) return true;
@@ -179,6 +192,7 @@ extern "C" __declspec(dllexport) UINT __stdcall Prepare(MSIHANDLE h) {
             values.push_back(previous);
         }
         auto locale = Get(h,L"NA_LANGUAGE");
+        for (auto existing : InstallerLocales) if (values[5] == Content(root,machine,0,existing)) { locale=existing; break; }
         if (std::find(std::begin(InstallerLocales), std::end(InstallerLocales), locale) == std::end(InstallerLocales)) throw std::runtime_error("Invalid installer language.");
         values.push_back(locale);
         std::wstring data; for (auto& value : values) { if (!data.empty()) data += L'|'; data += Hex(value); }
