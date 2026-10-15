@@ -138,6 +138,8 @@ extern "C" __declspec(dllexport) UINT __stdcall Prepare(MSIHANDLE h) {
         Idle(); bool machine = Get(h, L"ALLUSERS") == L"1"; std::wstring root = Root(Get(h, L"INSTALLFOLDER"), machine); PlainTree(root);
         bool removing = Get(h, L"REMOVE") == L"ALL";
         if (!removing) {
+            auto requested = Get(h, L"REQUESTEDINSTALLFOLDER");
+            if (!requested.empty() && _wcsicmp(Root(requested, false).c_str(), root.c_str())) throw std::runtime_error("Keep the original MSI installation folder and scope. Uninstall first to change them.");
             if (machine) for (int n = 0; n < 2; ++n) {
                 auto local = Reg(false, HostKey(n)), expected = root + L"\\" + Names[n + 1];
                 if (local != L"-" && _wcsicmp(local.c_str(), expected.c_str())) throw std::runtime_error("A current-user Thunderbird bridge would override the all-users bridge. Unregister that bridge first.");

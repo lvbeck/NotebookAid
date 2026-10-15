@@ -6,6 +6,7 @@
     <MediaTemplate EmbedCab="yes" CompressionLevel="medium"/>
     <Property Id="ALLUSERS" Value="2" Secure="yes"/>
     <Property Id="MSIINSTALLPERUSER" Value="1" Secure="yes"/>
+    <Property Id="REQUESTEDINSTALLFOLDER" Secure="yes"/>
     <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable"/>
     <Property Id="ApplyMetadata" Hidden="yes"/>
     <Property Id="RollbackMetadata" Hidden="yes"/>
@@ -27,6 +28,8 @@
       <Directory Id="DesktopFolder"/>
       <Directory Id="ProgramMenuFolder"/>
     </Directory>
+    <CustomAction Id="CaptureInstallFolder" Property="REQUESTEDINSTALLFOLDER" Value="[INSTALLFOLDER]"/>
+    <CustomAction Id="SelectMachineScope" Property="WixAppFolder" Value="WixPerMachineFolder"/>
     <CustomAction Id="UserFolder" Property="INSTALLFOLDER" Value="[LocalAppDataFolder]Programs\NotebookAid"/>
     <CustomAction Id="MachineFolder" Property="INSTALLFOLDER" Value="[ProgramFiles64Folder]NotebookAid"/>
     <CustomAction Id="RememberUser" Property="INSTALLFOLDER" Value="[EXISTINGUSER]"/>
@@ -41,11 +44,14 @@
     <CustomAction Id="RollbackUserMetadata" BinaryKey="MsiActions" DllEntry="Rollback" Execute="rollback" Impersonate="yes" Return="check" HideTarget="yes"/>
     <CustomAction Id="ApplyUserMetadata" BinaryKey="MsiActions" DllEntry="Apply" Execute="deferred" Impersonate="yes" Return="check" HideTarget="yes"/>
     <InstallUISequence>
+      <Custom Action="SelectMachineScope" Before="CaptureInstallFolder">ALLUSERS=1 OR EXISTINGMACHINE</Custom>
+      <Custom Action="CaptureInstallFolder" Before="UserFolder">INSTALLFOLDER</Custom>
       <Custom Action="UserFolder" Before="RememberUser">NOT INSTALLFOLDER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>
       <Custom Action="RememberUser" Before="RememberMachine">EXISTINGUSER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>
       <Custom Action="RememberMachine" Before="CostFinalize">EXISTINGMACHINE AND ALLUSERS=1</Custom>
     </InstallUISequence>
     <InstallExecuteSequence>
+      <Custom Action="CaptureInstallFolder" Before="UserFolder">INSTALLFOLDER</Custom>
       <Custom Action="UserFolder" Before="RememberUser">NOT INSTALLFOLDER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>
       <Custom Action="RememberUser" Before="RememberMachine">EXISTINGUSER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>
       <Custom Action="RememberMachine" Before="CostFinalize">EXISTINGMACHINE AND ALLUSERS=1</Custom>
