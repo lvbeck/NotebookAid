@@ -36,3 +36,7 @@ GitHub 的 [Artifact attestations](https://docs.github.com/en/actions/how-tos/se
 通过既有Prepare-TestPortable.ps1授权更新便携测试目录：verified=true、backupCreated=false、bridgeManifestsRestored=2，不强制停止进程、不保留解压暂存副本。此前0.15.3-t15.3 ZIP保留供回退；个人数据不作回退。当前等待用户验收，免费签名服务获批和正式更新发布另行完成。
 
 2026-10-14 原生元数据修正交付：源码461468c的运行38630850263成功，266项核心测试中265通过、0失败、1项macOS专用测试跳过；三个最终辅助EXE产品名／完整产品版本／四段文件版本检查、打包界面、编辑器及当前用户安装重装卸载全部通过。最终ZIP与安装器已重新下载校验；ZIP SHA256 bd009fa3ba1edae80bda9c2d068de0c85210f68ddc3ea6c0708670b3310817c5，安装器 f8441ee7ed17142ac548a3f2c3c9b9ac4e3c41799efaa99612a73c94a6904dfb。此前38626804424产物保留于release/windows-tests/0.15.4-mac.0/38626804424供回退，仍未签名、不创建Release。
+
+2026-10-15 版本0.15.5交付：源码7b36773的[运行38678321343](https://github.com/lvbeck/NotebookAid/actions/runs/38678321343)成功，267项核心检查中266通过、0失败、1项平台专用检查跳过，打包界面／编辑器及当前用户安装、重装、卸载通过。安装和重装后的DisplayName为NotebookAid、DisplayVersion为0.15.5，当前用户仅一条NotebookAid卸载记录；重装前模拟旧版本后缀显示名，重装后恢复固定名称。此测试不等于真实旧二进制跨版本升级或所有用户模式已验证。
+
+最终五个成品下载到release/windows-tests/0.15.5/38678321343并逐项校验SHA256。ZIP为729ac4269cebf0dd6f20619b4461b2702a0b56cd18ecabd4bb63118b884693f7，安装器为6f211d91c83297e0895e87d4b8506433b90eeacc8cd210dbdfb3c0a472713db0。Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64，verified=true、backupCreated=false、bridgeManifestsRestored=2；旧版本ZIP保留供程序回退。仍未签名，Release数量0，等待用户验收。

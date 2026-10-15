@@ -346,4 +346,6 @@ T15 安装向导补充：安装器与卸载器声明 DPI 感知；简体中文�
 
 2026-10-14 T15 Windows CI 补充：Windows x64 安装 EXE 与便携 ZIP 通过 GitHub Actions 构建并作为测试 Artifacts 上传，同时保留插件和 SHA256 校验清单；不创建正式 Release、不启用未配置或未签名的更新源。见 [Windows CI 测试说明](windows-ci-testing.md)。
 
-2026-10-15 测试交付补充：Windows与macOS版本统一为0.15.5，今后使用纯数字主版本.次版本.修订号，与两个插件及锁文件根版本保持一致，不使用平台／任务后缀。macOS双架构Actions测试产物需包含NotebookAid.xpi、八语言插件安装及当前用户桥接说明和校验清单，不正式发布。MSI按用户后续选择，本轮仅准备原生MSI详细方案，不生成MSI或修改现有安装器行为。
+2026-10-15 测试交付补充：Windows与macOS版本统一为0.15.5，今后使用纯数字主版本.次版本.修订号，与两个插件及锁文件根版本保持一致，不使用平台／任务后缀。macOS双架构Actions测试产物需包含NotebookAid.xpi、八语言插件安装及当前用户桥接说明和校验清单，不正式发布。用户选择原生MSI，本轮仅准备详细方案，不生成MSI。现有NSIS安装器按用户后续要求将卸载显示名固定为NotebookAid，版本独立显示。
+
+原生MSI待实施方案补充：用户明确要求MSI产品名和Windows应用列表显示名固定为NotebookAid，不拼接版本号；ProductVersion／DisplayVersion独立保存纯数字版本，稳定UpgradeCode及同安装范围内升级后的单一卸载记录纳入验收。当前仅设计，不生成MSI。

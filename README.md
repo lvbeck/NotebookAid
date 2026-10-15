@@ -25,8 +25,8 @@ Windows and macOS share the numeric version 0.15.5. Future application and addon
 
 | Platform | Packages | Latest verified test build | Workflow |
 | --- | --- | --- | --- |
-| Windows x64 | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [Windows test build](https://github.com/lvbeck/NotebookAid/actions/runs/38630850263) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages and SHA256 checksums | [macOS test build](https://github.com/lvbeck/NotebookAid/actions/runs/38630850387) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [Windows 0.15.5 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38678321343) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, eight language setup guides and SHA256 checksums | [macOS 0.15.5 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38678321224) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 To download, sign in to GitHub, open a successful run, then find **Artifacts**:
 

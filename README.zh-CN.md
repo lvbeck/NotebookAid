@@ -25,8 +25,8 @@ Windows与macOS统一使用纯数字版本0.15.5；今后应用及插件版本�
 
 | 平台 | 产物 | 最新已验证测试构建 | 工作流 |
 | --- | --- | --- | --- |
-| Windows x64 | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [Windows 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38630850263) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP 和 SHA256 校验清单 | [macOS 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38630850387) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [Windows 0.15.5 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38678321343) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、八语言安装说明和 SHA256 校验清单 | [macOS 0.15.5 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38678321224) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 登录 GitHub，打开成功的运行记录，在 **Artifacts** 区域下载：
 

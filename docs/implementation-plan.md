@@ -1036,3 +1036,5 @@ T15 implementation record (2026-10-14): 用户授权搁置 T15-A、开始 T15，
 2026-10-15 统一版本及macOS插件交付授权：用户要求Windows/macOS统一纯数字版本，当前改为0.15.5，同时更新插件和锁文件版本，构建时验证一致性；macOS每份Actions测试产物加入XPI及八语言安装、桥接、迁移位置和排障说明，校验清单覆盖新增文件。沿用锁定electron-builder的归档工具，无新增运行依赖。关于MSI，用户明确选择“需要原生 MSI，先给详细方案”，因此本轮仅作只读设计，不实施原生或包装MSI，不升级安装工具链。源码上传用于CI测试交付，尚非用户验收或正式发布；不开始下一任务。
 
 0.15.5交付期间用户指出Windows应用列表名称仍包含版本。已核对NSIS默认uninstallDisplayName为productName加version，当前固定GUID不会仅因版本号产生新卸载键；改为NotebookAid并保留DisplayVersion。CI安装重装检查增加名称、版本和当前用户仅一条卸载记录断言，并模拟旧后缀显示名称后确认重装修正；不冒称真实旧安装器跨版本升级已实测，不修改用户机器既有安装记录。MSI仍仅方案，不实现。
+
+2026-10-15 0.15.5最终测试交付：源码7b36773的Windows运行38678321343和macOS运行38678321224全部成功；Windows核心266通过／0失败／1跳过，Mac每架构257通过／0失败／1跳过，打包界面及相应安装／签名结构检查通过。最终下载成品Windows5项、Mac每架构12项SHA256一致，XPI版本与八语言说明齐全。便携测试目录已按脚本更新，verified=true、backupCreated=false、bridgeManifestsRestored=2；旧版本ZIP保留。README双语下载入口同步最终运行，源码及结果文档按本轮明确上传授权提交推送，不代表用户验收。用户补充MSI产品名固定NotebookAid已登记，MSI仅提供方案、不实施。未签名／未公证限制保持，不创建Release，不开始下一任务；等待用户验收。
