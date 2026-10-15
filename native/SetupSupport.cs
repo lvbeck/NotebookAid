@@ -222,6 +222,9 @@ internal static class SetupSupport
     private static int Main(string[] args)
     {
         try {
+#if MSI_UPDATE
+            if (args.Length > 0 && args[0].StartsWith("msi-", StringComparison.Ordinal)) return MsiUpdate.Run(args);
+#endif
             if (args.Length < 3 || (args[2] != "user" && args[2] != "machine")) throw new IOException("Invalid setup arguments.");
             string operation = args[0], root = Path.GetFullPath(args[1]).TrimEnd(Path.DirectorySeparatorChar), scope = args[2];
             if (root == Path.GetPathRoot(root).TrimEnd(Path.DirectorySeparatorChar)) throw new IOException("Drive root rejected.");

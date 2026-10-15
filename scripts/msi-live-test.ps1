@@ -56,6 +56,11 @@ Run-Msi '/i' $package $userArgs
 Assert-Installed $userTarget user $version
 Run-Msi '/i' $package $userArgs
 Assert-Installed $userTarget user $version
+$verifyArgs = 'msi-verify "' + $package + '" ' + $version + ' "Jin Lu" ' + (Get-FileHash -LiteralPath $package).Hash.ToLowerInvariant() + ' "' + $userTarget + '"'
+$verifyStart = [Diagnostics.ProcessStartInfo]::new((Join-Path $userTarget 'NotebookAid.SetupSupport.exe'), $verifyArgs)
+$verifyStart.UseShellExecute = $false; $verifyStart.CreateNoWindow = $true; $verifyStart.RedirectStandardError = $true
+$verifyProcess = [Diagnostics.Process]::Start($verifyStart); $verifyError = $verifyProcess.StandardError.ReadToEnd(); $verifyProcess.WaitForExit()
+if ($verifyProcess.ExitCode -ne 1 -or $verifyError -notmatch 'Authenticode signature is not trusted') { throw 'The native MSI updater must reject the unsigned test package.' }
 Remove-Item -LiteralPath (Join-Path $userTarget 'NotebookAid-LICENSE.txt')
 Run-Msi '/fa' $package $userArgs
 if (!(Test-Path -LiteralPath (Join-Path $userTarget 'NotebookAid-LICENSE.txt'))) { throw 'MSI repair failed.' }
@@ -80,5 +85,5 @@ Run-Msi '/fa' $package $machineArgs
 Assert-Installed $machineTarget machine $version
 Run-Msi '/x' $package $machineArgs
 if ((Test-Path -LiteralPath (Join-Path $machineTarget 'NotebookAid.exe')) -or (Test-Path -LiteralPath ('HKLM:\' + $identity))) { throw 'Machine uninstall failed.' }
-[ordered]@{version=$version;currentUser=$true;allUsers=$true;upgradeSynthetic=$true;reinstall=$true;repair=$true;rollback=$true;downgradeRejected=$true;crossScopeRejected=$true;foreignStatePreserved=$true;stableProductName=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json')
+[ordered]@{version=$version;currentUser=$true;allUsers=$true;upgradeSynthetic=$true;reinstall=$true;repair=$true;rollback=$true;downgradeRejected=$true;crossScopeRejected=$true;foreignStatePreserved=$true;stableProductName=$true;unsignedUpdateRejected=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json')
 Get-Content -LiteralPath (Join-Path $job 'report.json')

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { mkdir, mkdtemp, open, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, open, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -39,9 +39,8 @@ export function registerMsiUpdates(options: Options) {
   let state: UpdateState = {phase: options.configured && readMsiFeed(options.resources) ? 'idle' : 'unconfigured'};
   let busy = false, applying = false, downloaded: {file: string; directory: string; release: MsiRelease; publisher: string} | null = null;
   const set = (value: UpdateState) => { state = value; options.publish({...state}); };
-  const verifier = join(options.root, 'Update-MSI.ps1');
-  const powershell = join(process.env['WINDIR'] || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
-  const verifyArguments = (item: NonNullable<typeof downloaded>) => ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', verifier, '-InstallerPath', item.file, '-Version', item.release.version, '-Publisher', item.publisher, '-Sha256', item.release.sha256, '-Root', options.root];
+  const verifier = join(options.root, 'NotebookAid.SetupSupport.exe');
+  const verifyArguments = (item: NonNullable<typeof downloaded>) => ['msi-verify', item.file, item.release.version, item.publisher, item.release.sha256, options.root];
   const check = async () => {
     if (!options.configured || busy || applying || state.phase === 'ready') return {...state};
     const config = readMsiFeed(options.resources); if (!config || !isMsiInstallation(options.root)) { set({phase:'unconfigured'}); return {...state}; }
@@ -66,7 +65,7 @@ export function registerMsiUpdates(options: Options) {
       } finally { await output.close(); }
       if (count !== release.size || hash.digest('hex') !== release.sha256) throw Error('MSI update checksum mismatch.');
       const item = {file, directory, release, publisher:config.publisherName};
-      await promisify(execFile)(powershell, verifyArguments(item), {windowsHide:true, timeout:60000, maxBuffer:65536});
+      await promisify(execFile)(verifier, verifyArguments(item), {windowsHide:true, timeout:60000, maxBuffer:65536});
       downloaded = item; directory = null; set({phase:'ready',version:release.version});
     } catch { set({phase:'error'}); }
     finally { busy = false; if (directory) await rm(directory, {recursive:true,force:true}); }
@@ -78,8 +77,9 @@ export function registerMsiUpdates(options: Options) {
     try {
       if (await options.confirm() && await options.flush()) {
         // Recheck before exit. The launcher rechecks while holding a read-only file lock.
-        await promisify(execFile)(powershell, verifyArguments(downloaded), {windowsHide:true,timeout:60000,maxBuffer:65536});
-        const child = spawn(powershell, [...verifyArguments(downloaded), '-Install', '-ParentProcessId', String(process.pid)], {detached:true,stdio:'ignore',windowsHide:true});
+        await promisify(execFile)(verifier, verifyArguments(downloaded), {windowsHide:true,timeout:60000,maxBuffer:65536});
+        const worker = join(downloaded.directory, 'NotebookAid.UpdateWorker.exe'); await copyFile(verifier, worker);
+        const child = spawn(worker, ['msi-apply', ...verifyArguments(downloaded).slice(1), String(process.pid)], {detached:true,stdio:'ignore',windowsHide:true});
         await new Promise<void>((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
         child.unref(); options.beforeInstall(); (await import('electron')).app.quit();
       }

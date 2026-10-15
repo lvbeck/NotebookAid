@@ -41,7 +41,6 @@ async function buildMsi(version = require('../package.json').version, outputDire
   if (fs.existsSync(root)) fs.rmSync(root, {recursive:true});
   fs.cpSync(source, root, {recursive:true, filter: file => !['installation.json', 'native-host.json', 'native-host-legacy.json', 'Uninstall NotebookAid.exe'].includes(path.basename(file))});
   fs.writeFileSync(path.join(root, 'msi-owner.txt'), 'NotebookAid.MSI.v1\n');
-  fs.copyFileSync('scripts/Update-MSI.ps1', path.join(root, 'Update-MSI.ps1'));
   // MSI uses its own update feed and must never consume latest.yml / NSIS installers.
   fs.rmSync(path.join(root, 'resources/app-update.yml'), {force:true});
   const publisher = process.env.NOTEBOOKAID_MSI_PUBLISHER;
