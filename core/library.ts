@@ -4,6 +4,7 @@ import { NotebookSecurity } from './security';
 import { validateSummary, validateTranslation, type GeneratedTranslation, type GeneratedSummary } from '../shared/writing';
 import { validateAppearance } from './notebook-appearance';
 import { restoreAllowed } from './restore-guard';
+import { renameWithRetry } from './file-rename';
 import type { SecurityState, SecurityRequest } from '../shared/security';
 import { parseDelta, deltaText } from '../shared/delta-document';
 import { validateNative } from './delta-files';
@@ -73,7 +74,7 @@ export class NoteLibrary {
       try { this.lock.exec('PRAGMA busy_timeout=0; CREATE TABLE IF NOT EXISTS writer(id INTEGER); BEGIN EXCLUSIVE'); }
       catch { throw new LibraryError('LIBRARY_IN_USE'); }
       for (const name of ['notes', 'index', 'recovery']) mkdirSync(this.safe(name), { recursive: true });
-      if (!existsSync(manifestPath)) this.atomic(manifestPath, JSON.stringify({ schemaVersion: 1, libraryId: randomUUID(), createdAt: new Date().toISOString() }));
+      if (!existsSync(manifestPath)) this.atomic(manifestPath, JSON.stringify({ schemaVersion: mode === 'create' ? latestNotebookSchemaVersion : 1, libraryId: randomUUID(), createdAt: new Date().toISOString() }));
       recoverImport(this.path);
       const manifest = this.json(manifestPath) as { schemaVersion: number; libraryId: string };
       if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
@@ -111,7 +112,7 @@ export class NoteLibrary {
     if (!this.startupActive) return;
     try { this.startupObserver?.(value); } catch { /* Observers cannot interrupt authoritative checks. */ }
   }
-  close(): void { this.security?.lock(); this.catalog.clear(); this.sessions.clear(); this.events.removeAllListeners(); this.index?.close(); this.index = null; this.lock.close(); }
+  close(): void { this.security?.lock(); this.catalog.clear(); this.sessions.clear(); this.events.removeAllListeners(); this.index?.close(); this.index = null; if (this.lock.isOpen) this.lock.close(); }
   status(): LibraryStatus {
     const resumeNoteId = Object.entries(this.recent).sort((a, b) => b[1].localeCompare(a[1])).find(([id]) => this.catalog.has(id) && !this.catalog.get(id)!.deletedAt)?.[0];
     return { security: this.securityState(), path: this.path, libraryId: this.libraryId, indexed: this.indexed, issues: [...this.issues], pendingRecovery: this.pendingRecovery, resumeNoteId, startup: structuredClone(this.startup) };
@@ -265,7 +266,7 @@ export class NoteLibrary {
   private atomic(path: string, text: string): void {
     const temporary = join(dirname(path), `.pending-${randomUUID()}`);
     this.durable(temporary, text);
-    renameSync(temporary, path);
+    renameWithRetry(temporary, path);
   }
   private head(id: string): Head {
     this.id(id);
@@ -895,7 +896,7 @@ export class NoteLibrary {
       this.atomic(this.safe('recovery', `${operationId}.json`), JSON.stringify({ schemaVersion: 1, operationId, ...(!note.encrypted ? { requestHash } : {}), head } satisfies Journal));
       this.fault?.('journal');
       mkdirSync(this.safe('notes', note.id, 'revisions'), { recursive: true });
-      renameSync(staging, this.safe('notes', note.id, 'revisions', note.revisionId));
+      renameWithRetry(staging, this.safe('notes', note.id, 'revisions', note.revisionId));
       this.readHead(head); this.fault?.('revision');
       this.atomic(this.safe('notes', note.id, 'head.json'), JSON.stringify(head));
       committed = true; this.fault?.('head');

@@ -360,3 +360,5 @@ T15 安装向导补充：安装器与卸载器声明 DPI 感知；简体中文�
 
 Windows EXE/MSI and macOS DMG/ZIP must embed both NotebookAid.xpi and NotebookAid-Compatibility.xpi before installer construction/signing. Installed plugin content must match the standalone artifacts and current addon identity/version; missing or mismatched plugins must block test artifact upload. This follow-up creates test artifacts only and does not authorize a formal release.
 The shared application language list preserves the original eight-language order and places Japanese then Korean last, including interface and translation selectors (user direction, 2026-10-15).
+
+Fresh application-created notebooks, including the first default library directory and the settings Create action, start at latestNotebookSchemaVersion. Opening an existing notebook does not implicitly upgrade it; the explicit upgrade confirmation and backup workflow remains in place (2026-10-15).

@@ -5,11 +5,12 @@ import { readAttachmentFile, validateAttachments } from './attachments';
 import type { Attachment } from '../shared/attachments';
 import { DatabaseSync } from 'node:sqlite';
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, mkdirSync, copyFileSync, writeFileSync, openSync, fsyncSync, closeSync, renameSync, unlinkSync, rmSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, mkdirSync, copyFileSync, writeFileSync, openSync, fsyncSync, closeSync, unlinkSync, rmSync } from 'node:fs';
 import { join, dirname, basename, resolve, relative, sep, isAbsolute } from 'node:path';
 import { LibraryError } from './library';
 import { validateTaskSource } from '../shared/task-source';
 import { maxNoteMetadataBytes } from '../shared/library';
+import { renameWithRetry } from './file-rename';
 import type { Organization } from '../shared/organization';
 import type { LibraryImportPreview, LibraryImportResult } from '../shared/library-import';
 
@@ -40,7 +41,7 @@ function json(path: string, limit?: number): any { try { return JSON.parse(read(
 function atomic(path: string, value: string): void {
   plainPath(path); const temp = join(dirname(path), `.pending-${randomUUID()}`); const fd = openSync(temp, 'wx');
   try { writeFileSync(fd, value, 'utf8'); fsyncSync(fd); } finally { closeSync(fd); }
-  renameSync(temp, path);
+  renameWithRetry(temp, path);
 }
 function structure(value: Organization): void {
   if (!value || value.schemaVersion !== 1 || !Number.isSafeInteger(value.version) || value.version < 0 || !Array.isArray(value.folders) || !Array.isArray(value.tags) || value.folders.length > 500 || value.tags.length > 500 || Buffer.byteLength(JSON.stringify(value)) > 128 * 1024) fail();
@@ -231,7 +232,7 @@ export function executeImport(plan: Plan, fault?: (stage: string) => void): Libr
         if (note.encrypted) atomic(join(stage, 'security.json'), JSON.stringify({ version: 1 }));
         for (const blob of note.blobs) writePayload('attachments/' + blob.item.id, readBlob(blob.path, blob.item, plan.security?.source));
         if (note.historyFloor) atomic(join(stage, 'history.json'), JSON.stringify(note.historyFloor));
-        atomic(join(stage, 'head.json'), JSON.stringify(note.head)); renameSync(stage, root); fault?.('note');
+        atomic(join(stage, 'head.json'), JSON.stringify(note.head)); renameWithRetry(stage, root); fault?.('note');
       }
       atomic(join(path, 'organization.json'), JSON.stringify(plan.organization)); fault?.('organization');
       atomic(join(path, 'imports.json'), JSON.stringify(plan.receipts));

@@ -5,6 +5,7 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { LibraryRegistry } = require('../dist/runtime/core/registry');
 const { NoteLibrary } = require('../dist/runtime/core/library');
+const { latestNotebookSchemaVersion } = require('../dist/runtime/shared/library');
 function fixture() { const root = path.resolve('output/registry-tests'); fs.mkdirSync(root, { recursive: true }); const data = fs.mkdtempSync(path.join(root, 'case-')); return { data, initial: path.join(data, 'initial') }; }
 const code = expected => error => error.code === expected;
 
@@ -89,7 +90,8 @@ test('corrupt registry is retained without fallback and mismatched replacement l
 });
 
 test('Registry reports each notebook schema from its manifest, with unknown for unavailable entries', () => {
-  const { data, initial } = fixture(); const registry = new LibraryRegistry(data, initial);
+  const { data, initial } = fixture(); const legacy = new NoteLibrary(initial); legacy.close();
+  const registry = new LibraryRegistry(data, initial);
   try {
     registry.get();assert.equal(registry.state().entries[0].schemaVersion,1);
     const other=path.join(data,'other');registry.add(other,'create');
@@ -99,4 +101,31 @@ test('Registry reports each notebook schema from its manifest, with unknown for 
     fs.renameSync(file,file+'.missing');assert.equal(registry.state().entries[1].schemaVersion,null);
     assert.equal(registry.state().entries[0].schemaVersion,1);
   } finally {registry.close();}
+});
+
+test('default and explicitly created notebooks start at the latest schema without upgrading existing notebooks', () => {
+  const { data, initial } = fixture(); let registry = new LibraryRegistry(data, initial);
+  const manifest = directory => fs.readFileSync(path.join(directory, 'library.json'), 'utf8');
+  const first = registry.state().entries[0];
+  try {
+    assert.equal(first.schemaVersion, latestNotebookSchemaVersion);
+    assert.equal(registry.get().libraryId, first.libraryId);
+    assert.equal(fs.existsSync(initial + '.schema-backups'), false);
+    registry.add(path.join(data, 'new-notebook'), 'create');
+    const second = registry.state().entries[1];
+    assert.equal(second.schemaVersion, latestNotebookSchemaVersion);
+    assert.equal(fs.existsSync(second.path + '.schema-backups'), false);
+    registry.activate(second.id);
+    const note = registry.get().create(randomUUID(), { title: 'New notebook', body: 'Preserved content', primaryFormat: 'markdown' }).note;
+    const legacyPath = path.join(data, 'legacy'); const legacy = new NoteLibrary(legacyPath); legacy.close();
+    const before = manifest(legacyPath);
+    registry.add(legacyPath, 'existing');
+    const old = registry.state().entries[2]; registry.activate(old.id);
+    assert.equal(registry.state().entries[2].schemaVersion, 1);
+    assert.equal(manifest(legacyPath), before);
+    registry.close(); registry = new LibraryRegistry(data, initial);
+    registry.get(); assert.equal(manifest(legacyPath), before);
+    registry.activate(second.id); assert.deepEqual(registry.get().read(note.id), note);
+    assert.equal(registry.state().entries[0].schemaVersion, latestNotebookSchemaVersion);
+  } finally { registry.close(); }
 });

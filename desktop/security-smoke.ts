@@ -30,6 +30,7 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
     const note = await run(`window.notebookAid.library.begin('${id}')`); if (!note.ok || note.value.note.title !== 'T08 SECRET TITLE') throw Error('Encrypted restart content lost');
     writeFileSync(join(directory, 'security-reopen.json'), JSON.stringify({ lockedOnRestart: true, passwordUnlock: true })); return;
   }
+  await until("document.querySelector('[data-testid=create-note]')?.disabled === false && document.querySelector('[data-testid=editor-empty]')?.getClientRects().length > 0");
   if (!await run("!!document.querySelector('[data-select-trigger=language] .select-leading-icon') && !!document.querySelector('[data-select-trigger=theme] .select-leading-icon')")) throw Error('Preference selector icons missing');
   if (await run("document.querySelector('[data-testid=global-security-default]').checked")) throw Error('Global encryption must default off');
   if (!await run("document.querySelector('[data-testid=editor-empty]').getClientRects().length>0 && document.querySelector('[data-testid=save-note]').getClientRects().length===0 && document.querySelector('.editor-actions').getClientRects().length===0")) throw Error('Empty selection still shows editing controls');
@@ -174,7 +175,8 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
   if ((await run('window.notebookAid.library.status()')).value.security.unlocked) throw Error('Idle did not lock');
   const passkey = await run("window.notebookAid.appPasskeys('status')"); if (passkey.enabled || passkey.locked) throw Error('Passkey not optional');
   await until("document.querySelector('[data-testid=security-quick]')?.dataset.unlocked==='false' && !document.querySelector('[data-note-id]')");
-  if (!await run("document.querySelector('[data-testid=editor-empty]').getClientRects().length>0 && document.querySelector('[data-testid=save-note]').getClientRects().length===0 && document.querySelector('.editor-actions').getClientRects().length===0")) throw Error('Locked empty selection still shows editing controls');
+  await until("document.querySelector('[data-testid=editor-locked]')?.getClientRects().length > 0");
+  if (!await run("document.querySelector('[data-testid=editor-empty]').getClientRects().length===0 && document.querySelector('[data-testid=save-note]').getClientRects().length===0 && document.querySelector('.editor-actions').getClientRects().length===0")) throw Error('Locked empty selection still shows editing controls');
   await run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
   await window.webContents.capturePage().then(image => writeFileSync(join(directory, 'security-locked.png'), image.toPNG()));
   writeFileSync(join(directory, 'security-expected.json'), JSON.stringify({ id, parent, child }));

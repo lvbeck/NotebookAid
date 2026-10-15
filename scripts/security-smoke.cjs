@@ -1,5 +1,7 @@
 const fs = require('node:fs'), path = require('node:path'), cp = require('node:child_process');
 const root = path.resolve('output/security-packaged/' + Date.now()); fs.mkdirSync(root, { recursive: true });
+// Keep an old notebook fixture to exercise explicit upgrade confirmation and cancellation.
+const legacy = new (require('../dist/runtime/core/library').NoteLibrary)(path.join(root, 'library')); legacy.close();
 const env = { ...process.env, NOTEBOOKAID_TEST_HOME: root, NOTEBOOKAID_SECURITY_TEST: '1' };
 const dev = process.argv.includes('--dev'), exe = dev ? require('electron') : path.resolve('release', require('../package.json').version, 'NotebookAid-win32-x64/NotebookAid.exe');
 for (const [arg, report] of [['--self-test', 'security-report.json'], ['--self-test-reopen', 'security-reopen.json']]) {

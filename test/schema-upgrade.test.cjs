@@ -32,11 +32,13 @@ test('failed manifest commit retains the old schema and backup', () => {
   } finally { lib.close(); }
 });
 test('upgrading an inactive notebook never switches or upgrades the active one', () => {
-  const dir = root(), registry = new LibraryRegistry(dir, path.join(dir, 'active'));
+  const dir = root(), activePath = path.join(dir, 'active'), otherPath = path.join(dir, 'other');
+  for (const directory of [activePath, otherPath]) { const legacy = new NoteLibrary(directory); legacy.close(); }
+  const registry = new LibraryRegistry(dir, activePath);
   try {
     registry.get();
     const first = registry.state().activeId;
-    const state = registry.add(path.join(dir, 'other'), 'create'), second = state.entries.find(item => item.id !== first);
+    const state = registry.add(otherPath, 'existing'), second = state.entries.find(item => item.id !== first);
     const result = registry.upgrade(second.id, 1);
     assert.equal(result.schemaVersion, 10); assert.equal(registry.state().activeId, first);
     assert.equal(registry.state().entries.find(item => item.id === first).schemaVersion, 1);
