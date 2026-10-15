@@ -1046,3 +1046,5 @@ T15 implementation record (2026-10-14): 用户授权搁置 T15-A、开始 T15，
 MSI更新实现进一步修正：本机默认PowerShell脚本策略阻止了脚本执行，最初退出码检查不能证明签名拒绝。已删除该脚本入口，将校验／安装工作交给现有SetupSupport原生EXE中的MsiUpdate.cs，不要求更改或绕过PowerShell策略；使用WinVerifyTrust验证信任链和发布者，再通过MSI只读API检查身份。分离辅助程序的同哈希副本在缓存运行，持有更新包只读锁直到msiexec结束，避免锁住安装目录内待升级的EXE。新增原生校验测试通过，实际生成的未签名MSI也被Authenticode校验拒绝，原9项渠道测试重跑通过。在线成功更新仍需未来签名和发布源验收。
 
 首次完整CI 38682313390的应用、核心、EXE与MSI构建检查成功，但原生MSI首个实装在系统版本检测处拒绝Windows Server2022，未进入文件写入事务。改为读取64位系统受保护注册信息，避免依赖宿主的版本API视图；保留Windows10最低版本限制。补充所有用户回滚和当前用户旧桥接遮蔽的实装测试，并隐藏MSI回滚数据属性，避免其出现在详细安装日志。macOS 38682313351双架构成功，arm64下载13项校验一致；最终Windows结果仍待重跑，不将构建通过视为安装验收。
+
+2026-10-15 CI运行时警告修正：用户报告upload-artifact旧版声明Node20而被runner强制以Node24运行。Windows和macOS工作流统一固定至官方v7.0.2提交cf430e030ddbb5b0abf93d22962f4752f3646cd9，已通过GitHub API核对action.yml声明node24，archive默认true，因此保留现有ZIP归档／多文件产物格式、名称和保留期；应用构建Node24.21.0及项目依赖不变。新工作流实际执行结果另行登记，不通过旧运行证明警告已消失。
