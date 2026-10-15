@@ -25,6 +25,14 @@ function Run-Setup([string]$File, [string]$Arguments) {
     if (!$process.WaitForExit(120000)) { throw 'Installer exceeded timeout; it was not force-stopped.' }
     if ($process.ExitCode -ne 0) { throw "Installer returned $($process.ExitCode)." }
 }
+function Assert-InstalledEntry {
+    $entry = Get-ItemProperty -LiteralPath $uninstallKey
+    if ($entry.DisplayName -ne 'NotebookAid' -or $entry.DisplayVersion -ne $version) { throw 'Installed application name or version is incorrect.' }
+    $entries = @(Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' | Where-Object {
+        (Get-ItemProperty -LiteralPath $_.PSPath -ErrorAction SilentlyContinue).DisplayName -like 'NotebookAid*'
+    })
+    if ($entries.Count -ne 1) { throw 'Expected exactly one current-user NotebookAid uninstall entry.' }
+}
 try {
     Run-Setup $installer ('/S /currentuser /D=' + $target)
     if (!(Test-Path -LiteralPath (Join-Path $target 'NotebookAid.exe'))) { throw 'Installed executable missing.' }
@@ -34,8 +42,12 @@ try {
     $helper = Join-Path $target 'NotebookAid.SetupSupport.exe'
     & $helper check $target user
     if ($LASTEXITCODE -ne 0) { throw 'Installed program preflight failed.' }
+    Assert-InstalledEntry
+    # Simulate the previous version-suffixed uninstall entry before reinstalling.
+    Set-ItemProperty -LiteralPath $uninstallKey -Name DisplayName -Value ('NotebookAid ' + $version)
     Run-Setup $installer ('/S /currentuser /D=' + $target)
     if (!(Test-Path -LiteralPath (Join-Path $target 'NotebookAid.exe'))) { throw 'Reinstallation failed.' }
+    Assert-InstalledEntry
     $backupFiles = @(Get-ChildItem -LiteralPath $env:NOTEBOOKAID_SETUP_TEST_BACKUPS -Filter backup.json -Recurse)
     if ($backupFiles.Count -lt 2) { throw 'Reinstallation rollback copy missing.' }
     $uninstaller = Join-Path $target 'Uninstall NotebookAid.exe'
@@ -43,7 +55,7 @@ try {
     for ($n = 0; $n -lt 200 -and ((Test-Path -LiteralPath (Join-Path $target 'NotebookAid.exe')) -or (Test-Path $appKey) -or (Test-Path $uninstallKey)); $n++) { Start-Sleep -Milliseconds 100 }
     if (Test-Path -LiteralPath (Join-Path $target 'NotebookAid.exe')) { throw 'Uninstaller did not remove the program.' }
     if ((Test-Path $appKey) -or (Test-Path $uninstallKey)) { throw 'Installer registry entries remain.' }
-    [PSCustomObject]@{ version=$version; target=$target; installed=$true; reinstalled=$true; uninstalled=$true; nativeHosts=$true; backupCount=$backupFiles.Count; machineModeTested=$false } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json') -Encoding utf8
+    [PSCustomObject]@{ version=$version; target=$target; installed=$true; reinstalled=$true; uninstalled=$true; nativeHosts=$true; stableUninstallName=$true; singleUserUninstallEntry=$true; backupCount=$backupFiles.Count; machineModeTested=$false } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json') -Encoding utf8
     Get-Content -LiteralPath (Join-Path $job 'report.json')
 } finally {
     foreach ($key in $keys) {

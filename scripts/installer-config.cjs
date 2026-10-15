@@ -4,6 +4,7 @@ module.exports = {
   publish: null,
   win: { target: [{ target: 'nsis', arch: ['x64'] }], icon: 'assets/notebookaid.ico', signAndEditExecutable: false },
   nsis: {
+    uninstallDisplayName: 'NotebookAid',
     guid: '1585ae4a-41ea-4f85-aa30-75cf234c17ac',
     artifactName: 'NotebookAid-${version}-Setup-x64.exe',
     oneClick: false, perMachine: false, allowElevation: true,
