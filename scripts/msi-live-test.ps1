@@ -10,7 +10,7 @@ $oldPackage = Join-Path $workspace "output/msi-fixtures/older/NotebookAid-$older
 $failedPackage = Join-Path $workspace "output/msi-fixtures/failure/NotebookAid-$newer-Setup-x64.msi"
 $job = Join-Path $workspace ('output/msi-live/' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $job -Force | Out-Null
-$userTarget = Join-Path $job 'NotebookAid space 中文'
+$userTarget = Join-Path $job ('NotebookAid space ' + [char]0x4e2d + [char]0x6587)
 $machineTarget = Join-Path $env:ProgramFiles ('NotebookAid MSI Test ' + [Guid]::NewGuid().ToString('N'))
 $hostNames = @('de.zub_systems.notebookaid','de.zub_systems.notebookaid_t02')
 $identity = 'Software\NotebookAid\MSI'
@@ -33,12 +33,14 @@ function Run-Msi([string]$Mode, [string]$File, [string]$Arguments, [bool]$Failur
     elseif ($process.ExitCode -notin @(0,3010)) { throw "MSI returned $($process.ExitCode): $log" }
 }
 function Assert-Installed([string]$Target, [string]$Scope, [string]$ExpectedVersion) {
-    $data = Get-Content -LiteralPath (Join-Path $Target 'installation.json') -Raw | ConvertFrom-Json
+    $data = Get-Content -LiteralPath (Join-Path $Target 'installation.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($data.owner -ne 'NotebookAid.Installation.v1' -or $data.installer -ne 'msi' -or $data.scope -ne $Scope) { throw 'Wrong MSI installation metadata.' }
     if (!(Test-Path -LiteralPath (Join-Path $Target 'NotebookAid.exe'))) { throw 'Installed application missing.' }
     $hive = if ($Scope -eq 'machine') {'HKLM'} else {'HKCU'}
-    $entries = @(Get-ChildItem ($hive + ':\Software\Microsoft\Windows\CurrentVersion\Uninstall') | ForEach-Object {Get-ItemProperty -LiteralPath $_.PSPath} | Where-Object {$_.DisplayName -like 'NotebookAid*'})
-    if ($entries.Count -ne 1 -or $entries[0].DisplayName -ne 'NotebookAid' -or $entries[0].DisplayVersion -ne $ExpectedVersion -or $entries[0].WindowsInstaller -ne 1) { throw 'MSI uninstall identity, name or version is incorrect.' }
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    $products = @($installer.RelatedProducts('{2A38E827-A9E4-4B31-A9D5-ED345CB44129}'))
+    if ($products.Count -ne 1) { throw "Expected one MSI product in the upgrade family; found $($products.Count)." }
+    if ($installer.ProductInfo($products[0], 'InstalledProductName') -ne 'NotebookAid' -or $installer.ProductInfo($products[0], 'VersionString') -ne $ExpectedVersion) { throw 'MSI registered product name or version is incorrect.' }
     $menu = [Environment]::GetFolderPath($(if ($Scope -eq 'machine') {'CommonPrograms'} else {'Programs'}))
     $desktop = [Environment]::GetFolderPath($(if ($Scope -eq 'machine') {'CommonDesktopDirectory'} else {'DesktopDirectory'}))
     $shortcut = Join-Path $menu 'NotebookAid.lnk'
@@ -49,7 +51,7 @@ function Assert-Installed([string]$Target, [string]$Scope, [string]$ExpectedVers
         $key = $hive + ':\Software\Mozilla\NativeMessagingHosts\' + $name
         $manifest = (Get-Item -LiteralPath $key).GetValue('')
         if (!$manifest.StartsWith($Target + '\')) { throw 'MSI bridge scope or path is incorrect.' }
-        $document = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
+        $document = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($document.name -ne $name -or $document.path -ne (Join-Path $Target 'NotebookAid.Bridge.exe')) { throw 'Invalid MSI bridge manifest.' }
     }
 }

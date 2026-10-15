@@ -43,6 +43,12 @@ jobs:
       - run: npm run build
       - run: npm run test:platform
       - run: npm run package
+      - run: npm run installer:msi
+      - name: Build synthetic MSI upgrade and rollback fixtures
+        run: node scripts/build-msi-fixtures.cjs
+      - name: Verify native MSI in current-user and all-user contexts
+        shell: powershell
+        run: ./scripts/msi-live-test.ps1
       - run: npm run installer
       - name: Create portable ZIP and addon packages
         shell: powershell
@@ -86,12 +92,6 @@ jobs:
       - name: Verify current-user install, reinstall and uninstall
         shell: powershell
         run: ./scripts/installer-live-test.ps1
-      - run: npm run installer:msi
-      - name: Build synthetic MSI upgrade and rollback fixtures
-        run: node scripts/build-msi-fixtures.cjs
-      - name: Verify native MSI in current-user and all-user contexts
-        shell: powershell
-        run: ./scripts/msi-live-test.ps1
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: NotebookAid-windows-x64-msi-test
