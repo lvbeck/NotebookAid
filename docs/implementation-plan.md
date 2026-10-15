@@ -1154,3 +1154,9 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - Final package artifacts: Windows EXE/ZIP 11966390541 and MSI 11966420461 (run 38720219079); macOS arm64 11964379336 and x64 11964524414 (run 38720219074). Verification reports and logs were inspected; this pass did not replace the previously accepted local 0.15.9 packages or deploy user program files.
 - Updated all ten root README files to the successful current test URLs; explicit current version labels now read 0.15.9 while historical 0.15.7 feature statements remain unchanged. Checked 257 repository-relative links and Git whitespace validation. No production-code changes or repeated test-suite execution were required for this documentation-only update.
 - README/verification record push is within the user's requested GitHub documentation update. No Release, tag, signing configuration or update-feed activation changes are made. T15-A remains shelved.
+
+### T15 0.15.9 CI packaging and README acceptance (2026-10-15; approved)
+
+- Actual user acceptance: "GitHub Actions 打包和 README 下载链接更新验收通过，暂时不进行下个任务，也不要正式发布。"
+- Accepted source/build commit 900ccb4 and README/CI documentation commit f8261d9, covering Windows run 38720219079 and macOS run 38720219074. Existing validation limits remain unchanged.
+- No next task, formal Release, tag or update-feed activation is authorized. Record this acceptance locally; do not start further development or release work. T15-A remains shelved.
