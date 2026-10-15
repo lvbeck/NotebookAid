@@ -21,9 +21,9 @@ NotebookAid 是開源桌面筆記應用程式，提供可選的 Thunderbird 附�
 
 目前僅提供測試產物，尚未正式發佈。Windows 與 macOS 共用純數字版本號。登入 GitHub，選擇成功的執行記錄，再到 Artifacts 下載。
 
-- [EXE 安裝程式／可攜式 ZIP](https://github.com/lvbeck/NotebookAid/actions/runs/38710651223/artifacts/11961101984): `NotebookAid-windows-x64-test`.
-- [原生 MSI 安裝程式](https://github.com/lvbeck/NotebookAid/actions/runs/38710651223/artifacts/11961047158): `NotebookAid-windows-x64-msi-test`.
-- [macOS 安裝檔](https://github.com/lvbeck/NotebookAid/actions/runs/38710651247): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
+- [EXE 安裝程式／可攜式 ZIP](https://github.com/lvbeck/NotebookAid/actions/runs/38720219079/artifacts/11966390541): `NotebookAid-windows-x64-test`.
+- [原生 MSI 安裝程式](https://github.com/lvbeck/NotebookAid/actions/runs/38720219079/artifacts/11966420461): `NotebookAid-windows-x64-msi-test`.
+- [macOS 安裝檔](https://github.com/lvbeck/NotebookAid/actions/runs/38720219074): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
 
 ## 安裝及限制
 

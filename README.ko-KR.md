@@ -21,9 +21,9 @@ NotebookAid는 선택적 Thunderbird 부가 기능을 제공하는 오픈 소스
 
 현재 테스트 산출물만 제공하며 정식 릴리스는 없습니다. Windows와 macOS는 숫자로만 구성된 버전 번호를 공유합니다. GitHub에 로그인하고 성공한 실행의 Artifacts에서 다운로드하세요.
 
-- [EXE 설치 관리자 / 포터블 ZIP](https://github.com/lvbeck/NotebookAid/actions/runs/38710651223/artifacts/11961101984): `NotebookAid-windows-x64-test`.
-- [네이티브 MSI 설치 관리자](https://github.com/lvbeck/NotebookAid/actions/runs/38710651223/artifacts/11961047158): `NotebookAid-windows-x64-msi-test`.
-- [macOS 패키지](https://github.com/lvbeck/NotebookAid/actions/runs/38710651247): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
+- [EXE 설치 관리자 / 포터블 ZIP](https://github.com/lvbeck/NotebookAid/actions/runs/38720219079/artifacts/11966390541): `NotebookAid-windows-x64-test`.
+- [네이티브 MSI 설치 관리자](https://github.com/lvbeck/NotebookAid/actions/runs/38720219079/artifacts/11966420461): `NotebookAid-windows-x64-msi-test`.
+- [macOS 패키지](https://github.com/lvbeck/NotebookAid/actions/runs/38720219074): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
 
 ## 설치 및 제한 사항
 
