@@ -29,3 +29,7 @@ Registration persists after reboot. Updating the app at the same path does not n
 If disconnected, verify the Thunderbird version and application path, relaunch both applications and retain the terminal/addon error text. macOS Passkey application locking is not supported in this test build; do not copy Windows application-lock settings. Notebook encryption remains available. Real Thunderbird integration still needs user testing.
 
 The archive contains SHA256 checksums, DMG/ZIP alternatives and this addon. These are test artifacts, not a formal release; automatic updates are not enabled.
+
+## Windows test downloads
+
+[EXE installer](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-test`. [Native MSI](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-msi-test`. Choose a successful run and sign in to download. MSI supports current-user and all-user installation, keeps the name NotebookAid, and uses a separate signed GitHub update channel. Current unsigned test packages have no active update feed. See the [MSI guide](../msi-testing.md).

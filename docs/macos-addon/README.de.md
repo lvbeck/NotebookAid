@@ -29,3 +29,7 @@ Die Registrierung bleibt nach einem Neustart erhalten. Bei Updates am selben Ort
 Bei Verbindungsproblemen Thunderbird-Version und Pfad prüfen, beide Anwendungen neu starten und Terminal-/Add-on-Meldungen aufbewahren. Die Passkey-Anwendungssperre wird in dieser macOS-Testversion nicht unterstützt; Windows-Sperreinstellungen nicht übernehmen. Notizbuchverschlüsselung bleibt verfügbar. Die echte Thunderbird-Integration muss noch vom Benutzer getestet werden.
 
 Das Archiv enthält SHA256-Prüfsummen, DMG/ZIP und das Add-on. Es ist ein Testpaket, keine offizielle Veröffentlichung; automatische Updates sind nicht aktiv.
+
+## Windows-Testdownloads
+
+[EXE-Installation](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-test`. [Native MSI-Installation](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-msi-test`. Bei GitHub anmelden und einen erfolgreichen Lauf wählen. MSI unterstützt den aktuellen Benutzer und alle Benutzer, behält den Namen NotebookAid und verwendet einen getrennten signierten GitHub-Updatekanal. Nicht signierte Testpakete haben keine aktive Update-Quelle. Siehe [MSI-Anleitung](../msi-testing.md) und [deutsches Projekt-README](../../README.de-DE.md).

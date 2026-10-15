@@ -66,6 +66,7 @@ jobs:
             release/macos/SHA256-*.txt
             release/macos/NotebookAid.xpi
             release/macos/INSTALL.md
+            release/macos/msi-testing.md
             release/macos/Guides/**
           if-no-files-found: error
           retention-days: 30

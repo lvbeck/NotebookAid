@@ -1,6 +1,6 @@
 # NotebookAid
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [Deutsch](README.de-DE.md)
 
 **AI 笔记与写作助手**
 
@@ -21,16 +21,18 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 
 项目目前处于测试阶段，尚未发布正式 GitHub Release。
 
-Windows与macOS统一使用纯数字版本0.15.5；今后应用及插件版本采用主版本.次版本.修订号，不再添加平台后缀。
+Windows与macOS源码统一使用纯数字版本0.15.6；应用及插件版本采用主版本.次版本.修订号，不添加平台后缀。
 
 | 平台 | 产物 | 最新已验证测试构建 | 工作流 |
 | --- | --- | --- | --- |
 | Windows x64 | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [Windows 0.15.5 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38678321343) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 测试下载](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) | [MSI 安装和更新说明](docs/msi-testing.md) |
 | macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、八语言安装说明和 SHA256 校验清单 | [macOS 0.15.5 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38678321224) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 登录 GitHub，打开成功的运行记录，在 **Artifacts** 区域下载：
 
 - Windows：`NotebookAid-windows-x64-test`。
+- 原生 MSI：`NotebookAid-windows-x64-msi-test`。EXE 与 MSI 为独立产物，选择一种安装方式，切换前先卸载另一种安装版。
 - macOS：`NotebookAid-macos-arm64-test` 或 `NotebookAid-macos-x64-test`。
 
 程序测试产物保留 **30 天**。旧运行过期后，请在工作流页面寻找新的成功构建。验证报告为独立产物，保留14天。
@@ -55,6 +57,7 @@ Thunderbird 当前项目基线为 Release 157.0.1；较新 Release 和 ESR 需�
 - **Windows 测试包未签名。** 维护者已提交 SignPath Foundation 申请，正在等待审核；尚未获批或启用签名。
 - macOS 测试应用使用 ad-hoc 签名，没有 Developer ID 签名及 Apple 公证。Gatekeeper 可能阻止打开，请勿为运行测试包而全局关闭系统安全机制。
 - 已实现更新机制，但当前测试包没有启用自动更新源。GitHub 更新地址留待后续签名发布使用；Actions 测试产物不是更新源。
+- 原生 MSI 使用独立的 GitHub `latest-msi.json` 更新渠道，检查签名与产品身份，经确认后交由 Windows Installer 安装。所有用户更新可能要求 UAC 授权；不会安装 NSIS 更新。见 [MSI 说明](docs/msi-testing.md)。
 - AI 认证、模型检查及已授权的令牌续期可能访问所选提供商。笔记文字仅在明确请求生成时发送；本地存储不代表应用始终离线。
 
 公开说明：[Code signing policy](docs/code-signing-policy.md)、[Privacy statement](docs/privacy.md)（英文）。
@@ -79,6 +82,7 @@ Windows PowerShell：
 ```powershell
 npm run package
 npm run installer
+npm run installer:msi
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-TestBundle.ps1
 ```
 

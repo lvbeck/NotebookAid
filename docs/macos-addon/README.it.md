@@ -29,3 +29,7 @@ La registrazione resta dopo il riavvio. Un aggiornamento nello stesso percorso n
 Se non si connette, verificare versione Thunderbird e percorso, riavviare entrambe le applicazioni e conservare gli errori del Terminale/componente. Il blocco applicazione Passkey non è supportato in questa versione macOS; non copiare le impostazioni di blocco Windows. La crittografia dei quaderni resta disponibile. L’integrazione reale Thunderbird deve ancora essere provata dall’utente.
 
 L’archivio contiene checksum SHA256, DMG/ZIP e componente aggiuntivo. Sono pacchetti di test, non una pubblicazione ufficiale; gli aggiornamenti automatici non sono attivi.
+
+## Download di prova per Windows
+
+[Programma EXE](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-test`. [MSI nativo](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-msi-test`. Accedi a GitHub e scegli un’esecuzione riuscita. MSI supporta l’utente corrente e tutti gli utenti, mantiene il nome NotebookAid e usa un canale GitHub firmato separato. I pacchetti di prova non firmati non hanno una fonte di aggiornamento attiva. Consulta la [guida MSI](../msi-testing.md).

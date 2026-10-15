@@ -1,6 +1,6 @@
 {
   "name": "notebookaid",
-  "version": "0.15.5",
+  "version": "0.15.6",
   "private": true,
   "description": "Local notes and writing assistant",
   "author": "Jin Lu <it@live.cn>",
@@ -18,7 +18,8 @@
     "installer:mac": "node scripts/build-macos.cjs",
     "smoke": "node scripts/smoke.cjs",
     "package": "node scripts/package.cjs",
-    "installer": "node scripts/build-installer.cjs"
+    "installer": "node scripts/build-installer.cjs",
+    "installer:msi": "node scripts/build-msi.cjs"
   },
   "dependencies": {
     "@angular/cdk": "22.2.2",

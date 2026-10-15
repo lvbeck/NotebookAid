@@ -349,3 +349,5 @@ T15 安装向导补充：安装器与卸载器声明 DPI 感知；简体中文�
 2026-10-15 测试交付补充：Windows与macOS版本统一为0.15.5，今后使用纯数字主版本.次版本.修订号，与两个插件及锁文件根版本保持一致，不使用平台／任务后缀。macOS双架构Actions测试产物需包含NotebookAid.xpi、八语言插件安装及当前用户桥接说明和校验清单，不正式发布。用户选择原生MSI，本轮仅准备详细方案，不生成MSI。现有NSIS安装器按用户后续要求将卸载显示名固定为NotebookAid，版本独立显示。
 
 原生MSI待实施方案补充：用户明确要求MSI产品名和Windows应用列表显示名固定为NotebookAid，不拼接版本号；ProductVersion／DisplayVersion独立保存纯数字版本，稳定UpgradeCode及同安装范围内升级后的单一卸载记录纳入验收。当前仅设计，不生成MSI。
+
+2026-10-15 原生MSI实施授权：用户明确要求按方案实现当前用户／本机所有用户安装，显示名固定NotebookAid，支持通过GitHub提供MSI更新。版本0.15.6，MSI与NSIS独立安装与更新渠道；检查、下载及签名／产品身份校验后，经用户确认调用Windows Installer，保持原安装范围，所有用户更新允许UAC授权。当前无签名发布者和正式Release，测试包不启用在线更新。README提供独立EXE／MSI下载入口，增加README.de-DE.md并与中英文互链，同步八语言插件说明；通过Actions上传测试产物，不正式发布。

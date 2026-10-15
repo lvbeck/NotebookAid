@@ -29,3 +29,7 @@
 若仍未连接，请核对Thunderbird版本、安装路径，重启两个应用并保留终端和插件错误文字。此macOS测试版不支持Passkey应用锁，不要复制Windows应用锁设置；笔记本加密仍可使用。真实Thunderbird联调仍待用户测试。
 
 归档内含SHA256校验清单、DMG／ZIP和插件。这些是测试产物，不是正式发布，自动更新尚未启用。
+
+## Windows 测试下载
+
+[EXE 安装器](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml)：`NotebookAid-windows-x64-test`。[原生 MSI](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml)：`NotebookAid-windows-x64-msi-test`。登录后选择成功的运行下载。MSI 支持当前用户和所有用户安装，名称固定为 NotebookAid，使用独立的 GitHub 签名更新渠道；当前未签名测试包未启用更新源。见 [MSI 说明](../msi-testing.md)。

@@ -24,10 +24,11 @@ async function buildMacAddon(output = path.resolve('release/macos')) {
   const navigation = Object.entries(locales).map(([locale, label]) => '[' + label + '](README.' + locale + '.md)').join(' | ');
   for (const locale of Object.keys(locales)) {
     const source = fs.readFileSync('docs/macos-addon/README.' + locale + '.md', 'utf8');
-    fs.writeFileSync(path.join(guides, 'README.' + locale + '.md'), source.replace('@LANGUAGES@', navigation).replaceAll('@VERSION@', version));
+    fs.writeFileSync(path.join(guides, 'README.' + locale + '.md'), source.replace('@LANGUAGES@', navigation).replaceAll('@VERSION@', version).replaceAll('../../README.de-DE.md', 'https://github.com/lvbeck/NotebookAid/blob/main/README.de-DE.md'));
   }
   fs.writeFileSync(path.join(output, 'INSTALL.md'), '# NotebookAid ' + version + ' — macOS test bundle\n\n' + Object.entries(locales).map(([locale, label]) => '- [' + label + '](Guides/README.' + locale + '.md)').join('\n') + '\n\nNotebookAid.xpi is the Thunderbird addon. These are test artifacts, not a formal release. The app uses ad-hoc signing without Apple notarization. See the guides before installing.\n');
-  const files = ['NotebookAid.xpi', 'INSTALL.md', ...Object.keys(locales).map(locale => 'Guides/README.' + locale + '.md')];
+  fs.copyFileSync('docs/msi-testing.md', path.join(output, 'msi-testing.md'));
+  const files = ['NotebookAid.xpi', 'INSTALL.md', 'msi-testing.md', ...Object.keys(locales).map(locale => 'Guides/README.' + locale + '.md')];
   const checksums = files.map(file => crypto.createHash('sha256').update(fs.readFileSync(path.join(output, file))).digest('hex') + '  ' + file);
   fs.writeFileSync(path.join(output, 'SHA256-addon.txt'), checksums.join('\n') + '\n');
   return { version, output, files };

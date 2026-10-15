@@ -1038,3 +1038,5 @@ T15 implementation record (2026-10-14): 用户授权搁置 T15-A、开始 T15，
 0.15.5交付期间用户指出Windows应用列表名称仍包含版本。已核对NSIS默认uninstallDisplayName为productName加version，当前固定GUID不会仅因版本号产生新卸载键；改为NotebookAid并保留DisplayVersion。CI安装重装检查增加名称、版本和当前用户仅一条卸载记录断言，并模拟旧后缀显示名称后确认重装修正；不冒称真实旧安装器跨版本升级已实测，不修改用户机器既有安装记录。MSI仍仅方案，不实现。
 
 2026-10-15 0.15.5最终测试交付：源码7b36773的Windows运行38678321343和macOS运行38678321224全部成功；Windows核心266通过／0失败／1跳过，Mac每架构257通过／0失败／1跳过，打包界面及相应安装／签名结构检查通过。最终下载成品Windows5项、Mac每架构12项SHA256一致，XPI版本与八语言说明齐全。便携测试目录已按脚本更新，verified=true、backupCreated=false、bridgeManifestsRestored=2；旧版本ZIP保留。README双语下载入口同步最终运行，源码及结果文档按本轮明确上传授权提交推送，不代表用户验收。用户补充MSI产品名固定NotebookAid已登记，MSI仅提供方案、不实施。未签名／未公证限制保持，不创建Release，不开始下一任务；等待用户验收。
+
+2026-10-15 T15原生MSI补充授权：用户明确同意实施原生MSI、支持当前用户和所有用户、软件名NotebookAid，并要求GitHub Actions测试产物及各语言README下载入口，随后指定新增德国德语README.de-DE.md。当前版本0.15.6；独立WiX工程和自有C++事务操作，仅由Windows Installer管理程序文件；不复用NSIS清理逻辑，不覆盖其他安装器／范围／桥接归属。MSI更新独立GitHub清单，校验长度、SHA256、签名发布者和产品身份，保存并确认后启动msiexec，未签名测试不配置更新源。已有本地构建和9项更新／平台检查通过；首次沙箱临时目录写入失败，正常权限下重跑通过；首次WiX ICE因沙箱无法访问Installer服务失败，正在正常权限与CI验证。新代码仅按用户明确上传授权提交用于CI，不视为功能验收；T15-A仍搁置，不发布Release，不启动下一任务。

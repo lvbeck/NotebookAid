@@ -1,0 +1,80 @@
+<!-- Project-authored Windows Installer UI; no third-party UI runtime DLL is embedded. -->
+<UI>
+  <TextStyle Id="Normal" FaceName="Segoe UI" Size="9"/>
+  <TextStyle Id="Title" FaceName="Segoe UI" Size="12" Bold="yes"/>
+  <Property Id="DefaultUIFont" Value="Normal"/>
+  <Dialog Id="LicenseDlg" Width="400" Height="300" Title="NotebookAid Setup">
+    <Control Id="Title" Type="Text" X="16" Y="12" Width="360" Height="23" Text="{\Title}NotebookAid License"/>
+    <Control Id="License" Type="ScrollableText" X="16" Y="45" Width="368" Height="195" Sunken="yes" TabSkip="no"><Text SourceFile="@LICENSE@"/></Control>
+    <Control Id="Accept" Type="CheckBox" X="16" Y="248" Width="290" Height="18" Property="LICENSEACCEPTED" CheckBoxValue="1" Text="I accept the license agreement"/>
+    <Control Id="Next" Type="PushButton" X="260" Y="276" Width="56" Height="17" Default="yes" Text="Next">
+      <Condition Action="disable">NOT LICENSEACCEPTED</Condition><Condition Action="enable">LICENSEACCEPTED</Condition>
+      <Publish Event="NewDialog" Value="ScopeOptionsDlg">LICENSEACCEPTED=1</Publish>
+    </Control>
+    <Control Id="Cancel" Type="PushButton" X="328" Y="276" Width="56" Height="17" Cancel="yes" Text="Cancel"><Publish Event="EndDialog" Value="Exit">1</Publish></Control>
+  </Dialog>
+  <Dialog Id="ScopeOptionsDlg" Width="400" Height="300" Title="NotebookAid Setup">
+    <Control Id="Title" Type="Text" X="16" Y="12" Width="360" Height="25" Text="{\Title}Install NotebookAid"/>
+    <Control Id="Scope" Type="RadioButtonGroup" X="25" Y="55" Width="350" Height="70" Property="WixAppFolder">
+      <RadioButtonGroup Property="WixAppFolder">
+        <RadioButton Value="WixPerUserFolder" X="0" Y="0" Width="345" Height="20" Text="Only for me (current user)"/>
+        <RadioButton Value="WixPerMachineFolder" X="0" Y="30" Width="345" Height="20" Text="For all users of this computer (administrator)"/>
+      </RadioButtonGroup>
+    </Control>
+    <Control Id="Desktop" Type="CheckBox" X="25" Y="140" Width="340" Height="20" Property="INSTALLDESKTOPSHORTCUT" CheckBoxValue="1" Text="Create a desktop shortcut"/>
+    <Control Id="Menu" Type="CheckBox" X="25" Y="175" Width="340" Height="20" Property="INSTALLSTARTMENUSHORTCUT" CheckBoxValue="1" Text="Create a Windows Start menu shortcut"/>
+    <Control Id="Back" Type="PushButton" X="204" Y="276" Width="56" Height="17" Text="Back"><Publish Event="NewDialog" Value="LicenseDlg">1</Publish></Control>
+    <Control Id="Next" Type="PushButton" X="260" Y="276" Width="56" Height="17" Default="yes" Text="Next">
+      <Publish Property="ALLUSERS" Value="{}" Order="1">WixAppFolder="WixPerUserFolder"</Publish>
+      <Publish Property="ALLUSERS" Value="1" Order="2">WixAppFolder="WixPerMachineFolder"</Publish>
+      <Publish Event="DoAction" Value="UserFolder" Order="3">WixAppFolder="WixPerUserFolder"</Publish>
+      <Publish Event="DoAction" Value="MachineFolder" Order="4">WixAppFolder="WixPerMachineFolder"</Publish>
+      <Publish Event="DoAction" Value="RememberUser" Order="5">WixAppFolder="WixPerUserFolder" AND EXISTINGUSER</Publish>
+      <Publish Event="DoAction" Value="RememberMachine" Order="6">WixAppFolder="WixPerMachineFolder" AND EXISTINGMACHINE</Publish>
+      <Publish Event="DoAction" Value="FindRelatedProducts" Order="7">1</Publish>
+      <Publish Event="NewDialog" Value="FolderDlg" Order="8">1</Publish>
+    </Control>
+    <Control Id="Cancel" Type="PushButton" X="328" Y="276" Width="56" Height="17" Cancel="yes" Text="Cancel"><Publish Event="EndDialog" Value="Exit">1</Publish></Control>
+  </Dialog>
+  <Dialog Id="FolderDlg" Width="400" Height="300" Title="NotebookAid Setup">
+    <Control Id="Title" Type="Text" X="16" Y="12" Width="360" Height="25" Text="{\Title}Installation folder"/>
+    <Control Id="Description" Type="Text" X="25" Y="60" Width="350" Height="40" Text="Choose an empty folder, or the existing MSI installation folder. For all users, choose a folder inside Program Files."/>
+    <Control Id="Folder" Type="PathEdit" X="25" Y="120" Width="350" Height="20" Property="INSTALLFOLDER"/>
+    <Control Id="Notice" Type="Text" X="25" Y="175" Width="350" Height="45" Text="Close NotebookAid before continuing. Notebook data and settings will be retained. Click Install to continue."/>
+    <Control Id="Back" Type="PushButton" X="204" Y="276" Width="56" Height="17" Text="Back"><Publish Event="NewDialog" Value="ScopeOptionsDlg">1</Publish></Control>
+    <Control Id="Install" Type="PushButton" X="260" Y="276" Width="56" Height="17" Default="yes" Text="Install"><Publish Event="SetTargetPath" Value="INSTALLFOLDER" Order="1">1</Publish><Publish Event="EndDialog" Value="Return" Order="2">1</Publish></Control>
+    <Control Id="Cancel" Type="PushButton" X="328" Y="276" Width="56" Height="17" Cancel="yes" Text="Cancel"><Publish Event="EndDialog" Value="Exit">1</Publish></Control>
+  </Dialog>
+  <Dialog Id="MaintenanceDlg" Width="400" Height="300" Title="NotebookAid Setup">
+    <Control Id="Title" Type="Text" X="16" Y="12" Width="360" Height="25" Text="{\Title}Maintain NotebookAid"/>
+    <Control Id="Info" Type="Text" X="25" Y="65" Width="350" Height="65" Text="Repair the installed application or remove it. Notebook folders and user settings are retained. Close NotebookAid and its native helpers first."/>
+    <Control Id="Repair" Type="PushButton" X="90" Y="170" Width="90" Height="24" Default="yes" Text="Repair"><Publish Property="REINSTALL" Value="ALL" Order="1">1</Publish><Publish Property="REINSTALLMODE" Value="amus" Order="2">1</Publish><Publish Event="EndDialog" Value="Return" Order="3">1</Publish></Control>
+    <Control Id="Remove" Type="PushButton" X="220" Y="170" Width="90" Height="24" Text="Remove"><Publish Property="REMOVE" Value="ALL" Order="1">1</Publish><Publish Event="EndDialog" Value="Return" Order="2">1</Publish></Control>
+    <Control Id="Cancel" Type="PushButton" X="328" Y="276" Width="56" Height="17" Cancel="yes" Text="Cancel"><Publish Event="EndDialog" Value="Exit">1</Publish></Control>
+  </Dialog>
+  <Dialog Id="ProgressDlg" Width="400" Height="300" Title="NotebookAid Setup" Modeless="yes">
+    <Control Id="Title" Type="Text" X="16" Y="12" Width="360" Height="25" Text="{\Title}Updating NotebookAid"/>
+    <Control Id="Action" Type="Text" X="25" Y="90" Width="350" Height="35"><Subscribe Event="ActionText" Attribute="Text"/></Control>
+    <Control Id="Progress" Type="ProgressBar" X="25" Y="140" Width="350" Height="18" ProgressBlocks="yes"><Subscribe Event="SetProgress" Attribute="Progress"/></Control>
+    <Control Id="Cancel" Type="PushButton" X="328" Y="276" Width="56" Height="17" Cancel="yes" Text="Cancel"><Publish Event="EndDialog" Value="Exit">1</Publish></Control>
+  </Dialog>
+  <Dialog Id="ExitDlg" Width="400" Height="300" Title="NotebookAid Setup">
+    <Control Id="Title" Type="Text" X="150" Y="55" Width="230" Height="45" Text="{\Title}NotebookAid setup completed"/>
+    <Control Id="Image" Type="Bitmap" X="0" Y="0" Width="132" Height="300" Text="Sidebar"/>
+    <Control Id="Info" Type="Text" X="150" Y="130" Width="230" Height="80" Text="The operation completed successfully. Click Finish to close setup. You can launch NotebookAid from its installation folder or shortcut."/>
+    <Control Id="Finish" Type="PushButton" X="315" Y="276" Width="65" Height="17" Default="yes" Cancel="yes" Text="Finish"><Publish Event="EndDialog" Value="Return">1</Publish></Control>
+  </Dialog>
+  <Dialog Id="FailureDlg" Width="400" Height="300" Title="NotebookAid Setup">
+    <Control Id="Title" Type="Text" X="16" Y="15" Width="365" Height="40" Text="{\Title}NotebookAid setup did not complete"/>
+    <Control Id="Info" Type="Text" X="25" Y="85" Width="350" Height="90" Text="Setup was canceled or failed. Windows Installer rolls back the transaction. Check the displayed reason or installer log, close NotebookAid if necessary, then try again."/>
+    <Control Id="Close" Type="PushButton" X="315" Y="276" Width="65" Height="17" Default="yes" Cancel="yes" Text="Close"><Publish Event="EndDialog" Value="Return">1</Publish></Control>
+  </Dialog>
+</UI>
+<Binary Id="Sidebar" SourceFile="@SIDEBAR@"/>
+<InstallUISequence>
+  <Show Dialog="LicenseDlg" Before="ProgressDlg">NOT Installed</Show>
+  <Show Dialog="MaintenanceDlg" Before="LicenseDlg">Installed</Show>
+  <Show Dialog="ProgressDlg" Before="ExecuteAction">1</Show>
+  <Show Dialog="ExitDlg" OnExit="success">1</Show>
+  <Show Dialog="FailureDlg" OnExit="error">1</Show>
+</InstallUISequence>

@@ -1,6 +1,6 @@
 # NotebookAid
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [Deutsch](README.de-DE.md)
 
 **Local notes and AI writing assistant**
 
@@ -21,16 +21,18 @@ NotebookAid is an open-source desktop notebook application with an optional Thun
 
 This project is in testing. No formal GitHub Release has been published.
 
-Windows and macOS share the numeric version 0.15.5. Future application and addon versions use major.minor.patch without platform suffixes.
+Windows and macOS share the numeric source version 0.15.6. Application and addon versions use major.minor.patch without platform suffixes.
 
 | Platform | Packages | Latest verified test build | Workflow |
 | --- | --- | --- | --- |
 | Windows x64 | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [Windows 0.15.5 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38678321343) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 native MSI | Native Windows Installer package and SHA256 checksums; current-user or all-user installation | [MSI test downloads](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) | [MSI installation and updates](docs/msi-testing.md) |
 | macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, eight language setup guides and SHA256 checksums | [macOS 0.15.5 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38678321224) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 To download, sign in to GitHub, open a successful run, then find **Artifacts**:
 
 - Windows: `NotebookAid-windows-x64-test`.
+- Native MSI: `NotebookAid-windows-x64-msi-test`. EXE and MSI are separate artifacts; choose one installer type and uninstall the other before switching.
 - macOS: `NotebookAid-macos-arm64-test` or `NotebookAid-macos-x64-test`.
 
 Package artifacts are retained for **30 days**. If an older run has expired, use a newer successful run from the workflow page. Verification reports are separate artifacts, retained for 14 days.
@@ -55,6 +57,7 @@ Thunderbird's current project baseline is Release 157.0.1. Newer releases and ES
 - **Windows test packages are unsigned.** The maintainer has submitted the SignPath Foundation application and is awaiting review; signing has not been approved or enabled.
 - macOS test applications use ad-hoc signing, without Developer ID signing or Apple notarization. Gatekeeper may block them; do not disable system-wide security protections to run a test build.
 - An update mechanism exists, but current test packages have no active automatic-update feed. The GitHub update address is reserved for future signed releases; Actions artifacts are not an update feed.
+- Native MSI updates use a separate GitHub-hosted `latest-msi.json` channel, signature and product verification, and Windows Installer after confirmation. All-user updates may require UAC approval. MSI never installs an NSIS update. See the [MSI guide](docs/msi-testing.md).
 - AI authentication, model checks and authorized token renewal can contact the selected provider. Note text is sent for explicit generation requests. Local storage does not mean the application is always offline.
 
 Read the [Code signing policy](docs/code-signing-policy.md) and [Privacy statement](docs/privacy.md) (English).
@@ -79,6 +82,7 @@ Windows PowerShell:
 ```powershell
 npm run package
 npm run installer
+npm run installer:msi
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-TestBundle.ps1
 ```
 

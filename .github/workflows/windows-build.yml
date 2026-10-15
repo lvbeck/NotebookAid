@@ -10,6 +10,7 @@ on:
       - 'package*.json'
       - 'scripts/**'
       - 'native/**'
+      - 'installer/**'
       - 'desktop/**'
       - 'core/**'
       - 'shared/**'
@@ -85,6 +86,21 @@ jobs:
       - name: Verify current-user install, reinstall and uninstall
         shell: powershell
         run: ./scripts/installer-live-test.ps1
+      - run: npm run installer:msi
+      - name: Build synthetic MSI upgrade and rollback fixtures
+        run: node scripts/build-msi-fixtures.cjs
+      - name: Verify native MSI in current-user and all-user contexts
+        shell: powershell
+        run: ./scripts/msi-live-test.ps1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: NotebookAid-windows-x64-msi-test
+          path: |
+            release/msi/*.msi
+            release/msi/SHA256-MSI.txt
+            docs/msi-testing.md
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: NotebookAid-windows-x64-test
@@ -108,5 +124,7 @@ jobs:
             output/editor-packaged/**/*-report.json
             output/editor-packaged/**/smoke-error.txt
             output/installer-live/**/report.json
+            output/msi-live/**/report.json
+            output/msi-live/**/msi-*.log
           if-no-files-found: ignore
           retention-days: 14

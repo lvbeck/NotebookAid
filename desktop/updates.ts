@@ -1,7 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { UpdateState } from '../shared/updates';
+import { isMsiInstallation, readMsiFeed, registerMsiUpdates } from './msi-updates';
 export function registerUpdates(options: { root: string; resources: string; enabled(): boolean; configured: boolean; publish(state: UpdateState): void; confirm(): Promise<boolean>; flush(): Promise<boolean>; beforeInstall(): void; installFailed?(): void; createUpdater?: () => Promise<import('electron-updater').AppUpdater> }) {
+  if (isMsiInstallation(options.root)) return registerMsiUpdates(options);
   let state: UpdateState = { phase: options.configured ? 'idle' : process.platform === 'darwin' || existsSync(join(options.root, 'installation.json')) ? 'unconfigured' : 'portable' };
   let updater: import('electron-updater').AppUpdater | null = null, busy = false, applying = false;
   const set = (next: UpdateState) => { state = next; options.publish({ ...state }); };
@@ -40,6 +42,7 @@ export function registerUpdates(options: { root: string; resources: string; enab
 }
 export function updateSourceReady(root: string, resources: string, platform = process.platform): boolean {
   try {
+    if (platform === 'win32' && isMsiInstallation(root)) return readMsiFeed(resources) !== null;
     if (!existsSync(join(resources, 'app-update.yml'))) return false;
     if (platform !== 'darwin') {
       const installation = JSON.parse(readFileSync(join(root, 'installation.json'), 'utf8'));

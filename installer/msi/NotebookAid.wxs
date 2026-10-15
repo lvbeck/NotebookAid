@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Product Id="@PRODUCT_CODE@" Name="NotebookAid" Version="@VERSION@" Language="1033" Codepage="65001" Manufacturer="Jin Lu" UpgradeCode="@UPGRADE_CODE@">
+    <Package InstallerVersion="500" Compressed="yes" InstallPrivileges="elevated"/>
+    <MajorUpgrade DowngradeErrorMessage="A newer version of NotebookAid is already installed." Schedule="afterInstallInitialize"/>
+    <MediaTemplate EmbedCab="yes" CompressionLevel="medium"/>
+    <Property Id="ALLUSERS" Value="2" Secure="yes"/>
+    <Property Id="MSIINSTALLPERUSER" Value="1" Secure="yes"/>
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable"/>
+    <Property Id="ARPCONTACT" Value="it@live.cn"/>
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/lvbeck/NotebookAid"/>
+    <Property Id="ARPPRODUCTICON" Value="NotebookAidIcon"/>
+    <Property Id="INSTALLDESKTOPSHORTCUT" Value="1" Secure="yes"/>
+    <Property Id="INSTALLSTARTMENUSHORTCUT" Value="1" Secure="yes"/>
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
+    <Property Id="WixAppFolder" Value="WixPerUserFolder"/>
+    <Property Id="EXISTINGUSER" Secure="yes"><RegistrySearch Id="FindUser" Root="HKCU" Key="Software\NotebookAid\MSI" Type="raw" Win64="yes"/></Property>
+    <Property Id="EXISTINGMACHINE" Secure="yes"><RegistrySearch Id="FindMachine" Root="HKLM" Key="Software\NotebookAid\MSI" Type="raw" Win64="yes"/></Property>
+    <Icon Id="NotebookAidIcon" SourceFile="@ICON@"/>
+    <Condition Message="NotebookAid requires 64-bit Windows.">Installed OR VersionNT64</Condition>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder"><Directory Id="INSTALLFOLDER" Name="NotebookAid">@FILES@</Directory><Directory Id="MACHINEDESKTOP" Name="Desktop"/><Directory Id="MACHINEMENU" Name="Menu"/></Directory>
+      <Directory Id="LocalAppDataFolder"><Directory Id="USERDESKTOP" Name="Desktop"/><Directory Id="USERMENU" Name="Menu"/></Directory>
+      <Directory Id="DesktopFolder"/>
+      <Directory Id="ProgramMenuFolder"/>
+    </Directory>
+    <CustomAction Id="UserFolder" Property="INSTALLFOLDER" Value="[LocalAppDataFolder]Programs\NotebookAid"/>
+    <CustomAction Id="MachineFolder" Property="INSTALLFOLDER" Value="[ProgramFiles64Folder]NotebookAid"/>
+    <CustomAction Id="RememberUser" Property="INSTALLFOLDER" Value="[EXISTINGUSER]"/>
+    <CustomAction Id="RememberMachine" Property="INSTALLFOLDER" Value="[EXISTINGMACHINE]"/>
+    <CustomAction Id="UserDesktopPath" Directory="USERDESKTOP" Value="[DesktopFolder]"/>
+    <CustomAction Id="UserMenuPath" Directory="USERMENU" Value="[ProgramMenuFolder]"/>
+    <CustomAction Id="MachineDesktopPath" Directory="MACHINEDESKTOP" Value="[DesktopFolder]"/>
+    <CustomAction Id="MachineMenuPath" Directory="MACHINEMENU" Value="[ProgramMenuFolder]"/>
+    <Binary Id="MsiActions" SourceFile="@ACTION_DLL@"/>
+    @TEST_ACTION@
+    <CustomAction Id="PrepareMetadata" BinaryKey="MsiActions" DllEntry="Prepare" Execute="immediate" Return="check"/>
+    <CustomAction Id="RollbackMetadata" BinaryKey="MsiActions" DllEntry="Rollback" Execute="rollback" Impersonate="no" Return="check" HideTarget="yes"/>
+    <CustomAction Id="ApplyMetadata" BinaryKey="MsiActions" DllEntry="Apply" Execute="deferred" Impersonate="no" Return="check" HideTarget="yes"/>
+    <CustomAction Id="RollbackUserMetadata" BinaryKey="MsiActions" DllEntry="Rollback" Execute="rollback" Impersonate="yes" Return="check" HideTarget="yes"/>
+    <CustomAction Id="ApplyUserMetadata" BinaryKey="MsiActions" DllEntry="Apply" Execute="deferred" Impersonate="yes" Return="check" HideTarget="yes"/>
+    <InstallUISequence>
+      <Custom Action="UserFolder" Before="RememberUser">NOT INSTALLFOLDER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>
+      <Custom Action="RememberUser" Before="RememberMachine">EXISTINGUSER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>
+      <Custom Action="RememberMachine" Before="CostFinalize">EXISTINGMACHINE AND ALLUSERS=1</Custom>
+    </InstallUISequence>
+    <InstallExecuteSequence>
+      <Custom Action="UserFolder" Before="RememberUser">NOT INSTALLFOLDER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>
+      <Custom Action="RememberUser" Before="RememberMachine">EXISTINGUSER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>
+      <Custom Action="RememberMachine" Before="CostFinalize">EXISTINGMACHINE AND ALLUSERS=1</Custom>
+      <Custom Action="UserDesktopPath" After="CostFinalize">NOT ALLUSERS</Custom>
+      <Custom Action="UserMenuPath" After="UserDesktopPath">NOT ALLUSERS</Custom>
+      <Custom Action="MachineDesktopPath" After="UserMenuPath">ALLUSERS</Custom>
+      <Custom Action="MachineMenuPath" After="MachineDesktopPath">ALLUSERS</Custom>
+      <Custom Action="PrepareMetadata" Before="InstallInitialize">NOT UPGRADINGPRODUCTCODE</Custom>
+      <Custom Action="RollbackMetadata" Before="RollbackUserMetadata">NOT UPGRADINGPRODUCTCODE AND ALLUSERS</Custom>
+      <Custom Action="RollbackUserMetadata" Before="RemoveFiles">NOT UPGRADINGPRODUCTCODE AND NOT ALLUSERS</Custom>
+      <Custom Action="ApplyMetadata" After="InstallFiles">NOT UPGRADINGPRODUCTCODE AND ALLUSERS</Custom>
+      <Custom Action="ApplyUserMetadata" After="ApplyMetadata">NOT UPGRADINGPRODUCTCODE AND NOT ALLUSERS</Custom>
+      @TEST_SEQUENCE@
+    </InstallExecuteSequence>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="MsiIdentity" Guid="74567168-7E9A-4F76-A078-A892E81DCC20" Win64="yes">
+        <RegistryValue Root="HKMU" Key="Software\NotebookAid\MSI" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="USERDESKTOP">
+      <Component Id="DesktopLink" Guid="303B6D69-A908-44ED-A375-7456EB6766AC" Win64="yes">
+        <Condition>INSTALLDESKTOPSHORTCUT=1 AND NOT ALLUSERS</Condition>
+        <Shortcut Id="DesktopShortcut" Name="NotebookAid" Target="[INSTALLFOLDER]NotebookAid.exe" WorkingDirectory="INSTALLFOLDER" Icon="NotebookAidIcon"/>
+        <RegistryValue Root="HKCU" Key="Software\NotebookAid\MSIShortcuts" Name="Desktop" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="USERMENU">
+      <Component Id="MenuLink" Guid="14453170-3FD7-4E34-B4A6-552F26C840A2" Win64="yes">
+        <Condition>INSTALLSTARTMENUSHORTCUT=1 AND NOT ALLUSERS</Condition>
+        <Shortcut Id="MenuShortcut" Name="NotebookAid" Target="[INSTALLFOLDER]NotebookAid.exe" WorkingDirectory="INSTALLFOLDER" Icon="NotebookAidIcon"/>
+        <RegistryValue Root="HKCU" Key="Software\NotebookAid\MSIShortcuts" Name="StartMenu" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="MACHINEDESKTOP"><Component Id="MachineDesktopLink" Guid="7C95C00D-78AA-4023-B1EC-5AB3A16893AD" Win64="yes"><Condition>INSTALLDESKTOPSHORTCUT=1 AND ALLUSERS</Condition><Shortcut Id="MachineDesktopShortcut" Name="NotebookAid" Target="[INSTALLFOLDER]NotebookAid.exe" WorkingDirectory="INSTALLFOLDER" Icon="NotebookAidIcon"/><RegistryValue Root="HKLM" Key="Software\NotebookAid\MSIShortcuts" Name="Desktop" Type="integer" Value="1" KeyPath="yes"/></Component></DirectoryRef>
+    <DirectoryRef Id="MACHINEMENU"><Component Id="MachineMenuLink" Guid="730D3D09-3B5F-46DF-9C38-472C7CF4E261" Win64="yes"><Condition>INSTALLSTARTMENUSHORTCUT=1 AND ALLUSERS</Condition><Shortcut Id="MachineMenuShortcut" Name="NotebookAid" Target="[INSTALLFOLDER]NotebookAid.exe" WorkingDirectory="INSTALLFOLDER" Icon="NotebookAidIcon"/><RegistryValue Root="HKLM" Key="Software\NotebookAid\MSIShortcuts" Name="StartMenu" Type="integer" Value="1" KeyPath="yes"/></Component></DirectoryRef>
+    <Feature Id="Application" Title="NotebookAid" Level="1" Absent="disallow">@COMPONENTS@<ComponentRef Id="MsiIdentity"/><ComponentRef Id="DesktopLink"/><ComponentRef Id="MenuLink"/><ComponentRef Id="MachineDesktopLink"/><ComponentRef Id="MachineMenuLink"/></Feature>
+    @UI@
+  </Product>
+</Wix>
