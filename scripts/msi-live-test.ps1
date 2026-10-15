@@ -14,6 +14,35 @@ $userTarget = Join-Path $job ('NotebookAid space ' + [char]0x4e2d + [char]0x6587
 $machineTarget = Join-Path $env:ProgramFiles ('NotebookAid MSI Test ' + [Guid]::NewGuid().ToString('N'))
 $hostNames = @('de.zub_systems.notebookaid','de.zub_systems.notebookaid_t02')
 $identity = 'Software\NotebookAid\MSI'
+Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+[ComImport, Guid("000214F9-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface NativeMsiTestShellLink {
+    [PreserveSig] int GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder path, int length, IntPtr data, uint flags);
+}
+public static class NativeMsiTestPaths {
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern uint GetLongPathName(string path, StringBuilder result, uint length);
+    public static string Expand(string path) {
+        var result = new StringBuilder(32768);
+        uint length = GetLongPathName(path, result, (uint)result.Capacity);
+        if (length == 0 || length >= result.Capacity) throw new System.IO.IOException("Cannot normalize shortcut target: " + path);
+        return result.ToString();
+    }
+    public static string ShortcutTarget(string path) {
+        object link = Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("00021401-0000-0000-C000-000000000046")));
+        try {
+            ((System.Runtime.InteropServices.ComTypes.IPersistFile)link).Load(path, 0);
+            var target = new StringBuilder(32768);
+            int result = ((NativeMsiTestShellLink)link).GetPath(target, target.Capacity, IntPtr.Zero, 4);
+            if (result != 0 || target.Length == 0) throw new System.IO.IOException("Cannot read Unicode shortcut target.");
+            return target.ToString();
+        } finally { Marshal.FinalReleaseComObject(link); }
+    }
+}
+'@
 foreach ($hive in @('HKCU','HKLM')) {
     if (Test-Path -LiteralPath ($hive + ':\' + $identity)) { throw 'Existing MSI installation must not be changed.' }
     if (Test-Path -LiteralPath ($hive + ':\Software\Microsoft\Windows\CurrentVersion\Uninstall\1585ae4a-41ea-4f85-aa30-75cf234c17ac')) { throw 'Existing NSIS installation must not be changed.' }
@@ -45,8 +74,9 @@ function Assert-Installed([string]$Target, [string]$Scope, [string]$ExpectedVers
     $desktop = [Environment]::GetFolderPath($(if ($Scope -eq 'machine') {'CommonDesktopDirectory'} else {'DesktopDirectory'}))
     $shortcut = Join-Path $menu 'NotebookAid.lnk'
     if (!(Test-Path -LiteralPath $shortcut) -or (Test-Path -LiteralPath (Join-Path $desktop 'NotebookAid.lnk'))) { throw 'MSI shortcut selection or scope is incorrect.' }
-    $shell = New-Object -ComObject WScript.Shell
-    if ($shell.CreateShortcut($shortcut).TargetPath -ne (Join-Path $Target 'NotebookAid.exe')) { throw 'MSI Start menu shortcut target is incorrect.' }
+    $actualTarget = [NativeMsiTestPaths]::ShortcutTarget($shortcut)
+    $expectedTarget = Join-Path $Target 'NotebookAid.exe'
+    if ([NativeMsiTestPaths]::Expand($actualTarget) -ne [NativeMsiTestPaths]::Expand($expectedTarget)) { throw "MSI Start menu shortcut target is incorrect: $actualTarget; expected $expectedTarget" }
     foreach ($name in $hostNames) {
         $key = $hive + ':\Software\Mozilla\NativeMessagingHosts\' + $name
         $manifest = (Get-Item -LiteralPath $key).GetValue('')
