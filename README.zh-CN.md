@@ -21,13 +21,13 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 
 项目目前处于测试阶段，尚未发布正式 GitHub Release。
 
-Windows与macOS源码统一使用纯数字版本0.15.7；应用及插件版本采用主版本.次版本.修订号，不添加平台后缀。
+Windows与macOS源码统一使用纯数字版本0.15.8；应用及插件版本采用主版本.次版本.修订号，不添加平台后缀。
 
 | 平台 | 产物 | 最新已验证测试构建 | 工作流 |
 | --- | --- | --- | --- |
-| Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.7 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957258886) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.7 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957099080) | [MSI 安装和更新说明](docs/msi-testing.md) |
-| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、十语言安装说明和 SHA256 校验清单 | [macOS 0.15.7 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38703093814) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.8 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38710651223/artifacts/11961101984) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.8 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38710651223/artifacts/11961047158) | [MSI 安装和更新说明](docs/msi-testing.md) |
+| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、十语言安装说明和 SHA256 校验清单 | [macOS 0.15.8 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38710651247) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 登录 GitHub，打开成功的运行记录，在 **Artifacts** 区域下载：
 

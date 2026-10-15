@@ -19,13 +19,13 @@ NotebookAid ist eine quelloffene Desktop-Anwendung für Notizbücher mit einer o
 
 ## Testversionen herunterladen
 
-Das Projekt befindet sich in der Testphase. Es wurde kein offizielles GitHub Release veröffentlicht. Windows und macOS verwenden dieselbe rein numerische Quellversion **0.15.7** nach dem Schema Hauptversion.Nebenversion.Korrekturversion.
+Das Projekt befindet sich in der Testphase. Es wurde kein offizielles GitHub Release veröffentlicht. Windows und macOS verwenden dieselbe rein numerische Quellversion **0.15.8** nach dem Schema Hauptversion.Nebenversion.Korrekturversion.
 
 | Plattform / Paket | Download | Inhalt |
 | --- | --- | --- |
-| Windows x64 EXE | [EXE / ZIP 0.15.7](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957258886) | NSIS-Installationsprogramm, portable ZIP-Datei, Thunderbird-XPI-Dateien und SHA256-Prüfsummen; Artefakt `NotebookAid-windows-x64-test` |
-| Windows x64 MSI | [MSI 0.15.7](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957099080) | Eigenständiges Windows-Installer-Paket und SHA256-Prüfsumme; Artefakt `NotebookAid-windows-x64-msi-test` |
-| macOS Apple Silicon / Intel | [macOS 0.15.7-Testdownload](https://github.com/lvbeck/NotebookAid/actions/runs/38703093814) | Separate arm64- und x64-DMG/ZIP-Dateien, `NotebookAid.xpi` und Installations-/Bridge-Anleitungen in zehn Sprachen |
+| Windows x64 EXE | [EXE / ZIP 0.15.8](https://github.com/lvbeck/NotebookAid/actions/runs/38710651223/artifacts/11961101984) | NSIS-Installationsprogramm, portable ZIP-Datei, Thunderbird-XPI-Dateien und SHA256-Prüfsummen; Artefakt `NotebookAid-windows-x64-test` |
+| Windows x64 MSI | [MSI 0.15.8](https://github.com/lvbeck/NotebookAid/actions/runs/38710651223/artifacts/11961047158) | Eigenständiges Windows-Installer-Paket und SHA256-Prüfsumme; Artefakt `NotebookAid-windows-x64-msi-test` |
+| macOS Apple Silicon / Intel | [macOS 0.15.8-Testdownload](https://github.com/lvbeck/NotebookAid/actions/runs/38710651247) | Separate arm64- und x64-DMG/ZIP-Dateien, `NotebookAid.xpi` und Installations-/Bridge-Anleitungen in zehn Sprachen |
 
 Bei GitHub anmelden, einen erfolgreichen Workflow-Lauf öffnen und unter **Artifacts** das gewünschte Paket herunterladen. Die Pakete werden 30 Tage aufbewahrt, Prüfberichte 14 Tage. Zuerst das äußere Artefaktarchiv entpacken. Die EXE befindet sich im Unterordner `installer`; die portable ZIP muss vor dem Start von `NotebookAid.exe` zusätzlich entpackt werden. Auf dem Mac die zum Prozessor passende Architektur wählen.
 

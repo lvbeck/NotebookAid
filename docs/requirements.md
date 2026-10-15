@@ -359,3 +359,4 @@ T15 安装向导补充：安装器与卸载器声明 DPI 感知；简体中文�
 ### Installer addon payload follow-up (2026-10-15)
 
 Windows EXE/MSI and macOS DMG/ZIP must embed both NotebookAid.xpi and NotebookAid-Compatibility.xpi before installer construction/signing. Installed plugin content must match the standalone artifacts and current addon identity/version; missing or mismatched plugins must block test artifact upload. This follow-up creates test artifacts only and does not authorize a formal release.
+The shared application language list preserves the original eight-language order and places Japanese then Korean last, including interface and translation selectors (user direction, 2026-10-15).
