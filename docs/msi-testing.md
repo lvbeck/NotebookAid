@@ -10,7 +10,7 @@ The native MSI is a separate Windows Installer package, not an EXE wrapper. Prod
 
 ## Installation
 
-The MSI wizard offers current-user or all-user installation, an installation folder, and optional desktop and Start menu shortcuts. All-user installation requires administrator permission and a subdirectory of Program Files. Install, upgrade, repair and uninstall require NotebookAid and its native helpers to be fully closed. The package rejects existing NSIS installations, cross-scope/path changes and another directory's bridge registration instead of overwriting them. Remove an old portable bridge using that portable copy's registration script before installing MSI.
+The MSI wizard currently uses English and offers current-user or all-user installation, an installation folder, and optional desktop and Start menu shortcuts. The app retains all eight interface languages. All-user installation requires administrator permission and a subdirectory of Program Files. Install, upgrade, repair and uninstall require NotebookAid and its native helpers to be fully closed. The package rejects existing NSIS installations, cross-scope/path changes and another directory's bridge registration instead of overwriting them. Remove an old portable bridge using that portable copy's registration script before installing MSI. All-user installation also rejects a current-user bridge that would take precedence; other users must remove their own obsolete per-user bridge registrations when applicable.
 
 PowerShell examples (replace the version and package path):
 

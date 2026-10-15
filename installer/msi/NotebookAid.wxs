@@ -7,6 +7,7 @@
     <Property Id="ALLUSERS" Value="2" Secure="yes"/>
     <Property Id="MSIINSTALLPERUSER" Value="1" Secure="yes"/>
     <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable"/>
+    <Property Id="MsiHiddenProperties" Value="ApplyMetadata;RollbackMetadata;ApplyUserMetadata;RollbackUserMetadata"/>
     <Property Id="ARPCONTACT" Value="it@live.cn"/>
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/lvbeck/NotebookAid"/>
     <Property Id="ARPPRODUCTICON" Value="NotebookAidIcon"/>

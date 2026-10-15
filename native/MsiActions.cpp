@@ -131,12 +131,17 @@ static UINT Error(MSIHANDLE h, const char* message) {
 }
 extern "C" __declspec(dllexport) UINT __stdcall Prepare(MSIHANDLE h) {
     try {
-        OSVERSIONINFOW version = {}; version.dwOSVersionInfoSize = sizeof(version);
-        auto rtlVersion = reinterpret_cast<LONG(WINAPI*)(OSVERSIONINFOW*)>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion"));
-        if (!rtlVersion || rtlVersion(&version) != 0 || version.dwMajorVersion < 10) throw std::runtime_error("NotebookAid requires Windows 10 or later.");
+        HKEY system; DWORD major = 0, size = sizeof(major), type = 0;
+        if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ | KEY_WOW64_64KEY, &system) != ERROR_SUCCESS) throw std::runtime_error("Cannot inspect the Windows version.");
+        LONG result = RegQueryValueExW(system, L"CurrentMajorVersionNumber", nullptr, &type, (BYTE*)&major, &size); RegCloseKey(system);
+        if (result != ERROR_SUCCESS || type != REG_DWORD || major < 10) throw std::runtime_error("NotebookAid requires Windows 10 or later.");
         Idle(); bool machine = Get(h, L"ALLUSERS") == L"1"; std::wstring root = Root(Get(h, L"INSTALLFOLDER"), machine); PlainTree(root);
         bool removing = Get(h, L"REMOVE") == L"ALL";
         if (!removing) {
+            if (machine) for (int n = 0; n < 2; ++n) {
+                auto local = Reg(false, HostKey(n)), expected = root + L"\\" + Names[n + 1];
+                if (local != L"-" && _wcsicmp(local.c_str(), expected.c_str())) throw std::runtime_error("A current-user Thunderbird bridge would override the all-users bridge. Unregister that bridge first.");
+            }
             for (bool scope : { false, true }) {
                 HKEY key; if (RegOpenKeyExW(scope ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\1585ae4a-41ea-4f85-aa30-75cf234c17ac", 0, KEY_READ | KEY_WOW64_64KEY, &key) == ERROR_SUCCESS) { RegCloseKey(key); throw std::runtime_error("Uninstall the NSIS edition before installing MSI. Notebook data will be retained."); }
                 auto existing = Reg(scope, L"Software\\NotebookAid\\MSI");

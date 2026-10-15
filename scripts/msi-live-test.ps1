@@ -78,12 +78,16 @@ Set-Content -LiteralPath $foreign -Value '{}'
 Set-Item -LiteralPath $foreignKey -Value $foreign
 Run-Msi '/x' $package $userArgs
 if (!(Test-Path -LiteralPath $preserved) -or (Get-Item -LiteralPath $foreignKey).GetValue('') -ne $foreign -or (Test-Path -LiteralPath (Join-Path $userTarget 'NotebookAid.exe'))) { throw 'Uninstall failed to preserve unowned state.' }
+Run-Msi '/i' $package $machineArgs $true
+if ((Get-Item -LiteralPath $foreignKey).GetValue('') -ne $foreign) { throw 'All-user install changed a shadowing user bridge.' }
 Remove-Item -LiteralPath $foreignKey
 Run-Msi '/i' $package $machineArgs
+Assert-Installed $machineTarget machine $version
+Run-Msi '/i' $failedPackage $machineArgs $true
 Assert-Installed $machineTarget machine $version
 Run-Msi '/fa' $package $machineArgs
 Assert-Installed $machineTarget machine $version
 Run-Msi '/x' $package $machineArgs
 if ((Test-Path -LiteralPath (Join-Path $machineTarget 'NotebookAid.exe')) -or (Test-Path -LiteralPath ('HKLM:\' + $identity))) { throw 'Machine uninstall failed.' }
-[ordered]@{version=$version;currentUser=$true;allUsers=$true;upgradeSynthetic=$true;reinstall=$true;repair=$true;rollback=$true;downgradeRejected=$true;crossScopeRejected=$true;foreignStatePreserved=$true;stableProductName=$true;unsignedUpdateRejected=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json')
+[ordered]@{version=$version;currentUser=$true;allUsers=$true;upgradeSynthetic=$true;reinstall=$true;repair=$true;rollback=$true;machineRollback=$true;downgradeRejected=$true;crossScopeRejected=$true;foreignStatePreserved=$true;shadowedBridgeRejected=$true;stableProductName=$true;unsignedUpdateRejected=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json')
 Get-Content -LiteralPath (Join-Path $job 'report.json')
