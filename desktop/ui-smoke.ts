@@ -102,6 +102,7 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
       if (contrast<4.5) throw Error('Primary text contrast too low');
     }
   }
+  for (const locale of ['ja','ko'] as const) { await updateSelect('language',locale); await until(`document.documentElement.lang==='${locale}'`); await capture('locale-'+locale+'.png'); }
   await updateSelect('theme','system');
   window.webContents.debugger.attach('1.3');
   try { for (const theme of ['dark','light']) { await window.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]}); await until(`document.documentElement.dataset.theme==='${theme}'`); } }
@@ -141,5 +142,5 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   try { await window.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]}); if (!await run("getComputedStyle(document.querySelector('[data-testid=settings-global]')).transitionDuration==='0s'")) throw Error('Reduced motion ignored'); }
   finally { window.webContents.debugger.detach(); }
   writeFileSync(join(directory,'ui-expected.json'),JSON.stringify({id:note.id}));
-  writeFileSync(join(directory,'ui-report.json'),JSON.stringify({menuLabelVisible:true,menuTooltipAbsent:true,menuSizeMatchesTheme:true,menuPointerHoverStable:true,menuPointerClick:true,applicationMenu:true,informationPages:3,informationLanguages:8,licenseComplete:true,aboutRuntimeVersion:true,dialogFocusRestored:true,backupReminderAligned:true,languages:8,themes:2,systemTheme:true,fullscreen:true,contentPreserved:true,shortcuts:true,compositionGuard:true,dialogGuard:true,comboboxKeyboard:true,zoom:true,zoomValidation:true,primaryContrast:true,reducedMotion:true,namedControls:true,skipContent:true,safeError:true,physicalKeyboardTested:false,screenReaderTested:false}));
+  writeFileSync(join(directory,'ui-report.json'),JSON.stringify({menuLabelVisible:true,menuTooltipAbsent:true,menuSizeMatchesTheme:true,menuPointerHoverStable:true,menuPointerClick:true,applicationMenu:true,informationPages:3,informationLanguages:Object.keys(translations).length,licenseComplete:true,aboutRuntimeVersion:true,dialogFocusRestored:true,backupReminderAligned:true,languages:Object.keys(translations).length,themes:2,systemTheme:true,fullscreen:true,contentPreserved:true,shortcuts:true,compositionGuard:true,dialogGuard:true,comboboxKeyboard:true,zoom:true,zoomValidation:true,primaryContrast:true,reducedMotion:true,namedControls:true,skipContent:true,safeError:true,physicalKeyboardTested:false,screenReaderTested:false}));
 }

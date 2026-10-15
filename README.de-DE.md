@@ -44,7 +44,7 @@ Vor Tests die Notizbücher sichern. Ein Austausch der Programmdateien setzt kein
 | macOS arm64 / x64 | CI-Builds sowie Prüfungen der gepackten Oberfläche und des Editors vorhanden. Installation auf echten Macs, Thunderbird, Keychain und echte KI-Konten müssen noch getestet werden. Passkey-Anwendungssperren werden auf macOS derzeit nicht unterstützt und nicht stillschweigend entfernt. |
 | Linux | Derzeit keine gepackten Testversionen. |
 
-Die Thunderbird-Projektbasis ist Release 157.0.1. Neuere Releases und ESR benötigen eigene Kompatibilitätsprüfungen. Die [deutsche macOS-Anleitung](docs/macos-addon/README.de.md) beschreibt die Plugin-Installation und Bridge-Registrierung. Weitere Prüfungen und Grenzen stehen in der [Windows-CI-Anleitung](docs/windows-ci-testing.md) und der [macOS-Testanleitung](docs/macos-testing.md) (Chinesisch).
+Die Thunderbird-Projektbasis ist Release 157.0.1. Neuere Releases und ESR benötigen eigene Kompatibilitätsprüfungen. Die [deutsche macOS-Anleitung](docs/macos-addon/README.de-DE.md) beschreibt die Plugin-Installation und Bridge-Registrierung. Weitere Prüfungen und Grenzen stehen in der [Windows-CI-Anleitung](docs/windows-ci-testing.md) und der [macOS-Testanleitung](docs/macos-testing.md) (Chinesisch).
 
 ## Signaturen, Updates und Datenschutz
 
