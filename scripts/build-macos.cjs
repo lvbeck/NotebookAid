@@ -1,6 +1,7 @@
 const { build, Platform, Arch } = require('electron-builder');
 const fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');
 const project = require('../package.json');
+require('./check-version.cjs').checkVersion();
 if (process.platform !== 'darwin') throw Error('DMG test builds require macOS.');
 const arch = process.argv[2] || process.arch;
 if (!['arm64', 'x64'].includes(arch)) throw Error('Unsupported macOS architecture.');

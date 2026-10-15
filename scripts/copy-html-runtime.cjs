@@ -1,4 +1,5 @@
 const { copyFileSync } = require('node:fs');
+require('./check-version.cjs').checkVersion();
 copyFileSync('node_modules/dompurify/dist/purify.js', 'dist/runtime/desktop/purify.js');
 if (process.platform === 'win32') require('./build-passkey.cjs');
 

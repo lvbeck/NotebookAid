@@ -4,6 +4,7 @@ const { resolve, join, dirname, relative, sep } = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 (async () => {
+  require('./check-version.cjs').checkVersion();
   const workspace = resolve('.');
   const mac = process.argv.includes('--mac');
   const arch = mac ? process.argv.find(value => value === 'arm64' || value === 'x64') || process.arch : 'x64';

@@ -21,6 +21,8 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 
 项目目前处于测试阶段，尚未发布正式 GitHub Release。
 
+Windows与macOS统一使用纯数字版本0.15.5；今后应用及插件版本采用主版本.次版本.修订号，不再添加平台后缀。
+
 | 平台 | 产物 | 最新已验证测试构建 | 工作流 |
 | --- | --- | --- | --- |
 | Windows x64 | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [Windows 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38630850263) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
@@ -36,6 +38,8 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 先解压 Actions 下载的外层归档。Windows 归档的 `installer` 目录中是安装器，另有便携 ZIP 和两个插件 XPI；便携 ZIP 需再次解压，再运行 `NotebookAid.exe`。macOS 请选择对应处理器架构的安装包。测试前请备份笔记本；替换程序文件不等于恢复数据。
 
 ## 平台状态与限制
+
+从0.15.5起，每份macOS测试产物同时包含NotebookAid.xpi、INSTALL.md及Guides/目录下的八语言说明，可直接安装插件并注册当前用户桥接，无需另外下载Windows包。
 
 | 平台 | 当前状态 |
 | --- | --- |
@@ -86,6 +90,7 @@ macOS Terminal，在对应架构机器上执行，Intel 将 `arm64` 改为 `x64`
 node scripts/create-macos-icon.cjs
 npm run package:mac -- arm64
 npm run installer:mac -- arm64
+node scripts/build-macos-addon.cjs
 ```
 
 产物写入 `release/macos`。上述命令只生成测试包，不正式发布。构建目录可能重建，请勿在 `dist/`、`release/` 或 `output/` 中保存个人笔记本。

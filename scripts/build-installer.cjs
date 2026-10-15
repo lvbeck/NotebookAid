@@ -2,6 +2,7 @@ const { build } = require('electron-builder');
 const fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 const project = require('../package.json');
+require('./check-version.cjs').checkVersion();
 process.env.ELECTRON_BUILDER_CACHE = path.resolve('.cache/electron-builder');
 (async () => {
 const root = path.resolve('release', project.version, 'NotebookAid-win32-x64');

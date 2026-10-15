@@ -21,6 +21,8 @@ NotebookAid is an open-source desktop notebook application with an optional Thun
 
 This project is in testing. No formal GitHub Release has been published.
 
+Windows and macOS share the numeric version 0.15.5. Future application and addon versions use major.minor.patch without platform suffixes.
+
 | Platform | Packages | Latest verified test build | Workflow |
 | --- | --- | --- | --- |
 | Windows x64 | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [Windows test build](https://github.com/lvbeck/NotebookAid/actions/runs/38630850263) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
@@ -36,6 +38,8 @@ Package artifacts are retained for **30 days**. If an older run has expired, use
 Extract the outer artifact archive first. Windows contains the installer in its `installer` directory, a portable ZIP, and both addon XPI files. Extract the portable ZIP before running `NotebookAid.exe`. For macOS, use the package matching your processor. Back up notebooks before testing; replacing program files is not a data rollback.
 
 ## Platform status and limitations
+
+Starting with 0.15.5, each macOS test artifact also contains NotebookAid.xpi, INSTALL.md and eight language guides in Guides/. Follow these guides to install the addon and register its current-user bridge without downloading a Windows package.
 
 | Platform | Current status |
 | --- | --- |
@@ -86,6 +90,7 @@ macOS Terminal, on the matching architecture (replace `arm64` with `x64` for Int
 node scripts/create-macos-icon.cjs
 npm run package:mac -- arm64
 npm run installer:mac -- arm64
+node scripts/build-macos-addon.cjs
 ```
 
 Outputs are written to `release/macos`. These commands produce test packages, not a formal release. Build directories may be recreated; do not store personal notebooks in `dist/`, `release/` or `output/`.

@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $workspace = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $releaseRoot = Join-Path $workspace 'release'
 $version = (Get-Content -LiteralPath (Join-Path $workspace 'package.json') -Raw | ConvertFrom-Json).version
-if ($version -notmatch '^[0-9A-Za-z.-]+$') { throw 'Invalid package version' }
+if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Invalid package version' }
 $packageRoot = Join-Path (Join-Path $releaseRoot $version) 'NotebookAid-win32-x64'
 $addonArchive = Join-Path $releaseRoot 'NotebookAid.zip'
 $addonPath = Join-Path $releaseRoot 'NotebookAid.xpi'

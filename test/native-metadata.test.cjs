@@ -4,7 +4,7 @@ const { writeNativeAssemblyInfo } = require('../scripts/native-assembly-info.cjs
 
 test('native helper metadata rejects invalid Windows version values', () => {
   const directory = path.resolve('output/native-metadata-invalid');
-  for (const version of ['65536.1.0', '1.0', '1.2.3"bad', '01.2.3']) {
+  for (const version of ['65536.1.0', '1.0', '1.2.3"bad', '01.2.3', '1.2.3-mac.0']) {
     assert.throws(() => writeNativeAssemblyInfo(directory, version), /Invalid native assembly version/);
   }
 });

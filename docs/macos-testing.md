@@ -1,5 +1,7 @@
 # macOS 测试包
 
+0.15.5起，Windows与macOS共享纯数字版本号。每份macOS Actions测试产物内附NotebookAid.xpi、INSTALL.md及Guides/中的八语言插件安装／桥接说明，附SHA256-addon.txt校验清单。先解压Actions外层归档，再按INSTALL.md选择语言，无需另外下载Windows包。当前插件要求Thunderbird 157.0及以上，项目测试基线157.0.1；首次安装不需要兼容迁移助手。应用签名状态仍为ad-hoc，未获Apple公证。
+
 本轮提供 Apple Silicon arm64 与 Intel x64 独立 DMG、ZIP，通过 GitHub Actions 构建；不是正式 Release。当前使用 ad-hoc 签名，没有 Developer ID 证书和 Apple 公证。Gatekeeper 可能拒绝直接打开下载包；请保留具体提示，不通过全局关闭系统安全机制解决。
 
 DMG 内将 NotebookAid.app 拖到 Applications。ZIP 解压后也可将 app 移入 Applications。首次使用优先建立测试笔记本，不直接覆盖现有数据。笔记、配置、凭据保存在当前用户目录，应用更新不应删除这些目录。

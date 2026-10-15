@@ -7,6 +7,10 @@ on:
     paths:
       - '.github/workflows/macos-build.yml'
       - 'package*.json'
+      - '.npmrc'
+      - 'thunderbird/**'
+      - 'thunderbird-compat/**'
+      - 'docs/macos-addon/**'
       - 'scripts/**'
       - 'native/macos/**'
       - 'desktop/**'
@@ -51,6 +55,7 @@ jobs:
       - run: node scripts/create-macos-icon.cjs
       - run: node scripts/package.cjs --mac ${{ matrix.arch }}
       - run: node scripts/build-macos.cjs ${{ matrix.arch }}
+      - run: node scripts/build-macos-addon.cjs
       - run: node scripts/macos-smoke.cjs ${{ matrix.arch }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -59,6 +64,9 @@ jobs:
             release/macos/*.dmg
             release/macos/*.zip
             release/macos/SHA256-*.txt
+            release/macos/NotebookAid.xpi
+            release/macos/INSTALL.md
+            release/macos/Guides/**
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
