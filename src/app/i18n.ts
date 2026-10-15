@@ -116,9 +116,10 @@ globalSettings: "Global settings", librarySettings: "Notebook settings", globalS
 export type MessageKey = keyof typeof english;
 export type Locale = 'ja' | 'ko' | 'en' | 'de' | 'fr' | 'it' | 'es' | 'pt-PT' | 'zh-CN' | 'zh-TW';
 export const languages: { code: Locale; label: string }[] = [
-  { code: 'ja', label: '日本語' }, { code: 'ko', label: '한국어' }, { code: 'en', label: 'English' }, { code: 'de', label: 'Deutsch' }, { code: 'fr', label: 'Français' },
+  { code: 'en', label: 'English' }, { code: 'de', label: 'Deutsch' }, { code: 'fr', label: 'Français' },
   { code: 'it', label: 'Italiano' }, { code: 'es', label: 'Español' }, { code: 'pt-PT', label: 'Português (Portugal)' },
-  { code: 'zh-CN', label: '简体中文' }, { code: 'zh-TW', label: '繁體中文（香港）' }
+  { code: 'zh-CN', label: '简体中文' }, { code: 'zh-TW', label: '繁體中文（香港）' },
+  { code: 'ja', label: '日本語' }, { code: 'ko', label: '한국어' }
 ];
 const chinese: Record<MessageKey, string> = {
   upgradeSchema: '升级', schemaLatest: '已是最新架构', schemaUpgradePrompt: '将此笔记本升级到架构版本 {version}？升级前会创建完整备份，旧版应用可能无法打开升级后的笔记本。', schemaUpgradeSuccess: '架构已升级。备份保存在：{path}',
