@@ -64,9 +64,10 @@ async function buildMsi(version = require('../package.json').version, outputDire
   execFileSync(path.join(wix, 'candle.exe'), ['-nologo', '-arch', 'x64', '-out', stage + path.sep, wxs], {stdio:'inherit', windowsHide:true});
   const output = path.join(outputDirectory, `NotebookAid-${version}-Setup-x64.msi`);
   const cabinetCache = path.join(stage, 'cabinet-cache', payload.digest); fs.mkdirSync(cabinetCache, {recursive:true});
-  execFileSync(path.join(wix, 'light.exe'), ['-nologo', '-out', output, '-spdb', '-cc', cabinetCache, '-reusecab', path.join(stage, 'NotebookAid.wixobj')], {stdio:'inherit', windowsHide:true});
+  execFileSync(path.join(wix, 'light.exe'), ['-nologo', '-out', output, '-spdb', '-cc', cabinetCache, path.join(stage, 'NotebookAid.wixobj')], {stdio:'inherit', windowsHide:true});
   const digest = crypto.createHash('sha256').update(fs.readFileSync(output)).digest('hex');
   fs.writeFileSync(path.join(outputDirectory, 'SHA256-MSI.txt'), `${digest}  ${path.basename(output)}\n`);
+  fs.copyFileSync('docs/msi-testing.md', path.join(outputDirectory, 'INSTALL.md'));
   console.log(JSON.stringify({output, version, sha256:digest, upgradeCode:UPGRADE_CODE})); return output;
 }
 if (require.main === module) buildMsi(process.argv[2]).catch(error => { console.error(error); process.exitCode = 1; });

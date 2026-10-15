@@ -3,6 +3,24 @@
   <TextStyle Id="Normal" FaceName="Segoe UI" Size="9"/>
   <TextStyle Id="Title" FaceName="Segoe UI" Size="12" Bold="yes"/>
   <Property Id="DefaultUIFont" Value="Normal"/>
+  <Property Id="ErrorDialog" Value="ErrorDlg"/>
+  <Dialog Id="ErrorDlg" Width="400" Height="220" Title="NotebookAid Setup" ErrorDialog="yes">
+    <Control Id="ErrorText" Type="Text" X="20" Y="20" Width="360" Height="140" TabSkip="no" Text="Setup error"/>
+    <Control Id="A" Type="PushButton" X="140" Y="185" Width="65" Height="18" TabSkip="yes" Text="Abort"><Publish Event="EndDialog" Value="ErrorAbort">1</Publish></Control>
+    <Control Id="C" Type="PushButton" X="140" Y="185" Width="65" Height="18" TabSkip="yes" Text="Cancel"><Publish Event="EndDialog" Value="ErrorCancel">1</Publish></Control>
+    <Control Id="I" Type="PushButton" X="140" Y="185" Width="65" Height="18" TabSkip="yes" Text="Ignore"><Publish Event="EndDialog" Value="ErrorIgnore">1</Publish></Control>
+    <Control Id="N" Type="PushButton" X="140" Y="185" Width="65" Height="18" TabSkip="yes" Text="No"><Publish Event="EndDialog" Value="ErrorNo">1</Publish></Control>
+    <Control Id="O" Type="PushButton" X="140" Y="185" Width="65" Height="18" TabSkip="yes" Text="OK"><Publish Event="EndDialog" Value="ErrorOk">1</Publish></Control>
+    <Control Id="R" Type="PushButton" X="140" Y="185" Width="65" Height="18" TabSkip="yes" Text="Retry"><Publish Event="EndDialog" Value="ErrorRetry">1</Publish></Control>
+    <Control Id="Y" Type="PushButton" X="140" Y="185" Width="65" Height="18" TabSkip="yes" Text="Yes"><Publish Event="EndDialog" Value="ErrorYes">1</Publish></Control>
+  </Dialog>
+  <Dialog Id="FilesInUse" Width="400" Height="270" Title="NotebookAid Setup">
+    <Control Id="Title" Type="Text" X="16" Y="15" Width="365" Height="40" Text="{\Title}Close applications using these files"/>
+    <Control Id="List" Type="ListBox" X="20" Y="65" Width="360" Height="135" Property="FileInUseProcess"><ListBox Property="FileInUseProcess"><ListItem Value="0" Text="Files currently in use"/></ListBox></Control>
+    <Control Id="Retry" Type="PushButton" X="170" Y="235" Width="65" Height="18" Default="yes" Text="Retry"><Publish Event="EndDialog" Value="Retry">1</Publish></Control>
+    <Control Id="Ignore" Type="PushButton" X="245" Y="235" Width="65" Height="18" Text="Ignore"><Publish Event="EndDialog" Value="Ignore">1</Publish></Control>
+    <Control Id="Exit" Type="PushButton" X="320" Y="235" Width="65" Height="18" Cancel="yes" Text="Cancel"><Publish Event="EndDialog" Value="Exit">1</Publish></Control>
+  </Dialog>
   <Dialog Id="LicenseDlg" Width="400" Height="300" Title="NotebookAid Setup">
     <Control Id="Title" Type="Text" X="16" Y="12" Width="360" Height="23" Text="{\Title}NotebookAid License"/>
     <Control Id="License" Type="ScrollableText" X="16" Y="45" Width="368" Height="195" Sunken="yes" TabSkip="no"><Text SourceFile="@LICENSE@"/></Control>
@@ -69,6 +87,11 @@
     <Control Id="Info" Type="Text" X="25" Y="85" Width="350" Height="90" Text="Setup was canceled or failed. Windows Installer rolls back the transaction. Check the displayed reason or installer log, close NotebookAid if necessary, then try again."/>
     <Control Id="Close" Type="PushButton" X="315" Y="276" Width="65" Height="17" Default="yes" Cancel="yes" Text="Close"><Publish Event="EndDialog" Value="Return">1</Publish></Control>
   </Dialog>
+  <Dialog Id="CanceledDlg" Width="400" Height="300" Title="NotebookAid Setup">
+    <Control Id="Title" Type="Text" X="16" Y="15" Width="365" Height="40" Text="{\Title}NotebookAid setup was canceled"/>
+    <Control Id="Info" Type="Text" X="25" Y="85" Width="350" Height="90" Text="Windows Installer has canceled the operation. You can run the installer again when ready."/>
+    <Control Id="Close" Type="PushButton" X="315" Y="276" Width="65" Height="17" Default="yes" Cancel="yes" Text="Close"><Publish Event="EndDialog" Value="Return">1</Publish></Control>
+  </Dialog>
 </UI>
 <Binary Id="Sidebar" SourceFile="@SIDEBAR@"/>
 <InstallUISequence>
@@ -77,4 +100,10 @@
   <Show Dialog="ProgressDlg" Before="ExecuteAction">1</Show>
   <Show Dialog="ExitDlg" OnExit="success">1</Show>
   <Show Dialog="FailureDlg" OnExit="error">1</Show>
+  <Show Dialog="CanceledDlg" OnExit="cancel">1</Show>
 </InstallUISequence>
+<AdminUISequence>
+  <Show Dialog="ExitDlg" OnExit="success">1</Show>
+  <Show Dialog="FailureDlg" OnExit="error">1</Show>
+  <Show Dialog="CanceledDlg" OnExit="cancel">1</Show>
+</AdminUISequence>
