@@ -4,6 +4,7 @@
 #include <msiquery.h>
 #include <tlhelp32.h>
 #include <shlobj.h>
+#include <shlwapi.h>
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -104,6 +105,8 @@ static void PutReg(bool machine, const std::wstring& key, const std::wstring& va
     error = value == L"-" ? RegDeleteValueW(handle, nullptr) : RegSetValueExW(handle, nullptr, 0, REG_SZ, (const BYTE*)value.c_str(), (DWORD)((value.size() + 1) * sizeof(wchar_t)));
     RegCloseKey(handle);
     if (error != ERROR_SUCCESS && error != ERROR_FILE_NOT_FOUND) throw std::runtime_error("Cannot update native bridge registration.");
+    // Preserve any foreign values or subkeys while removing empty registration shells.
+    if (value == L"-") SHDeleteEmptyKeyW(machine ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER, key.c_str());
 }
 static std::wstring Hex(const std::wstring& value) {
     const wchar_t* digits = L"0123456789abcdef"; std::wstring result;

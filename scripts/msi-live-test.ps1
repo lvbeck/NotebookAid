@@ -96,6 +96,10 @@ function Assert-RolledBack([string]$Target, [string]$Hive) {
     foreach ($name in $hostNames) {
         $key = $Hive + ':\Software\Mozilla\NativeMessagingHosts\' + $name
         if ((Test-Path -LiteralPath $key) -and (Get-Item -LiteralPath $key).GetValue('')) { throw 'Fresh rollback left a native bridge registration.' }
+        if (Test-Path -LiteralPath $key) {
+            $remaining = Get-Item -LiteralPath $key
+            if ($remaining.ValueCount -eq 0 -and $remaining.SubKeyCount -eq 0) { throw 'Fresh rollback left an empty native bridge key.' }
+        }
     }
     $installer = New-Object -ComObject WindowsInstaller.Installer
     if (@($installer.RelatedProducts('{2A38E827-A9E4-4B31-A9D5-ED345CB44129}')).Count -ne 0) { throw 'Fresh rollback left an installed MSI product.' }
@@ -152,5 +156,6 @@ Run-Msi '/fa' $package $machineArgs
 Assert-Installed $machineTarget machine $version
 Run-Msi '/x' $package $machineArgs
 if ((Test-Path -LiteralPath (Join-Path $machineTarget 'NotebookAid.exe')) -or (Test-Path -LiteralPath ('HKLM:\' + $identity))) { throw 'Machine uninstall failed.' }
+foreach ($name in $hostNames) { if (Test-Path -LiteralPath ('HKLM:\Software\Mozilla\NativeMessagingHosts\' + $name)) { throw 'Machine bridge key remains after uninstall.' } }
 [ordered]@{version=$version;currentUser=$true;allUsers=$true;upgradeSynthetic=$true;reinstall=$true;repair=$true;rollback=$true;machineRollback=$true;freshRollback=$true;machineFreshRollback=$true;downgradeRejected=$true;crossScopeRejected=$true;foreignStatePreserved=$true;shadowedBridgeRejected=$true;stableProductName=$true;unsignedUpdateRejected=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json')
 Get-Content -LiteralPath (Join-Path $job 'report.json')

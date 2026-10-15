@@ -70,7 +70,7 @@ Function NotebookAidPrepare
   Pop $1
   Pop $NotebookAidBackup
   ${If} $1 != 0
-    MessageBox MB_ICONSTOP|MB_OK "$NotebookAidBackup"
+    MessageBox MB_ICONSTOP|MB_OK "$NotebookAidBackup" /SD IDOK
     SetErrorLevel 1
     Quit
   ${EndIf}
@@ -96,7 +96,7 @@ FunctionEnd
   Pop $0
   Pop $1
   ${If} $0 != 0
-    MessageBox MB_ICONSTOP|MB_OK "$1"
+    MessageBox MB_ICONSTOP|MB_OK "$1" /SD IDOK
     SetErrorLevel 1
     Quit
   ${EndIf}
@@ -136,7 +136,7 @@ FunctionEnd
   Pop $0
   Pop $1
   ${If} $0 != 0
-    MessageBox MB_ICONSTOP|MB_OK "$1$\r$\nRollback copy: $NotebookAidBackup"
+    MessageBox MB_ICONSTOP|MB_OK "$1$\r$\nRollback copy: $NotebookAidBackup" /SD IDOK
     SetErrorLevel 1
     Quit
   ${EndIf}
@@ -154,7 +154,7 @@ FunctionEnd
   Pop $0
   Pop $1
   ${If} $0 != 0
-    MessageBox MB_ICONSTOP|MB_OK "$1"
+    MessageBox MB_ICONSTOP|MB_OK "$1" /SD IDOK
     SetErrorLevel 1
     Quit
   ${EndIf}
@@ -165,7 +165,7 @@ FunctionEnd
   ClearErrors
   ${GetOptions} $0 "--delete-app-data" $1
   ${IfNot} ${Errors}
-    MessageBox MB_ICONSTOP|MB_OK "NotebookAid uninstall preserves user data. Data removal is not supported."
+    MessageBox MB_ICONSTOP|MB_OK "NotebookAid uninstall preserves user data. Data removal is not supported." /SD IDOK
     SetErrorLevel 1
     Quit
   ${EndIf}
@@ -176,7 +176,7 @@ FunctionEnd
   Pop $0
   Pop $1
   ${If} $0 != 0
-    MessageBox MB_ICONSTOP|MB_OK "$1"
+    MessageBox MB_ICONSTOP|MB_OK "$1" /SD IDOK
     SetErrorLevel 1
     Quit
   ${EndIf}

@@ -56,7 +56,7 @@ async function buildMsi(version = require('../package.json').version, outputDire
   const vs = execFileSync(vswhere, ['-latest', '-products', '*', '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath'], {encoding:'utf8', windowsHide:true}).trim();
   if (!vs) throw Error('Visual C++ x64 build tools are required for MSI custom actions.');
   const batch = path.join(stage, 'compile.cmd');
-  fs.writeFileSync(batch, `@echo off\r\ncall "${vs}\\VC\\Auxiliary\\Build\\vcvars64.bat" >nul\r\nif errorlevel 1 exit /b 1\r\ncl /nologo /std:c++17 /EHsc /MT /LD /W4 /O2 "${path.resolve('native/MsiActions.cpp')}" /Fo"${stage}\\MsiActions.obj" /link /OUT:"${stage}\\MsiActions.dll" /IMPLIB:"${stage}\\MsiActions.lib" msi.lib advapi32.lib shell32.lib ole32.lib\r\n`);
+  fs.writeFileSync(batch, `@echo off\r\ncall "${vs}\\VC\\Auxiliary\\Build\\vcvars64.bat" >nul\r\nif errorlevel 1 exit /b 1\r\ncl /nologo /std:c++17 /EHsc /MT /LD /W4 /O2 "${path.resolve('native/MsiActions.cpp')}" /Fo"${stage}\\MsiActions.obj" /link /OUT:"${stage}\\MsiActions.dll" /IMPLIB:"${stage}\\MsiActions.lib" msi.lib advapi32.lib shell32.lib ole32.lib shlwapi.lib\r\n`);
   if (testFailure) {
     const fixture = path.join(stage, 'FixtureFailure.cpp');
     fs.writeFileSync(fixture, '#include <windows.h>\n#include <msi.h>\nextern "C" __declspec(dllexport) UINT __stdcall Fail(MSIHANDLE) { return ERROR_INSTALL_FAILURE; }\n');

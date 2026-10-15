@@ -11,6 +11,14 @@ test('installer protects unknown user files, validates hashes, registers only ow
   const folder=fixture('Installation with spaces 中文');
   try{
     assert.equal(run('check',folder).status,0);
+    const emptyHost='HKCU\\'+registry+'\\de.zub_systems.notebookaid';
+    cp.execFileSync('reg.exe',['add',emptyHost,'/f'],{windowsHide:true});
+    cp.execFileSync('reg.exe',['delete',emptyHost,'/ve','/f'],{windowsHide:true});
+    assert.equal(run('backup',folder).status,0);
+    cp.execFileSync('reg.exe',['add',emptyHost,'/v','ForeignValue','/t','REG_SZ','/d','preserve me','/f'],{windowsHide:true});
+    assert.notEqual(run('backup',folder).status,0);
+    assert.ok(cp.execFileSync('reg.exe',['query',emptyHost,'/v','ForeignValue'],{encoding:'utf8',windowsHide:true}).includes('preserve me'));
+    cp.execFileSync('reg.exe',['delete',emptyHost,'/f'],{windowsHide:true});
     fs.writeFileSync(path.join(folder,'private-note.txt'),'must remain');assert.notEqual(run('purge',folder).status,0);assert.equal(fs.readFileSync(path.join(folder,'private-note.txt'),'utf8'),'must remain');fs.unlinkSync(path.join(folder,'private-note.txt'));
     assert.notEqual(run('check',folder,'user',[],{NOTEBOOKAID_SETUP_TEST_BUSY:'1'}).status,0);
     fs.appendFileSync(path.join(folder,'NotebookAid.exe'),'tampered');assert.notEqual(run('finish',folder,'user',['de']).status,0);fs.writeFileSync(path.join(folder,'NotebookAid.exe'),'owned fixture NotebookAid.exe');

@@ -93,6 +93,7 @@ internal static class SetupSupport
         {
             if (key == null) continue;
             string path = key.GetValue("") as string;
+            if (path == null && key.ValueCount == 0 && key.SubKeyCount == 0) continue;
             if (path == Path.Combine(root, host == CurrentHost ? "native-host.json" : "native-host-legacy.json")) continue;
             // Only migrate a manifest identifying the exact NotebookAid host and bridge.
             if (String.IsNullOrEmpty(path) || !File.Exists(path)) throw new IOException("Conflicting native host registration: " + host);
