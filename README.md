@@ -25,9 +25,9 @@ Windows and macOS share the numeric source version 0.15.6. Application and addon
 
 | Platform | Packages | Latest verified test build | Workflow |
 | --- | --- | --- | --- |
-| Windows x64 | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [Windows 0.15.5 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38678321343) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| Windows x64 native MSI | Native Windows Installer package and SHA256 checksums; current-user or all-user installation | [MSI test downloads](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) | [MSI installation and updates](docs/msi-testing.md) |
-| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, eight language setup guides and SHA256 checksums | [macOS 0.15.5 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38678321224) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 EXE | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [EXE / ZIP 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951594701) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 native MSI | Native Windows Installer package and SHA256 checksums; current-user or all-user installation | [MSI 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951974541) | [MSI installation and updates](docs/msi-testing.md) |
+| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, eight language setup guides and SHA256 checksums | [macOS 0.15.6 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 To download, sign in to GitHub, open a successful run, then find **Artifacts**:
 
@@ -64,7 +64,7 @@ Read the [Code signing policy](docs/code-signing-policy.md) and [Privacy stateme
 
 ## Run from source
 
-Use Node.js **24.x** (24.15 or newer); CI uses **24.21.0**. Dependencies are pinned in `package-lock.json`. Windows builds also require PowerShell and the Windows .NET Framework C# compiler. Build macOS packages on macOS.
+Use Node.js **24.x** (24.15 or newer); CI uses **24.21.0**. Dependencies are pinned in `package-lock.json`. Windows builds also require PowerShell and the Windows .NET Framework C# compiler. Native MSI builds additionally require Visual C++ x64 build tools and the Windows SDK. Build macOS packages on macOS.
 
 From the repository root:
 
@@ -86,7 +86,7 @@ npm run installer:msi
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-TestBundle.ps1
 ```
 
-Outputs are written to `release/installer` and `release/`. The bundle script includes the portable ZIP, Thunderbird addons and checksums. See the [Windows build guide](docs/windows-ci-testing.md) (Chinese).
+EXE installers are written to `release/installer`, native MSI packages to `release/msi`, and portable ZIP/addons to `release/`. The bundle script includes the portable ZIP, Thunderbird addons and checksums. See the [Windows build guide](docs/windows-ci-testing.md) (Chinese).
 
 macOS Terminal, on the matching architecture (replace `arm64` with `x64` for Intel):
 

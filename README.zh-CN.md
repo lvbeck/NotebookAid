@@ -25,9 +25,9 @@ Windows与macOS源码统一使用纯数字版本0.15.6；应用及插件版本�
 
 | 平台 | 产物 | 最新已验证测试构建 | 工作流 |
 | --- | --- | --- | --- |
-| Windows x64 | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [Windows 0.15.5 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38678321343) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 测试下载](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) | [MSI 安装和更新说明](docs/msi-testing.md) |
-| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、八语言安装说明和 SHA256 校验清单 | [macOS 0.15.5 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38678321224) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.6 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951594701) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.6 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951974541) | [MSI 安装和更新说明](docs/msi-testing.md) |
+| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、八语言安装说明和 SHA256 校验清单 | [macOS 0.15.6 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 登录 GitHub，打开成功的运行记录，在 **Artifacts** 区域下载：
 
@@ -64,7 +64,7 @@ Thunderbird 当前项目基线为 Release 157.0.1；较新 Release 和 ESR 需�
 
 ## 从源码运行
 
-使用 Node.js **24.x**，最低24.15；CI 使用 **24.21.0**。依赖版本锁定于 `package-lock.json`。Windows 构建还需 PowerShell 和 Windows .NET Framework C# 编译器；macOS 安装包需在 macOS 上构建。
+使用 Node.js **24.x**，最低24.15；CI 使用 **24.21.0**。依赖版本锁定于 `package-lock.json`。Windows 构建还需 PowerShell 和 Windows .NET Framework C# 编译器；原生 MSI 另需 Visual C++ x64 构建工具和 Windows SDK。macOS 安装包需在 macOS 上构建。
 
 在仓库根目录执行：
 
@@ -86,7 +86,7 @@ npm run installer:msi
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-TestBundle.ps1
 ```
 
-产物写入 `release/installer` 和 `release/`。打包脚本生成便携 ZIP、Thunderbird 插件和校验清单，详见 [Windows 构建指南](docs/windows-ci-testing.md)。
+EXE 安装器写入 `release/installer`，原生 MSI 写入 `release/msi`，便携 ZIP 和插件写入 `release/`。打包脚本生成便携 ZIP、Thunderbird 插件和校验清单，详见 [Windows 构建指南](docs/windows-ci-testing.md)。
 
 macOS Terminal，在对应架构机器上执行，Intel 将 `arm64` 改为 `x64`：
 

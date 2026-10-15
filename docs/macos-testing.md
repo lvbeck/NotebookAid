@@ -45,3 +45,7 @@ Windows本地构建、安装器／注册迁移核心检查及打包版八语言�
 首次云端干净安装揭示锁文件遗漏peer构建依赖，已在隔离目录补齐21个锁定条目并确认已有依赖版本未变，项目显式关闭legacy-peer-deps，不修改其他项目或全局npm配置。后续两个测试假设分别按macOS未配置更新源状态和lipo的x86_64架构名称修正，最终双架构运行成功。真实用户安装、Gatekeeper、Thunderbird、Keychain和真实AI连接尚待人工验收，不创建正式Release，不标记产品发布或本轮功能验收完成。
 
 2026-10-15 版本0.15.5交付：源码7b36773的[运行38678321224](https://github.com/lvbeck/NotebookAid/actions/runs/38678321224)双架构成功。每个架构258项核心检查中257通过、0失败、1项平台专用检查跳过；打包签名结构／架构、八语言界面、编辑和重启检查通过。每份测试产物包含DMG、ZIP、NotebookAid.xpi、INSTALL.md及Guides内八语言说明；下载到release/macos-tests/0.15.5/38678321224，两个架构分别核对12个文件的SHA256，XPI根manifest版本0.15.5和LICENSE、八份指南均已确认。仍为ad-hoc签名、未公证，真实Mac及Thunderbird集成待用户验收；不正式发布。
+
+2026-10-15 版本0.15.6测试交付验证：[运行38684466407](https://github.com/lvbeck/NotebookAid/actions/runs/38684466407)双架构成功，源码acbe95c。每架构262项核心检查中260通过、0失败、2项平台专用检查跳过；打包签名结构／架构、八语言界面、编辑和重启检查通过。最终产物下载至release/macos-tests/0.15.6/38684466407，每架构13项SHA256一致，含0.15.6 XPI、LICENSE、八语言指南及MSI说明。上传Action已固定为支持node24的v7.0.2，arm64检查注释确认没有原Node20弃用警告。仍为ad-hoc签名、未公证，真实Mac／Thunderbird验收及正式签名更新未完成；不创建Release。
+
+2026-10-15最终0.15.6交付使用源码1e41f74的[运行38690187771](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771)。两架构均262项中260通过、0失败、2跳过，签名结构／架构、八语言界面、编辑和重启检查成功；最终成品下载到release/macos-tests/0.15.6/38690187771，每架构13项哈希一致，0.15.6 XPI／LICENSE／八语言指南齐全。当前首页链接此最终运行，与Windows安装器构建源码一致；保留之前运行作为测试历史，不正式发布，不视为真实Mac验收。

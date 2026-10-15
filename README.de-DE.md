@@ -23,11 +23,13 @@ Das Projekt befindet sich in der Testphase. Es wurde kein offizielles GitHub Rel
 
 | Plattform / Paket | Download | Inhalt |
 | --- | --- | --- |
-| Windows x64 EXE | [EXE-Testdownload](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) | NSIS-Installationsprogramm, portable ZIP-Datei, Thunderbird-XPI-Dateien und SHA256-Prüfsummen; Artefakt `NotebookAid-windows-x64-test` |
-| Windows x64 MSI | [Nativer MSI-Testdownload](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) | Eigenständiges Windows-Installer-Paket und SHA256-Prüfsumme; Artefakt `NotebookAid-windows-x64-msi-test` |
-| macOS Apple Silicon / Intel | [macOS-Testdownload](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) | Separate arm64- und x64-DMG/ZIP-Dateien, `NotebookAid.xpi` und Installations-/Bridge-Anleitungen in acht Sprachen |
+| Windows x64 EXE | [EXE / ZIP 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951594701) | NSIS-Installationsprogramm, portable ZIP-Datei, Thunderbird-XPI-Dateien und SHA256-Prüfsummen; Artefakt `NotebookAid-windows-x64-test` |
+| Windows x64 MSI | [MSI 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951974541) | Eigenständiges Windows-Installer-Paket und SHA256-Prüfsumme; Artefakt `NotebookAid-windows-x64-msi-test` |
+| macOS Apple Silicon / Intel | [macOS 0.15.6-Testdownload](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | Separate arm64- und x64-DMG/ZIP-Dateien, `NotebookAid.xpi` und Installations-/Bridge-Anleitungen in acht Sprachen |
 
 Bei GitHub anmelden, einen erfolgreichen Workflow-Lauf öffnen und unter **Artifacts** das gewünschte Paket herunterladen. Die Pakete werden 30 Tage aufbewahrt, Prüfberichte 14 Tage. Zuerst das äußere Artefaktarchiv entpacken. Die EXE befindet sich im Unterordner `installer`; die portable ZIP muss vor dem Start von `NotebookAid.exe` zusätzlich entpackt werden. Auf dem Mac die zum Prozessor passende Architektur wählen.
+
+Weitere Testläufe: [Windows](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) und [macOS](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml).
 
 EXE und MSI sind getrennte Installationsarten. Vor einem Wechsel die bisherige Installationsart deinstallieren; Notizbücher und Benutzereinstellungen bleiben erhalten. Nicht beide Installationsprogramme über dasselbe Verzeichnis installieren. Der Software- und Anzeigename ist immer **NotebookAid**, die Version steht separat. Beide Installationsarten unterstützen den aktuellen Benutzer und alle Benutzer des Computers. Letzteres benötigt Administratorrechte; beim MSI muss das Ziel unter Program Files liegen. Desktop- und Startmenüverknüpfungen sind optional. Siehe [MSI-Anleitung](docs/msi-testing.md) (Englisch).
 
