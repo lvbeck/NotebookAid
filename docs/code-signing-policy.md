@@ -1,6 +1,6 @@
 # Code signing policy
 
-Published project policy, 14 October 2026. NotebookAid is preparing an application to SignPath Foundation but has not submitted it or been accepted. Current Windows test packages are unsigned. This policy does not claim that signing is available or approved.
+Updated 15 October 2026. The maintainer reported manually submitting the SignPath Foundation application on 14 October 2026. Review is pending; no approval has been received and signing is not enabled. Current Windows test packages are unsigned.
 
 ## Project and proposed roles
 

@@ -1,123 +1,115 @@
 # NotebookAid
 
-**AI 笔记与写作助手**
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-NotebookAid 是面向本地个人使用的开源笔记应用，由独立桌面应用、共享本地核心和 Thunderbird addon 组成。笔记保存在用户选择的本地目录中；AI 写作和摘要仅在用户主动操作时调用所选提供商。
+**Local notes and AI writing assistant**
 
-## 项目状态
+*Record locally, think calmly, hear intelligent echoes.*
 
-- T01–T14、新手引导及应用菜单／信息页面已获用户批准。
-- T14-C 右键菜单及 Markdown 编辑修正已获用户验收；按用户要求暂不进行下一任务。
-- 侧边栏底部调整、右键置顶／取消置顶及批量解除加密已获用户验收，验收版本为 0.14.3-context.5；当前启动优化版 0.14.4-startup.0 已获用户验收，暂不进行 T15-A。
-- 提供 Markdown／HTML 安全子集富文本、TXT 纯文本、原文保护、导入／导出预览、正文撤销重做，以及本地保存、多笔记本、分层设置和消息中心。
-- 已提供图片附件、可选 Delta 原生格式、回收站与历史、逐笔记加密、Passkey 应用门禁、备份恢复、笔记本外观、Thunderbird 集成及 AI 连接管理。T12 增加主动辅助写作、插入／替换、独立摘要与翻译保存，工具栏支持下划线、删除线及文字／背景颜色。
-- 计划与验收状态以 [实施计划](docs/implementation-plan.md) 为准。
+NotebookAid is an open-source desktop notebook application with an optional Thunderbird addon. Notebooks stay in local folders you choose. AI writing, summaries and translations send note text to the selected provider only when you explicitly request generation.
 
-启动性能及可配置分页（T14-D）、彩蛋（T14-E）已获用户验收。T15-A 按用户决定暂时搁置；T15 安装与自动更新机制正在实施，等待独立验收。安装、构建、支持矩阵及回退见 [T15 验收](docs/t15-testing.md) 和 [发布说明](docs/release-support.md)。未发布正式 1.0。
+## Features
 
-## 当前测试入口
+- Markdown and HTML rich-text editing within a supported safe subset, plain text, and native Quill Delta notes; unsupported content is protected in source mode.
+- Multiple notebooks, nested folders, search, tags, pinned and recent notes, attachments, autosave, version history and a recycle bin.
+- Optional note encryption, notebook master passwords and recovery keys, backup and restore, and Windows Passkey application locking.
+- Notebook colors and covers, light/dark/system themes, eight interface languages, onboarding and optional collectible Easter eggs.
+- Thunderbird integration through local Native Messaging, and Tasks import from ICS files.
+- Optional AI assistance using ChatGPT subscription sign-in, Gemini API keys or Claude API keys. Access depends on the provider's account eligibility and terms; the application does not switch providers or billing channels automatically.
 
-Windows 测试包目前未签名，正在准备 SignPath Foundation 申请，尚未提交或获批。公开说明：[Code signing policy](docs/code-signing-policy.md)、[Privacy statement](docs/privacy.md)。免费签名是否可用由审核方决定，不代表已获得服务。
+## Test downloads
 
-Windows x64 安装 EXE／便携 ZIP 也由 [Windows GitHub Actions](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) 自动构建并上传测试 Artifacts，不创建正式 Release。下载、验证边界和后续 GitHub 更新源配置见 [Windows CI 测试说明](docs/windows-ci-testing.md)。
+This project is in testing. No formal GitHub Release has been published.
 
-macOS arm64／x64 测试包由 [GitHub Actions](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) 生成，DMG／ZIP 位于成功运行的 Artifacts 中，不创建正式 Release。安装、功能范围与限制见 [macOS 测试说明](docs/macos-testing.md)。以下 Windows 包路径是本地已验收交付文件，不包含在源码仓库中。
+| Platform | Packages | Latest verified test build | Workflow |
+| --- | --- | --- | --- |
+| Windows x64 | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [Windows test build](https://github.com/lvbeck/NotebookAid/actions/runs/38630850263) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages and SHA256 checksums | [macOS test build](https://github.com/lvbeck/NotebookAid/actions/runs/38630850387) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
-- [NotebookAid 0.15.3-t15.3 安装器](release/installer/NotebookAid-0.15.3-t15.3-Setup-x64.exe)
-- [Windows x64 便携 ZIP](release/NotebookAid-0.15.3-t15.3-win-x64.zip)
-- [Thunderbird 插件](release/NotebookAid.xpi)
-- [本版源码 ZIP](release/NotebookAid-0.15.3-t15.3-source.zip)
-- [T15 安装与回退验收](docs/t15-testing.md)
-- [新手引导验收及回退指南](docs/onboarding-testing.md)
-- [应用菜单及信息页面验收指南](docs/menu-testing.md)
-- [右键菜单验收及回退指南](docs/context-testing.md)
-- [批量解除加密验收及数据回退指南](docs/decrypt-testing.md)
-- [T14 界面验收指南](docs/t14-testing.md)
-- [T13 Tasks 导入及回退指南](docs/t13-testing.md)
-- [T06 附件与升级回退指南](docs/t06-testing.md)
-- [T05-A 导入、兼容与回退指南](docs/t05a-testing.md)
-- [T05 组织与搜索测试](docs/t05-testing.md)
+To download, sign in to GitHub, open a successful run, then find **Artifacts**:
 
-## 已确认基础
+- Windows: `NotebookAid-windows-x64-test`.
+- macOS: `NotebookAid-macos-arm64-test` or `NotebookAid-macos-x64-test`.
 
-| 项目 | 决定 |
-|---|---|
-| 技术路线 | Electron、TypeScript、Angular、Quill 2.x、SQLite、Native Messaging、Lucide |
-| 首版平台 | Windows 10 及以上，x64 安装包；具体系统 build 和依赖版本在 T02 验证后记录 |
-| Thunderbird 基线 | 157.0.1，按 2026-10-09 核对的 Release 稳定渠道固定下限 |
-| 内容格式 | Markdown、HTML、纯文本；默认 Markdown |
-| AI 提供商 | ChatGPT 订阅登录、Gemini API Key、Claude API Key |
-| 发布范围 | 第一版开源、本地个人使用；商业发布后续评估 |
-| 许可证 | [BSD-3-Clause](LICENSE) |
-| 版权人／联系方式 | Jin Lu · [it@live.cn](mailto:it@live.cn) |
+Package artifacts are retained for **30 days**. If an older run has expired, use a newer successful run from the workflow page. Verification reports are separate artifacts, retained for 14 days.
 
-Thunderbird 后续版本需验证后声明支持，ESR 不因版本名称相近而自动纳入。Windows 10 是产品支持目标，尚未通过实机验证。开源许可证与外部 AI 服务的接入资格分别管理。
+Extract the outer artifact archive first. Windows contains the installer in its `installer` directory, a portable ZIP, and both addon XPI files. Extract the portable ZIP before running `NotebookAid.exe`. For macOS, use the package matching your processor. Back up notebooks before testing; replacing program files is not a data rollback.
 
-## 文档入口
+## Platform status and limitations
 
-| 文档 | 用途 |
-|---|---|
-| [需求规格](docs/requirements.md) | 已确认功能、边界、建议默认值和待定项 |
-| [架构草案](docs/architecture.md) | 进程职责、生命周期、安全边界和数据操作顺序 |
-| [数据格式草案](docs/data-model.md) | 权威文件、可重建索引、版本、加密和备份 |
-| [接口草案](docs/api-contract.md) | 两端共用的操作、错误、编辑锁和变更事件 |
-| [界面线框](docs/wireframes.md) | 桌面端、addon、AI 与设置页布局 |
-| [验收清单](docs/acceptance.md) | 按任务安排的用户验收步骤与开发检查 |
-| [实施计划与进度](docs/implementation-plan.md) | T01–T15 串行执行、交付记录和批准记录 |
-| [来源与依赖许可](docs/sources-and-licenses.md) | 官方资料、许可依据和待验证事项 |
-| [项目工作约定](AGENTS.md) | 开发语言、范围和用户批准门槛 |
+| Platform | Current status |
+| --- | --- |
+| Windows 11 x64 | Local testing and Windows CI checks are available. The installer supports current-user and all-user installation; administrator all-user installation and the full high-DPI matrix still need manual validation. |
+| Windows 10 x64 | Intended support target; not yet verified on a real Windows 10 machine. |
+| macOS arm64 / x64 | CI builds and packaged UI/editor checks pass. Real-world installation, Thunderbird, Keychain and live AI-account testing remain pending. Passkey application locking is not supported in this macOS test version; existing locks are not silently removed. |
+| Linux | No packaged test builds are currently provided. |
 
-## 第一版与后续范围
+Thunderbird's current project baseline is Release 157.0.1. Newer releases and ESR need separate compatibility validation. See the [Windows CI guide](docs/windows-ci-testing.md) and [macOS guide](docs/macos-testing.md) (Chinese) for checks, installation and rollback details.
 
-第一版包括基础笔记、文件夹树、搜索、标签、自动保存、置顶、最近使用、附件、回收站、历史版本、备份、主题、八语言、Thunderbird 集成、ICS 导入、AI 写作与手动摘要，以及笔记加密和恢复密钥。
+## Signing, updates and privacy
 
-Gemini Notebook 同步移至第二版。Gemini 模型的 AI 写作与摘要仍属于第一版。macOS／Linux 首版不交付安装包，但业务核心与平台相关逻辑需隔离。
+- **Windows test packages are unsigned.** The maintainer has submitted the SignPath Foundation application and is awaiting review; signing has not been approved or enabled.
+- macOS test applications use ad-hoc signing, without Developer ID signing or Apple notarization. Gatekeeper may block them; do not disable system-wide security protections to run a test build.
+- An update mechanism exists, but current test packages have no active automatic-update feed. The GitHub update address is reserved for future signed releases; Actions artifacts are not an update feed.
+- AI authentication, model checks and authorized token renewal can contact the selected provider. Note text is sent for explicit generation requests. Local storage does not mean the application is always offline.
 
-## 历史测试入口：T03-A
+Read the [Code signing policy](docs/code-signing-policy.md) and [Privacy statement](docs/privacy.md) (English).
 
-- 已解压程序：[NotebookAid.exe](release/0.3.0-t03a.2/NotebookAid-win32-x64/NotebookAid.exe)。
-- 便携测试包：[Windows x64 ZIP](release/NotebookAid-0.3.0-t03a.2-win-x64.zip)，内含测试 XPI 0.2.4。
-- [T03-A 测试与回退指南](docs/t03a-testing.md)；原笔记核心测试见 [T03 指南](docs/t03-testing.md)。
-- T03-A／B／C 均已获用户批准，旧包保留。当前请使用上方 T04 入口；仍逐项等待用户测试批准。
+## Run from source
 
-## 从源码运行（Windows PowerShell）
+Use Node.js **24.x** (24.15 or newer); CI uses **24.21.0**. Dependencies are pinned in `package-lock.json`. Windows builds also require PowerShell and the Windows .NET Framework C# compiler. Build macOS packages on macOS.
 
-需 Node.js 24.15+（24.x）、npm 和 Windows 自带 .NET Framework C# 编译器。锁定依赖见 `package-lock.json`。
+From the repository root:
 
-```powershell
+```sh
 npm ci
-node node_modules/electron/install.js
 npm run build
-npm test
+npm run test:platform
 npm start
 ```
 
-测试与打包：
+## Build test packages
+
+Windows PowerShell:
 
 ```powershell
-npm run smoke
 npm run package
-node scripts/smoke.cjs --packaged
-node scripts/test-native.cjs
+npm run installer
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-TestBundle.ps1
 ```
 
-打包会重建本项目 `release/<版本>/NotebookAid-win32-x64`，请勿在该构建输出目录保存个人文件。测试证据写入 `output/`；自动测试使用独立数据目录。
+Outputs are written to `release/installer` and `release/`. The bundle script includes the portable ZIP, Thunderbird addons and checksums. See the [Windows build guide](docs/windows-ci-testing.md) (Chinese).
 
-## T03-B 测试入口
+macOS Terminal, on the matching architecture (replace `arm64` with `x64` for Intel):
 
-- [新版 NotebookAid.exe](release/0.3.0-t03b.1/NotebookAid-win32-x64/NotebookAid.exe)
-- [Windows x64 ZIP](release/NotebookAid-0.3.0-t03b.1-win-x64.zip)
-- [T03-B 测试与回退指南](docs/t03b-testing.md)
+```sh
+node scripts/create-macos-icon.cjs
+npm run package:mac -- arm64
+npm run installer:mac -- arm64
+```
 
-T03-B 已获用户批准；当前等待 T03-C 用户验收。
+Outputs are written to `release/macos`. These commands produce test packages, not a formal release. Build directories may be recreated; do not store personal notebooks in `dist/`, `release/` or `output/`.
 
-## T03-C 测试入口
+## Documentation and development history
 
-- [新版 NotebookAid.exe](release/0.3.0-t03c.1/NotebookAid-win32-x64/NotebookAid.exe)
-- [Windows x64 ZIP](release/NotebookAid-0.3.0-t03c.1-win-x64.zip)
-- [T03-C 测试与回退指南](docs/t03c-testing.md)
+Most technical and acceptance documents are currently in Chinese. An English README does not imply that every linked document has been translated.
 
-等待 T03-C 用户验收，尚未开始 T04。
+The implementation uses Electron, TypeScript, Angular/CDK, Quill 2.x, SQLite, Native Messaging and Lucide. Exact dependency versions are recorded in the lockfile.
 
-T05 组织与搜索验收说明：[docs/t05-testing.md](docs/t05-testing.md)。组织功能启用后的库不支持旧版程序写入，测试前请使用完整副本。
+| Document | Purpose |
+| --- | --- |
+| [Requirements](docs/requirements.md) | Confirmed features, boundaries and future scope |
+| [Architecture](docs/architecture.md), [data model](docs/data-model.md), [API contract](docs/api-contract.md) | Design and shared local core |
+| [Wireframes](docs/wireframes.md) | UI planning |
+| [Implementation plan](docs/implementation-plan.md) | Authoritative task progress and acceptance records |
+| [Acceptance checklist](docs/acceptance.md), [testing history](docs/testing-history.md) | Current and historical validation guides |
+| [Sources and licenses](docs/sources-and-licenses.md) | Dependencies and third-party notices |
+| [Working instructions](AGENTS.md) | Contribution scope and development conventions |
+
+Historical milestone statuses and local-only package paths are kept out of the main download section. Windows Explorer “New” menu integration remains shelved; Gemini Notebook synchronization remains future scope. Automated checks do not replace user acceptance or the manual validation listed above.
+
+## License and contact
+
+[BSD-3-Clause](LICENSE). Copyright © 2026 Jin Lu. Third-party components retain their respective licenses.
+
+Contact: [it@live.cn](mailto:it@live.cn).
