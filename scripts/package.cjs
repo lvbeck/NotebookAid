@@ -106,5 +106,8 @@ const { execFileSync } = require('node:child_process');
   cpSync('node_modules/@angular/cdk/LICENSE', join(packageRoot, 'CDK-LICENSE.txt'));
   cpSync('dist/renderer/3rdpartylicenses.txt', join(packageRoot, 'renderer-THIRD-PARTY-LICENSES.txt'));
   require('./distribution-licenses.cjs').distributionLicenses(packageRoot, stage);
+  await require('./build-addons.cjs').buildAddons(releaseRoot);
+  for (const name of Object.keys(require('./build-addons.cjs').addons)) cpSync(join(releaseRoot, name), join(packageRoot, name));
+  await require('./build-addons.cjs').verifyAddons(packageRoot, releaseRoot);
   console.log('Packaged:', packageRoot);
 })().catch(error => { console.error(error); process.exitCode = 1; });

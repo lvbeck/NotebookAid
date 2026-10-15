@@ -8,6 +8,7 @@ if (!['arm64', 'x64'].includes(arch)) throw Error('Unsupported macOS architectur
 process.env.ELECTRON_BUILDER_CACHE = path.resolve('.cache/electron-builder');
 (async () => {
 const app = path.resolve('release', project.version, `NotebookAid-darwin-${arch}/NotebookAid.app`);
+await require('./build-addons.cjs').verifyAddons(path.join(app, 'Contents/Resources'), path.resolve('release'));
 // Prepackaged apps bypass electron-builder signing; sign the complete bundle after adding bridge resources.
 const { sign } = await import('@electron/osx-sign');
 await sign({ app, identity: '-', identityValidation: false, platform: 'darwin', preAutoEntitlements: false, optionsForFile: () => ({ hardenedRuntime: false, timestamp: 'none' }) });

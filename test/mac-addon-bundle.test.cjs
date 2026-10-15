@@ -7,7 +7,9 @@ const { getPath7za } = require('app-builder-lib/out/toolsets/7zip');
 test('macOS addon bundle contains root manifest, project license and ten linked setup guides', async () => {
   fs.mkdirSync('output', { recursive: true });
   const output = fs.mkdtempSync(path.resolve('output/mac-addon-test-'));
-  const result = await buildMacAddon(output), zip = path.join(output, 'NotebookAid.xpi');
+  const addonRoot = path.join(output, 'source');
+  await require('../scripts/build-addons.cjs').buildAddons(addonRoot);
+  const result = await buildMacAddon(output, addonRoot), zip = path.join(output, 'NotebookAid.xpi');
   const sevenZip = await getPath7za();
   const manifest = JSON.parse(execFileSync(sevenZip, ['x', '-so', zip, 'manifest.json'], { encoding: 'utf8', windowsHide: true }));
   assert.equal(manifest.version, require('../package.json').version);

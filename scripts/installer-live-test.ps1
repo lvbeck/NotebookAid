@@ -26,6 +26,10 @@ function Run-Setup([string]$File, [string]$Arguments) {
     if ($process.ExitCode -ne 0) { throw "Installer returned $($process.ExitCode)." }
 }
 function Assert-InstalledEntry {
+    foreach ($name in @('NotebookAid.xpi','NotebookAid-Compatibility.xpi')) {
+        $file = Join-Path $target $name
+        if (!(Test-Path -LiteralPath $file) -or (Get-FileHash -LiteralPath $file).Hash -ne (Get-FileHash -LiteralPath (Join-Path $workspace ('release/' + $name))).Hash) { throw "NSIS installed addon missing or mismatched: $name" }
+    }
     $entry = Get-ItemProperty -LiteralPath $uninstallKey
     if ($entry.DisplayName -ne 'NotebookAid' -or $entry.DisplayVersion -ne $version) { throw 'Installed application name or version is incorrect.' }
     $entries = @(Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' | Where-Object {
@@ -55,7 +59,7 @@ try {
     for ($n = 0; $n -lt 200 -and ((Test-Path -LiteralPath (Join-Path $target 'NotebookAid.exe')) -or (Test-Path $appKey) -or (Test-Path $uninstallKey)); $n++) { Start-Sleep -Milliseconds 100 }
     if (Test-Path -LiteralPath (Join-Path $target 'NotebookAid.exe')) { throw 'Uninstaller did not remove the program.' }
     if ((Test-Path $appKey) -or (Test-Path $uninstallKey)) { throw 'Installer registry entries remain.' }
-    [PSCustomObject]@{ version=$version; target=$target; installed=$true; reinstalled=$true; uninstalled=$true; nativeHosts=$true; stableUninstallName=$true; singleUserUninstallEntry=$true; backupCount=$backupFiles.Count; machineModeTested=$false } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json') -Encoding utf8
+    [PSCustomObject]@{ version=$version; target=$target; installed=$true; addonsVerified=$true; reinstalled=$true; uninstalled=$true; nativeHosts=$true; stableUninstallName=$true; singleUserUninstallEntry=$true; backupCount=$backupFiles.Count; machineModeTested=$false } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json') -Encoding utf8
     Get-Content -LiteralPath (Join-Path $job 'report.json')
 } finally {
     foreach ($key in $keys) {

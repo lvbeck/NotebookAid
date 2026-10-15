@@ -42,7 +42,8 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:platform
-      - run: npm run package
+      - name: Package application with verified Thunderbird addons
+        run: npm run package
       - run: npm run installer:msi
       - name: Verify ten MSI languages and fonts
         shell: powershell

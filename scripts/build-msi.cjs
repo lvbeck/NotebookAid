@@ -38,6 +38,7 @@ async function buildMsi(version = require('../package.json').version, outputDire
   process.env.TEMP = process.env.TMP = path.resolve('.cache/msi-temp'); fs.mkdirSync(process.env.TEMP, {recursive:true});
   fs.mkdirSync(stage, {recursive:true}); fs.mkdirSync(outputDirectory, {recursive:true});
   const source = path.resolve('release', require('../package.json').version, 'NotebookAid-win32-x64');
+  await require('./build-addons.cjs').verifyAddons(source, path.resolve('release'));
   if (fs.existsSync(root)) fs.rmSync(root, {recursive:true});
   fs.cpSync(source, root, {recursive:true, filter: file => !['installation.json', 'native-host.json', 'native-host-legacy.json', 'Uninstall NotebookAid.exe'].includes(path.basename(file))});
   const csc = path.join(process.env.WINDIR, 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');

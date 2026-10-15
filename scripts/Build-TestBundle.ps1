@@ -4,10 +4,9 @@ $releaseRoot = Join-Path $workspace 'release'
 $version = (Get-Content -LiteralPath (Join-Path $workspace 'package.json') -Raw | ConvertFrom-Json).version
 if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Invalid package version' }
 $packageRoot = Join-Path (Join-Path $releaseRoot $version) 'NotebookAid-win32-x64'
-$addonArchive = Join-Path $releaseRoot 'NotebookAid.zip'
 $addonPath = Join-Path $releaseRoot 'NotebookAid.xpi'
 $bundlePath = Join-Path $releaseRoot "NotebookAid-$version-win-x64.zip"
-foreach ($target in @($packageRoot, $addonArchive, $addonPath, $bundlePath)) {
+foreach ($target in @($packageRoot, $addonPath, $bundlePath)) {
     if (-not ([System.IO.Path]::GetFullPath($target).StartsWith($workspace + '\', [System.StringComparison]::OrdinalIgnoreCase))) { throw 'Output is outside the workspace' }
 }
 if (-not (Test-Path -LiteralPath (Join-Path $packageRoot 'NotebookAid.exe'))) { throw 'Build the application package first' }
@@ -41,30 +40,12 @@ Copy-Item -LiteralPath (Join-Path $workspace 'docs/t05-testing.md') -Destination
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t05a-testing.md') -Destination (Join-Path $packageRoot 'T05A-TESTING.md') -Force
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.IO.Compression
-$addonRoot = Join-Path $workspace 'thunderbird'
-$addonStream = [IO.File]::Open($addonArchive, [IO.FileMode]::Create)
-$addonZip = New-Object IO.Compression.ZipArchive($addonStream, [IO.Compression.ZipArchiveMode]::Create)
-try {
-    foreach ($source in Get-ChildItem -LiteralPath $addonRoot -Recurse -File) {
-        $entryName = $source.FullName.Substring($addonRoot.Length + 1).Replace('\', '/')
-        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($addonZip, $source.FullName, $entryName, [IO.Compression.CompressionLevel]::Optimal) | Out-Null
-    }
-    [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($addonZip, (Join-Path $workspace 'LICENSE'), 'LICENSE', [IO.Compression.CompressionLevel]::Optimal) | Out-Null
-} finally { $addonZip.Dispose(); $addonStream.Dispose() }
-Copy-Item -LiteralPath $addonArchive -Destination $addonPath -Force
-Copy-Item -LiteralPath $addonPath -Destination (Join-Path $packageRoot 'NotebookAid.xpi') -Force
 $compatPath = Join-Path $releaseRoot 'NotebookAid-Compatibility.xpi'
-$compatRoot = Join-Path $workspace 'thunderbird-compat'
-$compatStream = [IO.File]::Open($compatPath, [IO.FileMode]::Create)
-$compatZip = New-Object IO.Compression.ZipArchive($compatStream, [IO.Compression.ZipArchiveMode]::Create)
-try {
-    foreach ($source in Get-ChildItem -LiteralPath $compatRoot -Recurse -File) {
-        $entryName = $source.FullName.Substring($compatRoot.Length + 1).Replace('\', '/')
-        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($compatZip, $source.FullName, $entryName, [IO.Compression.CompressionLevel]::Optimal) | Out-Null
-    }
-    [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($compatZip, (Join-Path $workspace 'LICENSE'), 'LICENSE', [IO.Compression.CompressionLevel]::Optimal) | Out-Null
-} finally { $compatZip.Dispose(); $compatStream.Dispose() }
-Copy-Item -LiteralPath $compatPath -Destination (Join-Path $packageRoot 'NotebookAid-Compatibility.xpi') -Force
+foreach ($name in @('NotebookAid.xpi', 'NotebookAid-Compatibility.xpi')) {
+    $standalone = Join-Path $releaseRoot $name
+    $embedded = Join-Path $packageRoot $name
+    if (!(Test-Path -LiteralPath $embedded) -or (Get-FileHash -LiteralPath $embedded).Hash -ne (Get-FileHash -LiteralPath $standalone).Hash) { throw "Missing or mismatched packaged addon: $name" }
+}
 Copy-Item -LiteralPath (Join-Path $workspace 'docs/t15-testing.md') -Destination (Join-Path $packageRoot 'T15-TESTING.md') -Force
 Compress-Archive -LiteralPath $packageRoot -DestinationPath $bundlePath -CompressionLevel Optimal -Force
 $installerPattern = '^NotebookAid-' + [regex]::Escape($version) + '-Setup-x64\.exe(?:\.blockmap)?$'

@@ -355,3 +355,7 @@ T15 安装向导补充：安装器与卸载器声明 DPI 感知；简体中文�
 ### T15 installer and ten-language scope (2026-10-15)
 
 用户要求 MSI 向导支持全部界面语言，简体中文使用微软雅黑；随后明确扩展应用日语、韩语，全部安装包支持十种语言。语言范围为 en、zh-CN、zh-TW（香港用语，兼容已有设置标识）、de、fr、it、es、pt-PT、ja、ko，AI 翻译目标语言同步扩展。README 共十种：默认英文 README.md，其余使用 zh-CN、zh-HK、de-DE、fr-FR、it-IT、es-ES、pt-PT、ja-JP、ko-KR 地区文件名，各版互链；macOS 安装桥接指南同步。DMG/ZIP 无 Windows 式向导，应用包声明十语言。用户授权 GitHub Actions 测试构建和上传产物，不正式发布。用户同时报告 EXE 和 MSI 外层 ZIP 被 Chrome 标为危险；须核实来源、哈希和检测证据，不将未签名等同误报，不绕过防护。
+
+### Installer addon payload follow-up (2026-10-15)
+
+Windows EXE/MSI and macOS DMG/ZIP must embed both NotebookAid.xpi and NotebookAid-Compatibility.xpi before installer construction/signing. Installed plugin content must match the standalone artifacts and current addon identity/version; missing or mismatched plugins must block test artifact upload. This follow-up creates test artifacts only and does not authorize a formal release.

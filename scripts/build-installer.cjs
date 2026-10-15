@@ -6,6 +6,7 @@ require('./check-version.cjs').checkVersion();
 process.env.ELECTRON_BUILDER_CACHE = path.resolve('.cache/electron-builder');
 (async () => {
 const root = path.resolve('release', project.version, 'NotebookAid-win32-x64');
+await require('./build-addons.cjs').verifyAddons(root, path.resolve('release'));
 const resources = path.resolve('dist/installer-resources');
 fs.mkdirSync(resources, { recursive: true });
 const helper = path.join(root, 'NotebookAid.SetupSupport.exe');

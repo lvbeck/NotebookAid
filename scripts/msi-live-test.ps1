@@ -68,6 +68,10 @@ function Assert-Installed([string]$Target, [string]$Scope, [string]$ExpectedVers
     foreach ($file in @('NotebookAid.exe','NotebookAid.Bridge.exe','NotebookAid.Passkey.exe','NotebookAid.SetupSupport.exe')) {
         if (!(Test-Path -LiteralPath (Join-Path $Target $file))) { throw "Installed application resource missing: $file" }
     }
+    foreach ($name in @('NotebookAid.xpi','NotebookAid-Compatibility.xpi')) {
+        $file = Join-Path $Target $name
+        if (!(Test-Path -LiteralPath $file) -or (Get-FileHash -LiteralPath $file).Hash -ne (Get-FileHash -LiteralPath (Join-Path $workspace ('release/' + $name))).Hash) { throw "MSI installed addon missing or mismatched: $name" }
+    }
     $hive = if ($Scope -eq 'machine') {'HKLM'} else {'HKCU'}
     $installer = New-Object -ComObject WindowsInstaller.Installer
     $products = @($installer.RelatedProducts('{2A38E827-A9E4-4B31-A9D5-ED345CB44129}'))
@@ -158,5 +162,5 @@ Assert-Installed $machineTarget machine $version
 Run-Msi '/x' $package $machineArgs
 if ((Test-Path -LiteralPath (Join-Path $machineTarget 'NotebookAid.exe')) -or (Test-Path -LiteralPath ('HKLM:\' + $identity))) { throw 'Machine uninstall failed.' }
 foreach ($name in $hostNames) { if (Test-Path -LiteralPath ('HKLM:\Software\Mozilla\NativeMessagingHosts\' + $name)) { throw 'Machine bridge key remains after uninstall.' } }
-[ordered]@{version=$version;currentUser=$true;allUsers=$true;upgradeSynthetic=$true;reinstall=$true;repair=$true;rollback=$true;machineRollback=$true;freshRollback=$true;machineFreshRollback=$true;downgradeRejected=$true;crossScopeRejected=$true;foreignStatePreserved=$true;shadowedBridgeRejected=$true;stableProductName=$true;unsignedUpdateRejected=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json')
+[ordered]@{version=$version;currentUser=$true;allUsers=$true;addonsVerified=$true;upgradeSynthetic=$true;reinstall=$true;repair=$true;rollback=$true;machineRollback=$true;freshRollback=$true;machineFreshRollback=$true;downgradeRejected=$true;crossScopeRejected=$true;foreignStatePreserved=$true;shadowedBridgeRejected=$true;stableProductName=$true;unsignedUpdateRejected=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json')
 Get-Content -LiteralPath (Join-Path $job 'report.json')

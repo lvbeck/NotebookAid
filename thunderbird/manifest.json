@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "NotebookAid",
-  "version": "0.15.7",
+  "version": "0.15.8",
   "description": "Browse local notebooks and open notes in NotebookAid.",
   "author": "Jin Lu",
   "browser_specific_settings": {
