@@ -9,6 +9,7 @@
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
+#include <iterator>
 
 // Only installer-owned metadata and Native Messaging registrations are changed here.
 // Windows Installer owns all application files, shortcuts, and their rollback.
@@ -23,6 +24,8 @@ static std::wstring Get(MSIHANDLE h, const wchar_t* key) {
 static void Set(MSIHANDLE h, const wchar_t* key, const std::wstring& value) {
     if (MsiSetPropertyW(h, key, value.c_str()) != ERROR_SUCCESS) throw std::runtime_error("Cannot set installer property.");
 }
+#include "MsiLocalization.h"
+
 static bool Exists(const std::wstring& path) { return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES; }
 static void Plain(std::wstring path) {
     while (path.size() > 3) {
@@ -122,12 +125,17 @@ static std::vector<std::wstring> Decode(const std::wstring& data) {
         for (int n = 0; n < 4; ++n) { wchar_t x = data[pos++]; if (!((x >= L'0' && x <= L'9') || (x >= L'a' && x <= L'f'))) throw std::runtime_error("Invalid action data."); c = c * 16 + (x <= L'9' ? x - L'0' : x - L'a' + 10); }
         if (!c) throw std::runtime_error("Invalid action data."); value += (wchar_t)c;
     }
-    if (values.size() != 8) throw std::runtime_error("Incomplete action data."); return values;
+    if (values.size() != 9) throw std::runtime_error("Incomplete action data."); return values;
 }
 static std::wstring Escape(const std::wstring& value) { std::wstring result; for (wchar_t c : value) { if (c < 32) throw std::runtime_error("Invalid path."); if (c == L'\\' || c == L'"') result += L'\\'; result += c; } return result; }
-static std::wstring Content(const std::wstring& root, bool machine, int n) {
-    if (n == 0) return L"{\"owner\":\"NotebookAid.Installation.v1\",\"installer\":\"msi\",\"scope\":\"" + std::wstring(machine ? L"machine" : L"user") + L"\",\"locale\":\"en\"}";
+static std::wstring Content(const std::wstring& root, bool machine, int n, const std::wstring& locale = L"en") {
+    if (n == 0) return L"{\"owner\":\"NotebookAid.Installation.v1\",\"installer\":\"msi\",\"scope\":\"" + std::wstring(machine ? L"machine" : L"user") + L"\",\"locale\":\"" + locale + L"\"}";
     return L"{\"name\":\"" + std::wstring(Hosts[n - 1]) + L"\",\"description\":\"NotebookAid bridge\",\"path\":\"" + Escape(root + L"\\NotebookAid.Bridge.exe") + L"\",\"type\":\"stdio\",\"allowed_extensions\":[\"" + std::wstring(n == 1 ? L"notebookaid@zub-systems.de" : L"notebookaid-t02@zub-systems.de") + L"\"]}";
+}
+static bool Owned(const std::wstring& value, const std::wstring& root, bool machine, int n) {
+    if(n != 0) return value == Content(root,machine,n);
+    for(auto locale : InstallerLocales) if(value == Content(root,machine,n,locale)) return true;
+    return false;
 }
 static UINT Error(MSIHANDLE h, const char* message) {
     MSIHANDLE record = MsiCreateRecord(1); MsiRecordSetStringA(record, 0, "NotebookAid: [1]"); MsiRecordSetStringA(record, 1, message); MsiProcessMessage(h, INSTALLMESSAGE_ERROR, record); MsiCloseHandle(record); return ERROR_INSTALL_FAILURE;
@@ -167,9 +175,12 @@ extern "C" __declspec(dllexport) UINT __stdcall Prepare(MSIHANDLE h) {
         }
         for (int n = 0; n < 3; ++n) {
             auto previous = Read(root + L"\\" + Names[n]);
-            if (!removing && previous != L"-" && previous != Content(root, machine, n)) throw std::runtime_error("Installer metadata has changed. Preserve it before reinstalling.");
+            if (!removing && previous != L"-" && !Owned(previous, root, machine, n)) throw std::runtime_error("Installer metadata has changed. Preserve it before reinstalling.");
             values.push_back(previous);
         }
+        auto locale = Get(h,L"NA_LANGUAGE");
+        if (std::find(std::begin(InstallerLocales), std::end(InstallerLocales), locale) == std::end(InstallerLocales)) throw std::runtime_error("Invalid installer language.");
+        values.push_back(locale);
         std::wstring data; for (auto& value : values) { if (!data.empty()) data += L'|'; data += Hex(value); }
         Set(h, L"ApplyMetadata", data); Set(h, L"RollbackMetadata", data); Set(h, L"ApplyUserMetadata", data); Set(h, L"RollbackUserMetadata", data); return ERROR_SUCCESS;
     } catch (const std::exception& error) { return Error(h, error.what()); }
@@ -180,10 +191,10 @@ static UINT Change(MSIHANDLE h, bool rollback) {
         std::wstring root = Root(values[0], machine);
         if (!rollback) Idle();
         for (int n = 0; n < 3; ++n) {
-            auto file = root + L"\\" + Names[n]; auto current = Read(file), owned = Content(root, machine, n);
-            if (rollback) { if (current == owned || current == L"-") Write(file, values[5 + n]); }
+            auto file = root + L"\\" + Names[n]; auto current = Read(file), owned = Content(root, machine, n, values[8]);
+            if (rollback) { if (Owned(current, root, machine, n) || current == L"-") Write(file, values[5 + n]); }
             else if (!removing) Write(file, owned);
-            else if (current == owned) Write(file, L"-");
+            else if (Owned(current, root, machine, n)) Write(file, L"-");
         }
         for (int n = 0; n < 2; ++n) {
             auto current = Reg(machine, HostKey(n)); auto expected = root + L"\\" + Names[n + 1];

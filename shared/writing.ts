@@ -2,7 +2,7 @@ import type { AttachmentRequest } from './attachments';
 import type { SaveResult } from './library';
 import type { AiProvider } from './ai';
 import type { SettingsLocale } from './settings';
-export const translationLanguages:Record<SettingsLocale,string>={en:'English',de:'German',fr:'French',it:'Italian',es:'Spanish','pt-PT':'Portuguese (Portugal)','zh-CN':'Simplified Chinese','zh-TW':'Traditional Chinese (Hong Kong)'};
+export const translationLanguages:Record<SettingsLocale,string>={ja:'Japanese',ko:'Korean',en:'English',de:'German',fr:'French',it:'Italian',es:'Spanish','pt-PT':'Portuguese (Portugal)','zh-CN':'Simplified Chinese','zh-TW':'Traditional Chinese (Hong Kong)'};
 export type WritingOperation = 'polish' | 'rewrite' | 'expand' | 'shorten' | 'translate' | 'continue' | 'custom' | 'summary';
 export interface GeneratedSummary { text: string; sourceContentVersion: number; sourceRevisionId: string; createdAt: string; provider: AiProvider; model: string }
 export interface GeneratedTranslation extends GeneratedSummary { targetLanguage:SettingsLocale; scope:'all'|'selection';sourceMode:boolean;sourceHash:string;instruction:string }

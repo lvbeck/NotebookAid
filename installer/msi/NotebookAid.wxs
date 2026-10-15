@@ -21,6 +21,8 @@
     <Property Id="WixAppFolder" Value="WixPerUserFolder"/>
     <Property Id="EXISTINGUSER" Secure="yes"><RegistrySearch Id="FindUser" Root="HKCU" Key="Software\NotebookAid\MSI" Type="raw" Win64="yes"/></Property>
     <Property Id="EXISTINGMACHINE" Secure="yes"><RegistrySearch Id="FindMachine" Root="HKLM" Key="Software\NotebookAid\MSI" Type="raw" Win64="yes"/></Property>
+    <CustomAction Id="InitializeLanguage" BinaryKey="MsiActions" DllEntry="InitializeLanguage" Return="check"/>
+    <CustomAction Id="LocalizeUI" BinaryKey="MsiActions" DllEntry="LocalizeUI" Return="check"/>
     <Icon Id="NotebookAidIcon" SourceFile="@ICON@"/>
     <Condition Message="NotebookAid requires 64-bit Windows.">Installed OR VersionNT64</Condition>
     <Directory Id="TARGETDIR" Name="SourceDir">
@@ -51,6 +53,7 @@
       <Custom Action="RememberMachine" Before="CostFinalize">EXISTINGMACHINE AND ALLUSERS=1</Custom>
     </InstallUISequence>
     <InstallExecuteSequence>
+      <Custom Action="InitializeLanguage" Before="PrepareMetadata">1</Custom>
       <Custom Action="CaptureInstallFolder" Before="UserFolder">INSTALLFOLDER</Custom>
       <Custom Action="UserFolder" Before="RememberUser">NOT INSTALLFOLDER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>
       <Custom Action="RememberUser" Before="RememberMachine">EXISTINGUSER AND (NOT ALLUSERS OR (ALLUSERS=2 AND MSIINSTALLPERUSER=1))</Custom>

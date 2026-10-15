@@ -351,3 +351,7 @@ T15 安装向导补充：安装器与卸载器声明 DPI 感知；简体中文�
 原生MSI待实施方案补充：用户明确要求MSI产品名和Windows应用列表显示名固定为NotebookAid，不拼接版本号；ProductVersion／DisplayVersion独立保存纯数字版本，稳定UpgradeCode及同安装范围内升级后的单一卸载记录纳入验收。当前仅设计，不生成MSI。
 
 2026-10-15 原生MSI实施授权：用户明确要求按方案实现当前用户／本机所有用户安装，显示名固定NotebookAid，支持通过GitHub提供MSI更新。版本0.15.6，MSI与NSIS独立安装与更新渠道；检查、下载及签名／产品身份校验后，经用户确认调用Windows Installer，保持原安装范围，所有用户更新允许UAC授权。当前无签名发布者和正式Release，测试包不启用在线更新。README提供独立EXE／MSI下载入口，增加README.de-DE.md并与中英文互链，同步八语言插件说明；通过Actions上传测试产物，不正式发布。
+
+### T15 installer and ten-language scope (2026-10-15)
+
+用户要求 MSI 向导支持全部界面语言，简体中文使用微软雅黑；随后明确扩展应用日语、韩语，全部安装包支持十种语言。语言范围为 en、zh-CN、zh-TW（香港用语，兼容已有设置标识）、de、fr、it、es、pt-PT、ja、ko，AI 翻译目标语言同步扩展。README 共十种：默认英文 README.md，其余使用 zh-CN、zh-HK、de-DE、fr-FR、it-IT、es-ES、pt-PT、ja-JP、ko-KR 地区文件名，各版互链；macOS 安装桥接指南同步。DMG/ZIP 无 Windows 式向导，应用包声明十语言。用户授权 GitHub Actions 测试构建和上传产物，不正式发布。用户同时报告 EXE 和 MSI 外层 ZIP 被 Chrome 标为危险；须核实来源、哈希和检测证据，不将未签名等同误报，不绕过防护。

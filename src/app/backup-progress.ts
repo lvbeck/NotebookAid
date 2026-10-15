@@ -4,7 +4,7 @@ import { IconComponent } from './icon.component';
 import type { BackupJob, BackupProgress } from '../../shared/backup';
 import type { Locale } from './i18n';
 
-const text: Record<Locale, string[]> = {
+const text: Record<Locale, string[]> = {ja: ["ノートブックをバックアップ中", "ノートを検証中", "ファイルを走査中", "チェックサムを計算中", "ファイルをコピー中", "バックアップを検証中", "バックアップ完了", "バックアップに失敗しました", "バックアップの一貫性を保つため、ノートブックへの書き込みを一時停止しています。"], ko: ["노트북 백업 중", "노트 검증 중", "파일 검색 중", "체크섬 계산 중", "파일 복사 중", "백업 검증 중", "백업 완료", "백업 실패", "백업의 일관성을 유지하기 위해 노트북 쓰기가 일시 중지됩니다."],
   en: ['Backing up notebook', 'Validating notes', 'Scanning files', 'Calculating checksums', 'Copying files', 'Verifying backup', 'Backup complete', 'Backup failed', 'Notebook writes are paused to keep the backup consistent.'],
   de: ['Notizbuch wird gesichert', 'Notizen werden geprüft', 'Dateien werden erfasst', 'Prüfsummen werden berechnet', 'Dateien werden kopiert', 'Sicherung wird geprüft', 'Sicherung abgeschlossen', 'Sicherung fehlgeschlagen', 'Schreibvorgänge sind für eine konsistente Sicherung pausiert.'],
   fr: ['Sauvegarde du carnet', 'Validation des notes', 'Analyse des fichiers', 'Calcul des sommes de contrôle', 'Copie des fichiers', 'Vérification de la sauvegarde', 'Sauvegarde terminée', 'Échec de la sauvegarde', 'Les écritures sont suspendues pour garantir une sauvegarde cohérente.'],

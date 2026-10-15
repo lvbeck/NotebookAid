@@ -7,7 +7,7 @@ test('Every language has a complete independent dictionary', () => {
     assert.deepEqual(Object.keys(translations[locale]).sort(), keys, locale);
     for (const value of Object.values(translations[locale])) assert.ok(typeof value === 'string' && value.trim());
   }
-  assert.equal(Object.keys(translations).length, 8);
+  assert.equal(Object.keys(translations).length, 10);
 });
 test('Traditional Chinese preferences use Hong Kong conventions', () => {
   assert.equal(regionalLocale('zh-TW'), 'zh-HK');

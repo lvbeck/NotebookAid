@@ -1,7 +1,7 @@
 const fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');
 const { archive } = require('app-builder-lib/out/targets/archive');
 const { checkVersion } = require('./check-version.cjs');
-const locales = { en: 'English', 'zh-CN': '简体中文', 'zh-TW': '繁體中文', de: 'Deutsch', fr: 'Français', it: 'Italiano', es: 'Español', 'pt-PT': 'Português (Portugal)' };
+const locales = {"en-US":"English","zh-CN":"简体中文","zh-HK":"繁體中文（香港）","de-DE":"Deutsch","fr-FR":"Français","it-IT":"Italiano","es-ES":"Español","pt-PT":"Português (Portugal)","ja-JP":"日本語","ko-KR":"한국어"};
 
 async function buildMacAddon(output = path.resolve('release/macos')) {
   const version = checkVersion(), workspace = path.resolve('.');

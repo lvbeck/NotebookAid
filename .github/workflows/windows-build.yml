@@ -44,6 +44,9 @@ jobs:
       - run: npm run test:platform
       - run: npm run package
       - run: npm run installer:msi
+      - name: Verify ten MSI languages and fonts
+        shell: powershell
+        run: ./scripts/verify-msi-localization.ps1
       - name: Build synthetic MSI upgrade and rollback fixtures
         run: node scripts/build-msi-fixtures.cjs
       - name: Verify native MSI in current-user and all-user contexts
@@ -83,6 +86,9 @@ jobs:
             }
           } finally { $zip.Dispose() }
           "Windows x64 test artifacts verified for $version. Auto-update source is intentionally unconfigured." >> $env:GITHUB_STEP_SUMMARY
+      - name: Scan test packages with Windows Defender
+        shell: powershell
+        run: ./scripts/scan-windows-packages.ps1
       - name: Verify packaged UI and editor
         run: |
           node scripts/ui-smoke.cjs
@@ -124,6 +130,8 @@ jobs:
             output/editor-packaged/**/*-report.json
             output/editor-packaged/**/smoke-error.txt
             output/installer-live/**/report.json
+            output/package-security/**
+            output/msi-localization/report.json
             output/msi-live/**/report.json
             output/msi-live/**/msi-*.log
           if-no-files-found: ignore

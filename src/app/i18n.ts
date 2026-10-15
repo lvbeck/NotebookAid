@@ -1,3 +1,5 @@
+import { japanese } from './locales/ja';
+import { korean } from './locales/ko';
 import { lifecycleText } from './lifecycle-i18n';
 import { hongKong } from './locales/hk';
 import { french } from './locales/fr';
@@ -112,9 +114,9 @@ globalSettings: "Global settings", librarySettings: "Notebook settings", globalS
   about: 'AI notes & writing assistant', loading: 'Checking…'
 };
 export type MessageKey = keyof typeof english;
-export type Locale = 'en' | 'de' | 'fr' | 'it' | 'es' | 'pt-PT' | 'zh-CN' | 'zh-TW';
+export type Locale = 'ja' | 'ko' | 'en' | 'de' | 'fr' | 'it' | 'es' | 'pt-PT' | 'zh-CN' | 'zh-TW';
 export const languages: { code: Locale; label: string }[] = [
-  { code: 'en', label: 'English' }, { code: 'de', label: 'Deutsch' }, { code: 'fr', label: 'Français' },
+  { code: 'ja', label: '日本語' }, { code: 'ko', label: '한국어' }, { code: 'en', label: 'English' }, { code: 'de', label: 'Deutsch' }, { code: 'fr', label: 'Français' },
   { code: 'it', label: 'Italiano' }, { code: 'es', label: 'Español' }, { code: 'pt-PT', label: 'Português (Portugal)' },
   { code: 'zh-CN', label: '简体中文' }, { code: 'zh-TW', label: '繁體中文（香港）' }
 ];
@@ -222,7 +224,7 @@ globalSettings: "全局设置", librarySettings: "笔记本设置", globalSettin
   formatWarning: '源码包含尚未验证的格式；原始内容保留在此面板中。', about: 'AI 笔记与写作助手', loading: '检查中…'
 };
 export const translations: Record<Locale, Record<MessageKey, string>> = {
-  en: english, 'zh-CN': chinese, 'zh-TW': hongKong, de: german, fr: french, it: italian, es: spanish, 'pt-PT': portuguese
+  ja: japanese, ko: korean, en: english, 'zh-CN': chinese, 'zh-TW': hongKong, de: german, fr: french, it: italian, es: spanish, 'pt-PT': portuguese
 };
 // Preserve the existing preference ID while using Hong Kong regional conventions.
 export function regionalLocale(locale: Locale): string { return locale === 'zh-TW' ? 'zh-HK' : locale; }

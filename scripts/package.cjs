@@ -47,6 +47,7 @@ const { execFileSync } = require('node:child_process');
   copyDependency('electron-updater');
   writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'], jose: project.dependencies['jose'], parse5: project.dependencies['parse5'], marked: project.dependencies['marked'], 'ical.js': project.dependencies['ical.js'], 'electron-updater': project.dependencies['electron-updater'] } }));
   const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: mac ? 'darwin' : 'win32', arch, electronVersion: project.devDependencies.electron, overwrite: true, asar: true, prune: false,
+    extendInfo: mac ? { CFBundleLocalizations: ['en', 'de', 'fr', 'it', 'es', 'pt-PT', 'zh-CN', 'zh-HK', 'ja', 'ko'], CFBundleDevelopmentRegion: 'en' } : undefined,
     icon: resolve(mac ? 'assets/notebookaid.icns' : 'assets/notebookaid.ico'), appBundleId: 'de.zub-systems.notebookaid', appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid', ProductName: 'NotebookAid' },
     download: { cacheRoot: resolve('.cache/electron') }
   });

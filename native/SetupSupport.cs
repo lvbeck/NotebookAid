@@ -235,7 +235,7 @@ internal static class SetupSupport
             if (operation == "check") { Check(root); CheckHosts(root, scope); }
             else if (operation == "check-root") Check(root);
             else if (operation == "backup") Backup(root, scope);
-            else if (operation == "finish" && (args.Length == 4 || (args.Length == 6 && new[] { "0", "1" }.Contains(args[4]) && new[] { "0", "1" }.Contains(args[5]))) && new[] { "en", "de", "fr", "it", "es", "pt-PT", "zh-CN", "zh-TW" }.Contains(args[3])) Finish(root, scope, args[3], args.Length == 6 && args[4] == "1", args.Length == 4 || args[5] == "1");
+            else if (operation == "finish" && (args.Length == 4 || (args.Length == 6 && new[] { "0", "1" }.Contains(args[4]) && new[] { "0", "1" }.Contains(args[5]))) && new[] { "en", "de", "fr", "it", "es", "pt-PT", "ja", "ko", "zh-CN", "zh-TW" }.Contains(args[3])) Finish(root, scope, args[3], args.Length == 6 && args[4] == "1", args.Length == 4 || args[5] == "1");
             else if (operation == "remove") Remove(root, scope);
             else if (operation == "purge") Purge(root);
             else if (operation == "restore" && args.Length == 4) Restore(root, scope, args[3]);

@@ -3,6 +3,8 @@
   ManifestDPIAware true
   SetFont /LANG=2052 "Microsoft YaHei" 9
   SetFont /LANG=1028 "Microsoft JhengHei" 9
+  SetFont /LANG=1041 "Meiryo" 9
+  SetFont /LANG=1042 "Malgun Gothic" 9
   !ifndef BUILD_UNINSTALLER
   !include "${NotebookAidIncludeDir}\installer-strings.nsh"
   Var NotebookAidDesktopChoice
@@ -124,6 +126,12 @@ FunctionEnd
       ${Break}
     ${Case} 2070
       StrCpy $2 "pt-PT"
+      ${Break}
+    ${Case} 1041
+      StrCpy $2 "ja"
+      ${Break}
+    ${Case} 1042
+      StrCpy $2 "ko"
       ${Break}
     ${Case} 2052
       StrCpy $2 "zh-CN"

@@ -1,6 +1,6 @@
 # NotebookAid
 
-[English](README.md) | [简体中文](README.zh-CN.md) | [Deutsch](README.de-DE.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文（香港）](README.zh-HK.md) | [Deutsch](README.de-DE.md) | [Français](README.fr-FR.md) | [Italiano](README.it-IT.md) | [Español](README.es-ES.md) | [Português (Portugal)](README.pt-PT.md) | [日本語](README.ja-JP.md) | [한국어](README.ko-KR.md)
 
 **AI 笔记与写作助手**
 
@@ -13,7 +13,7 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 - Markdown、HTML 安全子集富文本编辑，TXT 纯文本及 Quill Delta 原生笔记；不支持的内容保留在源码模式中，避免丢失。
 - 多笔记本、嵌套文件夹、搜索、标签、置顶、最近使用、附件、自动保存、历史版本和回收站。
 - 可选笔记加密、笔记本主密码和恢复密钥、备份恢复，以及 Windows Passkey 应用锁。
-- 笔记本颜色与封面、浅色／深色／跟随系统主题、八种界面语言、新手引导和可关闭的彩蛋收集。
+- 笔记本颜色与封面、浅色／深色／跟随系统主题、十种界面语言（英语、简体中文、繁体中文〔香港〕、德语、法语、意大利语、西班牙语、葡萄牙语〔葡萄牙〕、日语、韩语）、新手引导和可关闭的彩蛋收集。
 - 通过本地 Native Messaging 与 Thunderbird 集成，并支持从 ICS 文件导入 Tasks。
 - 可选 AI 辅助：ChatGPT 订阅登录、Gemini API Key、Claude API Key。实际访问受提供商账户资格和服务条款约束，不自动切换提供商或计费渠道。
 
@@ -27,7 +27,7 @@ Windows与macOS源码统一使用纯数字版本0.15.6；应用及插件版本�
 | --- | --- | --- | --- |
 | Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.6 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951594701) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
 | Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.6 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951974541) | [MSI 安装和更新说明](docs/msi-testing.md) |
-| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、八语言安装说明和 SHA256 校验清单 | [macOS 0.15.6 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、十语言安装说明和 SHA256 校验清单 | [macOS 0.15.6 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 登录 GitHub，打开成功的运行记录，在 **Artifacts** 区域下载：
 
@@ -41,7 +41,7 @@ Windows与macOS源码统一使用纯数字版本0.15.6；应用及插件版本�
 
 ## 平台状态与限制
 
-从0.15.5起，每份macOS测试产物同时包含NotebookAid.xpi、INSTALL.md及Guides/目录下的八语言说明，可直接安装插件并注册当前用户桥接，无需另外下载Windows包。
+从0.15.7起，每份macOS测试产物同时包含NotebookAid.xpi、INSTALL.md及Guides/目录下的十语言说明，可直接安装插件并注册当前用户桥接，无需另外下载Windows包。
 
 | 平台 | 当前状态 |
 | --- | --- |

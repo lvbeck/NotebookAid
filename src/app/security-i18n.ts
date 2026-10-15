@@ -31,4 +31,36 @@ const hk: Record<Key, string> = {
   security: '保安', master: '主密碼', global: '預設啟用主密碼', globalHint: '預設關閉。每個筆記本使用獨立密碼及復原金鑰。更改預設值不會解除現有保護。', inherit: '使用全域預設', enabled: '為此筆記本啟用', setup: '設定主密碼', unlock: '解鎖', lock: '立即鎖定', recover: '復原存取', password: '更改主密碼', disable: '關閉主密碼', credential: '目前主密碼', newPassword: '新主密碼（至少 10 個字元）', repeat: '再次輸入新主密碼', recovery: '復原金鑰', recoveryHint: '請獨立保管，此金鑰只顯示一次。它可用來重設主密碼；兩者均遺失將無法復原存取。復原金鑰不會隨備份儲存。', savedKey: '我已儲存復原金鑰', cancel: '取消', continue: '繼續', protect: '加密筆記', decrypt: '解除筆記加密', hidden: '對 Thunderbird 隱藏', visible: '在 Thunderbird 中顯示', locked: '已鎖定', unlocked: '已解鎖', off: '尚未設定', boundary: '保護所選筆記、全部歷程及附件。加密無法清除舊備份、已匯出的副本及儲存裝置殘留。解除加密會在此筆記本中寫入明文。', auto: '連續 15 分鐘沒有操作、結束應用程式或切換筆記本時鎖定。儲存失敗時保留編輯，並暫緩鎖定。', remaining: '請先解除所有筆記的加密（包括資源回收筒內的筆記），再關閉主密碼。', mismatch: '兩次輸入的密碼不相符。', bad: '密碼或復原金鑰不正確，或金鑰資料損壞。', policy: '密碼須為 10–1024 個字元，UTF-8 編碼後不超過 1024 位元組。', failed: '操作失敗', unlockHint: '鎖定時不顯示加密筆記。', plainExport: '匯出內容為明文，請儲存至安全位置。', confirm: '確認', defaultOn: '預設已啟用：請完成此筆記本的主密碼設定後使用加密。'
 };
 export type SecurityKey = Key;
-export function securityText(locale: Locale, key: Key): string { return (locale === 'zh-CN' ? cn : locale === 'zh-TW' ? hk : securityLocales[locale] ?? en)[key]; }
+export function securityText(locale: Locale, key: Key): string { return (locale === 'ja' ? ja : locale === 'ko' ? ko : locale === 'zh-CN' ? cn : locale === 'zh-TW' ? hk : securityLocales[locale] ?? en)[key]; }
+
+const ko = {
+  printPreview: "인쇄 미리 보기", savePdf: "PDF 저장",
+  sourcePassword: "원본 노트북 마스터 비밀번호", print: "인쇄", printPdf: "PDF 인쇄",
+  notebookLocked: "노트북 잠김", notebookUnlocked: "노트북 잠금 해제됨",
+  showPassword: "비밀번호 표시", hidePassword: "비밀번호 숨기기",
+  security: "보안", master: "마스터 비밀번호", global: "기본적으로 마스터 비밀번호 사용", globalHint: "기본적으로 꺼져 있습니다. 각 노트북에는 별도의 비밀번호와 복구 키가 있습니다. 기본값 변경은 기존 보호를 제거하지 않습니다.",
+  inherit: "전역 기본값 사용", enabled: "이 노트북에서 사용", setup: "보호 설정", unlock: "잠금 해제", lock: "지금 잠그기", recover: "접근 복구", password: "비밀번호 변경", disable: "마스터 비밀번호 해제",
+  credential: "현재 비밀번호", newPassword: "새 비밀번호(10자 이상)", repeat: "새 비밀번호 다시 입력", recovery: "복구 키", recoveryHint: "이 키는 한 번만 표시됩니다. 비밀번호를 재설정할 수 있으므로 별도로 보관하세요. 둘 다 잃으면 접근할 수 없습니다. 백업에는 저장되지 않습니다.", savedKey: "복구 키를 저장했습니다",
+  cancel: "취소", continue: "이어 쓰기", protect: "노트 암호화", decrypt: "노트 암호화 해제", hidden: "Thunderbird에서 숨기기", visible: "Thunderbird에 표시", locked: "잠김", unlocked: "잠금 해제됨", off: "설정되지 않음",
+  boundary: "선택한 노트와 모든 버전 및 첨부 파일을 보호합니다. 이전 백업, 내보낸 사본, 저장 장치의 잔여 데이터는 암호화로 지울 수 없습니다. 암호화를 해제하면 평문을 씁니다.",
+  auto: "15분간 활동이 없거나 앱 종료 또는 노트북 전환 시 잠깁니다. 저장 실패 시 편집 내용을 유지하고 잠금을 연기합니다.",
+  remaining: "마스터 비밀번호를 해제하기 전에 휴지통을 포함한 모든 암호화된 노트의 암호화를 해제하세요.",
+  mismatch: "비밀번호가 일치하지 않습니다.", bad: "자격 증명이 올바르지 않거나 키 자료가 손상되었습니다.", policy: "10–1024자(UTF-8 최대 1024바이트)의 비밀번호를 사용하세요.", failed: "작업 실패",
+  unlockHint: "잠긴 상태에서는 암호화된 노트가 숨겨집니다.", plainExport: "내보낸 파일은 평문을 포함합니다. 안전한 위치에 보관하세요.", confirm: "확인", defaultOn: "기본적으로 사용됩니다. 암호화를 사용하려면 이 노트북의 보호 설정을 완료하세요."
+};
+
+const ja = {
+  printPreview: "印刷プレビュー", savePdf: "PDF を保存",
+  sourcePassword: "元のノートブックのマスターパスワード", print: "印刷", printPdf: "PDF を印刷",
+  notebookLocked: "ノートブックはロックされています", notebookUnlocked: "ノートブックをロック解除しました",
+  showPassword: "パスワードを表示", hidePassword: "パスワードを隠す",
+  security: "セキュリティ", master: "マスターパスワード", global: "マスターパスワードを既定で有効にする", globalHint: "既定は無効です。各ノートブックは独自のパスワードと復旧キーを持ちます。既定値を変えても既存の保護は解除しません。",
+  inherit: "全体の既定値を使用", enabled: "このノートブックで有効にする", setup: "保護を設定", unlock: "ロック解除", lock: "今すぐロック", recover: "アクセスを復旧", password: "パスワードを変更", disable: "マスターパスワードを無効にする",
+  credential: "現在のパスワード", newPassword: "新しいパスワード（10 文字以上）", repeat: "新しいパスワードを再入力", recovery: "復旧キー", recoveryHint: "このキーは一度だけ表示します。パスワードをリセットできるため別に保管してください。両方失うとアクセスできません。バックアップには保存しません。", savedKey: "復旧キーを保存しました",
+  cancel: "キャンセル", continue: "続きを書く", protect: "ノートを暗号化", decrypt: "ノートを復号", hidden: "Thunderbird に表示しない", visible: "Thunderbird に表示", locked: "ロック中", unlocked: "ロック解除済み", off: "未設定",
+  boundary: "選択したノートとすべての履歴・添付ファイルを保護します。古いバックアップ、エクスポート済みコピー、ストレージの残存データは暗号化で消去できません。復号すると平文を書き込みます。",
+  auto: "15 分間操作がない場合、終了時、ノートブック切り替え時にロックします。保存失敗時は編集を保持してロックを延期します。",
+  remaining: "マスターパスワードを無効にする前に、ごみ箱を含むすべてのノートを復号してください。",
+  mismatch: "パスワードが一致しません。", bad: "認証情報が正しくないかキーが破損しています。", policy: "10～1024 文字（UTF-8 で最大 1024 バイト）のパスワードを使用してください。", failed: "操作に失敗しました",
+  unlockHint: "ロック中は暗号化されたノートを隠します。", plainExport: "このエクスポートは平文を含みます。安全な場所へ保存してください。", confirm: "確認", defaultOn: "既定で有効です。このノートブックの設定を完了すると暗号化を利用できます。"
+};

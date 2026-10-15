@@ -1,6 +1,6 @@
 # NotebookAid
 
-[English](README.md) | [简体中文](README.zh-CN.md) | [Deutsch](README.de-DE.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文（香港）](README.zh-HK.md) | [Deutsch](README.de-DE.md) | [Français](README.fr-FR.md) | [Italiano](README.it-IT.md) | [Español](README.es-ES.md) | [Português (Portugal)](README.pt-PT.md) | [日本語](README.ja-JP.md) | [한국어](README.ko-KR.md)
 
 **Local notes and AI writing assistant**
 
@@ -13,7 +13,7 @@ NotebookAid is an open-source desktop notebook application with an optional Thun
 - Markdown and HTML rich-text editing within a supported safe subset, plain text, and native Quill Delta notes; unsupported content is protected in source mode.
 - Multiple notebooks, nested folders, search, tags, pinned and recent notes, attachments, autosave, version history and a recycle bin.
 - Optional note encryption, notebook master passwords and recovery keys, backup and restore, and Windows Passkey application locking.
-- Notebook colors and covers, light/dark/system themes, eight interface languages, onboarding and optional collectible Easter eggs.
+- Notebook colors and covers, light/dark/system themes, ten interface languages (English, Simplified Chinese, Traditional Chinese for Hong Kong, German, French, Italian, Spanish, Portuguese for Portugal, Japanese and Korean), onboarding and optional collectible Easter eggs.
 - Thunderbird integration through local Native Messaging, and Tasks import from ICS files.
 - Optional AI assistance using ChatGPT subscription sign-in, Gemini API keys or Claude API keys. Access depends on the provider's account eligibility and terms; the application does not switch providers or billing channels automatically.
 
@@ -27,7 +27,7 @@ Windows and macOS share the numeric source version 0.15.6. Application and addon
 | --- | --- | --- | --- |
 | Windows x64 EXE | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [EXE / ZIP 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951594701) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
 | Windows x64 native MSI | Native Windows Installer package and SHA256 checksums; current-user or all-user installation | [MSI 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951974541) | [MSI installation and updates](docs/msi-testing.md) |
-| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, eight language setup guides and SHA256 checksums | [macOS 0.15.6 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, ten language setup guides and SHA256 checksums | [macOS 0.15.6 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 To download, sign in to GitHub, open a successful run, then find **Artifacts**:
 
@@ -41,7 +41,7 @@ Extract the outer artifact archive first. Windows contains the installer in its 
 
 ## Platform status and limitations
 
-Starting with 0.15.5, each macOS test artifact also contains NotebookAid.xpi, INSTALL.md and eight language guides in Guides/. Follow these guides to install the addon and register its current-user bridge without downloading a Windows package.
+Starting with 0.15.7, each macOS test artifact also contains NotebookAid.xpi, INSTALL.md and ten language guides in Guides/. Follow these guides to install the addon and register its current-user bridge without downloading a Windows package.
 
 | Platform | Current status |
 | --- | --- |

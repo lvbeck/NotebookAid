@@ -25,9 +25,9 @@ test('zoom is bounded, persistent, backward compatible and invalid input leaves 
   assert.equal(nextZoom(200, 0), 100);
 });
 
-test('interface messages are complete in eight languages and never disclose unknown exception payloads', () => {
+test('interface messages are complete in ten languages and never disclose unknown exception payloads', () => {
   const keys = Object.keys(uiTranslations.en).sort();
-  assert.equal(Object.keys(uiTranslations).length, 8);
+  assert.equal(Object.keys(uiTranslations).length, 10);
   for (const [locale, entries] of Object.entries(uiTranslations)) {
     assert.deepEqual(Object.keys(entries).sort(), keys);
     for (const value of Object.values(entries)) assert.ok(typeof value === 'string' && value.trim(), locale);

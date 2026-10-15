@@ -18,6 +18,8 @@ async function run(args, environment = env) {
   cp.execFileSync('codesign', ['--verify','--deep','--strict',app]);
   const binary = cp.execFileSync('lipo', ['-archs',executable], { encoding:'utf8' }).trim();
   if (binary !== (arch === 'x64' ? 'x86_64' : arch)) throw Error('Package architecture mismatch: ' + binary);
+  const declared = JSON.parse(cp.execFileSync('plutil', ['-extract', 'CFBundleLocalizations', 'json', '-o', '-', path.join(app,'Contents/Info.plist')], {encoding:'utf8'}));
+  if (declared.length !== 10 || !declared.includes('ja') || !declared.includes('ko') || !declared.includes('zh-HK')) throw Error('Missing macOS bundle languages.');
   await run(['--self-test']);
   if (!fs.existsSync(path.join(home, 'ui-report.json'))) throw Error('Missing UI smoke report');
   await run(['--self-test-reopen']);

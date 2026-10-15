@@ -9,7 +9,7 @@ module.exports = {
     artifactName: 'NotebookAid-${version}-Setup-x64.exe',
     oneClick: false, perMachine: false, allowElevation: true,
     allowToChangeInstallationDirectory: true, displayLanguageSelector: true,
-    installerLanguages: ['en_US', 'de_DE', 'fr_FR', 'it_IT', 'es_ES', 'pt_PT', 'zh_CN', 'zh_TW'],
+    installerLanguages: ['en_US', 'de_DE', 'fr_FR', 'it_IT', 'es_ES', 'pt_PT', 'zh_CN', 'zh_TW', 'ja_JP', 'ko_KR'],
     deleteAppDataOnUninstall: false, runAfterFinish: false,
     createDesktopShortcut: false, createStartMenuShortcut: false,
     installerSidebar: 'assets/installer-sidebar.bmp', uninstallerSidebar: 'assets/installer-sidebar.bmp',

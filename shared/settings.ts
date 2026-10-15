@@ -1,5 +1,5 @@
 import type { Result } from './library';
-export const locales = ['en', 'de', 'fr', 'it', 'es', 'pt-PT', 'zh-CN', 'zh-TW'] as const;
+export const locales = ['en', 'de', 'fr', 'it', 'es', 'pt-PT', 'ja', 'ko', 'zh-CN', 'zh-TW'] as const;
 export type SettingsLocale = typeof locales[number];
 export type SettingsTheme = 'light' | 'dark' | 'system';
 export interface AutosaveSettings { enabled: boolean; minutes: number; }

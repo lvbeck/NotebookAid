@@ -63,6 +63,7 @@ function Run-Msi([string]$Mode, [string]$File, [string]$Arguments, [bool]$Failur
 }
 function Assert-Installed([string]$Target, [string]$Scope, [string]$ExpectedVersion) {
     $data = Get-Content -LiteralPath (Join-Path $Target 'installation.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($data.locale -cne $(if ($Scope -eq 'user') { 'zh-CN' } else { 'ja' })) { throw 'MSI installation language was not preserved.' }
     if ($data.owner -ne 'NotebookAid.Installation.v1' -or $data.installer -ne 'msi' -or $data.scope -ne $Scope) { throw 'Wrong MSI installation metadata.' }
     foreach ($file in @('NotebookAid.exe','NotebookAid.Bridge.exe','NotebookAid.Passkey.exe','NotebookAid.SetupSupport.exe')) {
         if (!(Test-Path -LiteralPath (Join-Path $Target $file))) { throw "Installed application resource missing: $file" }
@@ -87,8 +88,8 @@ function Assert-Installed([string]$Target, [string]$Scope, [string]$ExpectedVers
         if ($document.name -ne $name -or $document.path -ne (Join-Path $Target 'NotebookAid.Bridge.exe')) { throw 'Invalid MSI bridge manifest.' }
     }
 }
-$userArgs = 'ALLUSERS=2 MSIINSTALLPERUSER=1 INSTALLDESKTOPSHORTCUT=0 INSTALLSTARTMENUSHORTCUT=1 INSTALLFOLDER="' + $userTarget + '"'
-$machineArgs = 'ALLUSERS=1 INSTALLDESKTOPSHORTCUT=0 INSTALLSTARTMENUSHORTCUT=1 INSTALLFOLDER="' + $machineTarget + '"'
+$userArgs = 'NA_LANGUAGE=zh-CN ALLUSERS=2 MSIINSTALLPERUSER=1 INSTALLDESKTOPSHORTCUT=0 INSTALLSTARTMENUSHORTCUT=1 INSTALLFOLDER="' + $userTarget + '"'
+$machineArgs = 'NA_LANGUAGE=ja ALLUSERS=1 INSTALLDESKTOPSHORTCUT=0 INSTALLSTARTMENUSHORTCUT=1 INSTALLFOLDER="' + $machineTarget + '"'
 function Assert-RolledBack([string]$Target, [string]$Hive) {
     foreach ($file in @('NotebookAid.exe','installation.json','native-host.json','native-host-legacy.json')) {
         if (Test-Path -LiteralPath (Join-Path $Target $file)) { throw "Fresh installation rollback left a file: $file" }

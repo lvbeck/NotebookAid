@@ -10,15 +10,15 @@ The native MSI is a separate Windows Installer package, not an EXE wrapper. Prod
 
 ## Installation
 
-The MSI wizard currently uses English and offers current-user or all-user installation, an installation folder, and optional desktop and Start menu shortcuts (desktop off and Start menu on by default). The app retains all eight interface languages. All-user installation requires administrator permission and a subdirectory of Program Files. Install, upgrade, repair and uninstall require NotebookAid and its native helpers to be fully closed. The package rejects existing NSIS installations, cross-scope/path changes and another directory's bridge registration instead of overwriting them. Remove an old portable bridge using that portable copy's registration script before installing MSI. All-user installation also rejects a current-user bridge that would take precedence; other users must remove their own obsolete per-user bridge registrations when applicable.
+The MSI wizard offers a ten-language selector (English, Simplified Chinese, Traditional Chinese for Hong Kong, German, French, Italian, Spanish, Portuguese for Portugal, Japanese and Korean), defaults to the supported Windows UI language, and offers current-user or all-user installation, an installation folder, and optional desktop and Start menu shortcuts (desktop off and Start menu on by default). The app and EXE wizard support the same ten interface languages. Simplified Chinese uses Microsoft YaHei, Traditional Chinese uses Microsoft JhengHei, Japanese uses Meiryo and Korean uses Malgun Gothic. The original BSD license text remains English. Windows Installer service diagnostics and technical custom-action details can remain in English. All-user installation requires administrator permission and a subdirectory of Program Files. Install, upgrade, repair and uninstall require NotebookAid and its native helpers to be fully closed. The package rejects existing NSIS installations, cross-scope/path changes and another directory's bridge registration instead of overwriting them. Remove an old portable bridge using that portable copy's registration script before installing MSI. All-user installation also rejects a current-user bridge that would take precedence; other users must remove their own obsolete per-user bridge registrations when applicable.
 
 PowerShell examples (replace the version and package path):
 
 ```powershell
-msiexec.exe /i "NotebookAid-0.15.6-Setup-x64.msi" ALLUSERS=2 MSIINSTALLPERUSER=1 /l*v "$env:TEMP\NotebookAid-msi.log"
-msiexec.exe /i "NotebookAid-0.15.6-Setup-x64.msi" ALLUSERS=1
-msiexec.exe /fa "NotebookAid-0.15.6-Setup-x64.msi" ALLUSERS=2 MSIINSTALLPERUSER=1
-msiexec.exe /x "NotebookAid-0.15.6-Setup-x64.msi"
+msiexec.exe /i "NotebookAid-0.15.7-Setup-x64.msi" ALLUSERS=2 MSIINSTALLPERUSER=1 /l*v "$env:TEMP\NotebookAid-msi.log"
+msiexec.exe /i "NotebookAid-0.15.7-Setup-x64.msi" ALLUSERS=1
+msiexec.exe /fa "NotebookAid-0.15.7-Setup-x64.msi" ALLUSERS=2 MSIINSTALLPERUSER=1
+msiexec.exe /x "NotebookAid-0.15.7-Setup-x64.msi"
 ```
 
 For unattended deployment add `/qn /norestart`. Set `INSTALLDESKTOPSHORTCUT=0` or `INSTALLSTARTMENUSHORTCUT=0` to omit a shortcut. Keep the original installation scope and directory for upgrades. The MSI update worker also preserves the installed shortcut choices. Windows Installer owns installed files and rolls back failed transactions; unowned files are preserved. Uninstall removes only Native Messaging values still pointing to this installation. Installing an older version is rejected; for deliberate rollback uninstall the current application and reinstall the retained previous package after backing up notebooks. Application rollback is not notebook data rollback.
@@ -36,7 +36,7 @@ Once signing is approved and a formal release is explicitly authorized, publish 
 ```json
 {
   "version": "0.15.6",
-  "url": "https://github.com/lvbeck/NotebookAid/releases/download/v0.15.6/NotebookAid-0.15.6-Setup-x64.msi",
+  "url": "https://github.com/lvbeck/NotebookAid/releases/download/v0.15.6/NotebookAid-0.15.7-Setup-x64.msi",
   "sha256": "REPLACE_WITH_THE_SIGNED_MSI_SHA256",
   "size": 123456789
 }
@@ -59,3 +59,11 @@ Source commit 1e41f74: [Windows test run](https://github.com/lvbeck/NotebookAid/
 All 15 native MSI report flags passed on the disposable Windows Server 2022 administrator runner, including current-user/all-user installation, repair, first-install and upgrade deferred-failure rollback, downgrade/scope protection, preservation of external state and rejection of the actual unsigned package. The production MSI contains no failure-fixture DLL. Four ICE105 static warnings remain for machine-only operations inside the dual-purpose package; both execution contexts passed their live checks. Both installer signatures are NotSigned; real Windows 10/11 wizard, standard-user/UAC and trusted signed online-update tests remain pending.
 
 Before switching from a registered portable copy, fully exit NotebookAid and Thunderbird, then run the old copy's Register-Bridge.ps1 with -Remove from that copy's program folder. Do not run the removal command from an unrelated installation. Uninstall an existing EXE edition before choosing MSI. Notebook data and settings remain outside the application payload.
+
+## Version 0.15.7 localization verification
+
+The installer language can also be selected for unattended deployment using `NA_LANGUAGE=en`, `zh-CN`, `zh-TW` (Hong Kong wording), `de`, `fr`, `it`, `es`, `pt-PT`, `ja` or `ko`. For example, `msiexec.exe /i "NotebookAid-0.15.7-Setup-x64.msi" NA_LANGUAGE=ja ALLUSERS=2 MSIINSTALLPERUSER=1`. Invalid language IDs fail closed. The installer writes the selected language into its owned installation metadata; existing application preferences remain authoritative.
+
+`scripts/verify-msi-localization.ps1` opens the built MSI and executes only its property-setting localization action for all ten languages, checking 37 texts and both font properties for each. It does not execute an installation sequence. This does not prove visual layout, high-DPI behavior or screen-reader interaction. The disposable CI installation test additionally exercises Simplified Chinese current-user and Japanese all-user installations, upgrades, repair and rollback.
+
+Chrome blocks reported as “This file is dangerous” require investigation for both the EXE artifact ZIP and MSI artifact ZIP. The unsigned state alone does not establish why Safe Browsing blocked a particular download. Verify the successful Actions run, exact inner-file SHA256 and available antivirus results; do not rename the archive or disable browser/system protection to bypass the warning. Signing approval is still pending and signing cannot guarantee removal of a security verdict. See [Chrome download protection](https://support.google.com/chrome/answer/6261569?hl=en).

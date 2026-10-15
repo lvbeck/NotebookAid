@@ -10,7 +10,23 @@ const en = {
   privacyBackup:'Imports, exports, PDF saving and backups write files to the chosen locations. Exported plaintext, recovery-key PDFs and printed copies need your own protection. Daily backups are optional and run only while the application is running. Removing a notebook from the list does not delete its files.',
 };
 type Text = typeof en;
-export const informationTranslations: Record<Locale,Text> = {
+export const informationTranslations: Record<Locale,Text> = {ja: {
+  menu:"アプリメニュー", license:"ライセンス", privacy:"プライバシーに関する声明", about:"このアプリについて", settings:"設定", close:"閉じる", version:"バージョン", author:"作者", contact:"連絡先", description:"ローカルノートと AI 文章作成アシスタント", tagline:"手元に記録、穏やかに思考、知性が響く。",
+  project:"プロジェクトのライセンス", thirdParty:"第三者の表示", thirdPartyHint:"依存ライブラリはそれぞれのライセンスを保持します。ポータブルアプリには以下の表示ファイルを同梱し、Electron には LICENSE と LICENSES.chromium.html も含まれます。本画面は完全な表示に代わるものではありません。",
+  privacyTitle:"データとプライバシー", privacyLocal:"ノート、添付ファイル、設定、通知履歴はローカルに保存します。暗号化は任意です。ロック解除中は復号内容を表示できます。主パスワードと復旧キーは別々に保管してください。",
+  privacyAi:"AI は任意です。ログインや接続確認では選んだプロバイダーへ認証またはモデルのリクエストを送信します。明示的に生成した場合だけ、選択範囲に応じた本文と追加指示を送信します。AI アシストを無効にすると文章作成の入口を隠します。",
+  privacyCredentials:"認証情報はローカルの保護されたストレージに保存します。アプリが起動しロック解除中は ChatGPT 認証を自動更新できます。プロバイダーでの処理にはその利用規約とプライバシーポリシーが適用されます。",
+  privacyBridge:"Thunderbird は Native Messaging を通じてローカルアプリと通信します。アドオンはノートブックの安全設定で許可されたノートにアクセスできます。暗号化・非表示の内容にはアプリのアクセス規則が適用されます。",
+  privacyBackup:"インポート、エクスポート、PDF 保存、バックアップは選んだ場所へ書き込みます。平文、復旧キーの PDF、印刷物はご自身で保護してください。毎日のバックアップは任意でアプリ起動中だけ実行します。一覧からノートブックを削除してもファイルは削除しません。",
+}, ko: {
+  menu:"앱 메뉴", license:"라이선스", privacy:"개인정보 처리방침", about:"정보", settings:"설정", close:"닫기", version:"버전", author:"개발자", contact:"연락처", description:"로컬 노트 및 AI 글쓰기 도우미", tagline:"로컬에 기록하고, 차분히 생각하며, 지능의 메아리를 듣다.",
+  project:"프로젝트 라이선스", thirdParty:"타사 고지", thirdPartyHint:"의존성에는 각자의 라이선스가 적용됩니다. 포터블 앱에는 아래 고지 파일이 포함되며 Electron에는 LICENSE와 LICENSES.chromium.html도 포함됩니다. 이 화면이 전체 고지를 대체하지는 않습니다.",
+  privacyTitle:"데이터 및 개인정보", privacyLocal:"노트, 첨부 파일, 설정, 알림 기록은 로컬에 저장됩니다. 암호화는 선택 사항이며 잠금 해제된 노트북은 복호화된 내용을 표시할 수 있습니다. 기본 비밀번호와 복구 키는 따로 보관하세요.",
+  privacyAi:"AI는 선택 사항입니다. 로그인이나 연결 확인 시 선택한 제공업체로 인증 또는 모델 요청이 전송됩니다. 사용자가 직접 생성할 때만 선택한 범위에 따라 선택 텍스트 또는 전체 노트와 추가 지침이 전송됩니다. AI 지원을 끄면 글쓰기 버튼이 숨겨집니다.",
+  privacyCredentials:"제공업체 자격 증명은 로컬 보호 저장소에 보관됩니다. 앱 실행 및 잠금 해제 중에 ChatGPT 인증이 자동 갱신될 수 있습니다. 제공업체의 처리는 해당 이용약관과 개인정보 처리방침을 따릅니다.",
+  privacyBridge:"Thunderbird는 Native Messaging으로 로컬 앱과 통신합니다. 부가 기능은 노트북 보안 설정에서 허용한 노트에 접근할 수 있습니다. 암호화되거나 숨겨진 내용에는 앱의 접근 규칙이 적용됩니다.",
+  privacyBackup:"가져오기, 내보내기, PDF 저장, 백업은 선택한 위치에 파일을 씁니다. 내보낸 평문, 복구 키 PDF, 인쇄물은 직접 보호해야 합니다. 매일 백업은 선택 사항이며 앱 실행 중에만 수행됩니다. 목록에서 노트북을 제거해도 파일은 삭제되지 않습니다.",
+},
   en,
   'zh-CN': {menu:'应用菜单',license:'许可证',privacy:'隐私声明',about:'关于',settings:'设置',close:'关闭',version:'版本',author:'作者',contact:'联系邮箱',description:'AI 笔记与写作助手',tagline:'本地记录，从容思考，智能回响。',project:'项目许可证',thirdParty:'第三方声明',thirdPartyHint:'依赖保留各自的许可证。便携程序附带下列声明文件；Electron 另附 LICENSE 和 LICENSES.chromium.html。本页面不替代这些完整声明。',privacyTitle:'数据与隐私',privacyLocal:'笔记、附件、设置和通知历史保存在本地。加密为可选功能；笔记本解锁后可以显示解密内容。请单独妥善保管主密码和恢复密钥。',privacyAi:'AI 功能可选。登录或检查连接会向所选提供商发送认证或模型请求。只有主动点击生成 AI 结果时才发送笔记文字；按选择的范围发送选中文字或全文及补充要求。关闭 AI 辅助功能会隐藏辅助写作入口。',privacyCredentials:'提供商凭据保存在本地受保护存储中。应用运行并解锁时可自动续期 ChatGPT 授权。提供商的数据处理受其服务条款及隐私政策约束。',privacyBridge:'Thunderbird 通过 Native Messaging 与本地应用通信。插件可访问笔记本安全规则允许的笔记；加密或隐藏内容遵循应用的访问限制。',privacyBackup:'导入、导出、保存 PDF 和备份会在所选位置写入文件。导出的明文、恢复密钥 PDF 和打印副本需要自行保护。每日备份为可选功能，仅在应用运行时执行。从列表移除笔记本不会删除其文件。'},
   'zh-TW': {menu:'應用程式選單',license:'授權條款',privacy:'私隱聲明',about:'關於',settings:'設定',close:'關閉',version:'版本',author:'作者',contact:'聯絡電郵',description:'AI 筆記與寫作助手',tagline:'本地記錄，從容思考，智能迴響。',project:'專案授權條款',thirdParty:'第三方聲明',thirdPartyHint:'依賴保留各自的授權條款。便攜程式附有下列聲明；Electron 另附 LICENSE 及 LICENSES.chromium.html。本頁不取代完整聲明。',privacyTitle:'資料與私隱',privacyLocal:'筆記、附件、設定及通知記錄保存在本機。加密功能可選；筆記簿解鎖後可顯示解密內容。請另外妥善保管主密碼及復原金鑰。',privacyAi:'AI 功能可選。登入或檢查連線會向所選供應商傳送認證或模型要求。只有主動產生 AI 結果才傳送筆記文字，按所選範圍傳送選取文字或全文及補充要求。關閉 AI 輔助功能會隱藏寫作入口。',privacyCredentials:'供應商憑證保存在本機受保護儲存空間。應用程式執行並解鎖時可自動續期 ChatGPT 授權。供應商的資料處理受其服務條款及私隱政策規管。',privacyBridge:'Thunderbird 透過 Native Messaging 與本機應用程式通訊。附加元件可存取筆記簿安全規則允許的筆記；加密或隱藏內容遵循應用程式的存取限制。',privacyBackup:'匯入、匯出、儲存 PDF 及備份會在所選位置寫入檔案。匯出的明文、復原金鑰 PDF 及列印副本需要自行保護。每日備份可選，僅在應用程式執行時進行。從清單移除筆記簿不會刪除其檔案。'},

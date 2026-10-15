@@ -248,5 +248,72 @@ const notebookLabels = {
     "imageUnavailable": "Imagem indisponível"
   }
 };
+notebookLabels['pt-PT'] = notebookLabels.pt;
 const bridgeUnavailableLabels = {en:'Native bridge unavailable. Run Register-Bridge.ps1 in the NotebookAid program folder, then reconnect.','zh-CN':'本地桥接不可用。请运行 NotebookAid 程序目录中的 Register-Bridge.ps1，然后重新连接。','zh-TW':'本機橋接無法使用。請執行 NotebookAid 程式目錄內的 Register-Bridge.ps1，然後重新連線。',de:'Native Bridge nicht verfügbar. Register-Bridge.ps1 im NotebookAid-Programmordner ausführen und erneut verbinden.',fr:'Pont natif indisponible. Exécutez Register-Bridge.ps1 dans le dossier du programme NotebookAid, puis reconnectez-vous.',it:'Bridge nativo non disponibile. Eseguire Register-Bridge.ps1 nella cartella del programma NotebookAid, quindi riconnettersi.',es:'Puente nativo no disponible. Ejecute Register-Bridge.ps1 en la carpeta del programa NotebookAid y vuelva a conectar.','pt-PT':'Ponte nativa indisponível. Execute Register-Bridge.ps1 na pasta do programa NotebookAid e volte a ligar.'};
 for (const [locale,label] of Object.entries(bridgeUnavailableLabels)) notebookLabels[locale].bridgeUnavailable=label;
+
+notebookLabels.ja = {
+  "reconnect": "再接続",
+  "start": "バックグラウンドで開始",
+  "open": "アプリを開く",
+  "search": "タイトルとソースを検索",
+  "folder": "フォルダー",
+  "tag": "タグ",
+  "notes": "ノート",
+  "previous": "前へ",
+  "next": "次へ",
+  "mapping": "Thunderbird のタグ",
+  "mappingHint": "名前、色、元 ID をローカルタグに対応させます。削除済みの元タグと既存ノートの関連付けは保持します。",
+  "sync": "Thunderbird からタグをインポート",
+  "empty": "ノートを選択してプレビューしてください。",
+  "edit": "デスクトップで編集",
+  "trash": "ごみ箱へ移動",
+  "previewHint": "ローカルの読み取り専用プレビューです。SVG と未対応のメディアはデスクトップアプリで表示できます。",
+  "confirmTrash": "このノートをごみ箱へ移動しますか？",
+  "cancel": "キャンセル",
+  "connected": "接続済み",
+  "disconnected": "切断中：アプリを開くかバックグラウンドを起動してください。",
+  "locked": "NotebookAid でアプリをロック解除してください。",
+  "all": "すべて",
+  "failed": "操作に失敗しました。再試行してください。",
+  "inUse": "このノートは編集中です。先にデスクトップアプリで編集を終了してください。",
+  "conflict": "ノートブックまたはバージョンが変わりました。更新して再試行してください。",
+  "mismatch": "プロトコルが一致しません。対応するアプリとアドオンをインストールしてください。",
+  "synced": "タグを対応付けました",
+  "sourceMissing": "元データ削除済み",
+  "imageUnavailable": "画像を利用できません",
+  "bridgeUnavailable": "ローカルブリッジを利用できません。Windows ではプログラム内の Register-Bridge.ps1、macOS では付属のブリッジ設定ガイドを確認して再接続してください。"
+};
+
+notebookLabels.ko = {
+  "reconnect": "다시 연결",
+  "start": "백그라운드 시작",
+  "open": "앱 열기",
+  "search": "제목 및 소스 검색",
+  "folder": "폴더",
+  "tag": "태그",
+  "notes": "노트",
+  "previous": "이전",
+  "next": "다음",
+  "mapping": "Thunderbird 태그",
+  "mappingHint": "이름, 색상, 원본 ID를 로컬 태그와 연결합니다. 삭제된 원본 태그와 기존 노트 연결은 유지됩니다.",
+  "sync": "Thunderbird에서 태그 가져오기",
+  "empty": "미리 볼 노트를 선택하세요.",
+  "edit": "데스크톱에서 편집",
+  "trash": "휴지통으로 이동",
+  "previewHint": "읽기 전용 로컬 미리 보기입니다. SVG와 지원되지 않는 미디어는 데스크톱 앱에서 볼 수 있습니다.",
+  "confirmTrash": "이 노트를 휴지통으로 이동할까요?",
+  "cancel": "취소",
+  "connected": "연결됨",
+  "disconnected": "연결 해제됨: 앱을 열거나 백그라운드 프로세스를 시작하세요.",
+  "locked": "NotebookAid에서 앱 잠금을 해제하세요.",
+  "all": "전체",
+  "failed": "작업에 실패했습니다. 다시 시도하세요.",
+  "inUse": "이 노트는 편집 중입니다. 먼저 데스크톱 앱에서 편집을 마치세요.",
+  "conflict": "노트북 또는 버전이 변경되었습니다. 새로 고친 후 다시 시도하세요.",
+  "mismatch": "프로토콜이 일치하지 않습니다. 대응하는 앱과 부가 기능을 설치하세요.",
+  "synced": "태그가 연결됨",
+  "sourceMissing": "원본이 제거됨",
+  "imageUnavailable": "이미지를 사용할 수 없음",
+  "bridgeUnavailable": "로컬 브리지를 사용할 수 없습니다. Windows에서는 프로그램의 Register-Bridge.ps1을, macOS에서는 포함된 브리지 가이드를 확인한 후 다시 연결하세요."
+};

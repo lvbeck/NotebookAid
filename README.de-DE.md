@@ -1,6 +1,6 @@
 # NotebookAid
 
-[English](README.md) | [简体中文](README.zh-CN.md) | [Deutsch](README.de-DE.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文（香港）](README.zh-HK.md) | [Deutsch](README.de-DE.md) | [Français](README.fr-FR.md) | [Italiano](README.it-IT.md) | [Español](README.es-ES.md) | [Português (Portugal)](README.pt-PT.md) | [日本語](README.ja-JP.md) | [한국어](README.ko-KR.md)
 
 **Lokale Notizen und KI-Schreibassistent**
 
@@ -13,7 +13,7 @@ NotebookAid ist eine quelloffene Desktop-Anwendung für Notizbücher mit einer o
 - Markdown und HTML als Rich Text innerhalb eines sicheren unterstützten Teilumfangs, TXT und natives Quill Delta; nicht unterstützte Inhalte bleiben im Quelltextmodus geschützt.
 - Mehrere Notizbücher, Unterordner, Suche, Schlagwörter, angeheftete und zuletzt verwendete Notizen, Anhänge, automatisches Speichern, Versionsverlauf und Papierkorb.
 - Optionale Verschlüsselung, Hauptpasswort je Notizbuch, Wiederherstellungsschlüssel, Sicherung und Wiederherstellung sowie eine Windows-Anwendungssperre mit Passkey.
-- Farben und Titelbilder für Notizbücher, helle und dunkle Darstellung oder Systemdesign, acht Oberflächensprachen, Einführung und abschaltbare Sammel-Easter-Eggs.
+- Farben und Titelbilder für Notizbücher, helle und dunkle Darstellung oder Systemdesign, zehn Oberflächensprachen (Englisch, vereinfachtes Chinesisch, traditionelles Chinesisch für Hongkong, Deutsch, Französisch, Italienisch, Spanisch, Portugiesisch für Portugal, Japanisch und Koreanisch), Einführung und abschaltbare Sammel-Easter-Eggs.
 - Thunderbird-Anbindung über lokales Native Messaging und Import von Aufgaben aus ICS-Dateien.
 - Optionale KI-Unterstützung mit ChatGPT-Abonnementanmeldung, Gemini-API-Schlüssel oder Claude-API-Schlüssel. Zugang und Berechtigung richten sich nach dem Konto und den Bedingungen des Anbieters. Anbieter und Abrechnungsweg werden nicht automatisch gewechselt.
 
@@ -25,7 +25,7 @@ Das Projekt befindet sich in der Testphase. Es wurde kein offizielles GitHub Rel
 | --- | --- | --- |
 | Windows x64 EXE | [EXE / ZIP 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951594701) | NSIS-Installationsprogramm, portable ZIP-Datei, Thunderbird-XPI-Dateien und SHA256-Prüfsummen; Artefakt `NotebookAid-windows-x64-test` |
 | Windows x64 MSI | [MSI 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951974541) | Eigenständiges Windows-Installer-Paket und SHA256-Prüfsumme; Artefakt `NotebookAid-windows-x64-msi-test` |
-| macOS Apple Silicon / Intel | [macOS 0.15.6-Testdownload](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | Separate arm64- und x64-DMG/ZIP-Dateien, `NotebookAid.xpi` und Installations-/Bridge-Anleitungen in acht Sprachen |
+| macOS Apple Silicon / Intel | [macOS 0.15.6-Testdownload](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | Separate arm64- und x64-DMG/ZIP-Dateien, `NotebookAid.xpi` und Installations-/Bridge-Anleitungen in zehn Sprachen |
 
 Bei GitHub anmelden, einen erfolgreichen Workflow-Lauf öffnen und unter **Artifacts** das gewünschte Paket herunterladen. Die Pakete werden 30 Tage aufbewahrt, Prüfberichte 14 Tage. Zuerst das äußere Artefaktarchiv entpacken. Die EXE befindet sich im Unterordner `installer`; die portable ZIP muss vor dem Start von `NotebookAid.exe` zusätzlich entpackt werden. Auf dem Mac die zum Prozessor passende Architektur wählen.
 

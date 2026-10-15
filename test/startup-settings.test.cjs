@@ -11,6 +11,6 @@ test('page size persists, old settings default to 30, unsupported input is rejec
   for (const size of [0, -1, 15, 101, '10', null, 10.5]) assert.throws(() => store.update({ notePageSize: size }), { code: 'INVALID_INPUT' });
   assert.equal(store.get().global.notePageSize, 100);
 });
-test('startup stages and pagination labels exist in all eight interface languages', () => {
+test('startup stages and pagination labels exist in all ten interface languages', () => {
   for (const locale of locales) { assert.ok(pageSizeText(locale)); for (const key of ['opening', 'recovery', 'notes', 'history', 'restoring', 'failed', 'retry']) assert.ok(startupText(locale, key)); }
 });
