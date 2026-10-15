@@ -40,6 +40,9 @@ async function buildMsi(version = require('../package.json').version, outputDire
   const source = path.resolve('release', require('../package.json').version, 'NotebookAid-win32-x64');
   if (fs.existsSync(root)) fs.rmSync(root, {recursive:true});
   fs.cpSync(source, root, {recursive:true, filter: file => !['installation.json', 'native-host.json', 'native-host-legacy.json', 'Uninstall NotebookAid.exe'].includes(path.basename(file))});
+  const csc = path.join(process.env.WINDIR, 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
+  execFileSync(csc, ['/nologo', '/target:exe', '/platform:x64', '/define:MSI_UPDATE', '/reference:System.Web.Extensions.dll', '/reference:System.Core.dll', '/out:' + path.join(root, 'NotebookAid.SetupSupport.exe'), path.resolve('native/SetupSupport.cs'), path.resolve('native/MsiUpdate.cs'), require('./native-assembly-info.cjs').writeNativeAssemblyInfo(stage)], {stdio:'inherit', windowsHide:true});
+  for (const file of ['NotebookAid.exe', 'NotebookAid.Bridge.exe', 'NotebookAid.Passkey.exe', 'NotebookAid.SetupSupport.exe', 'resources/app.asar']) if (!fs.existsSync(path.join(root, file))) throw Error('Missing MSI program resource: ' + file);
   fs.writeFileSync(path.join(root, 'msi-owner.txt'), 'NotebookAid.MSI.v1\n');
   // MSI uses its own update feed and must never consume latest.yml / NSIS installers.
   fs.rmSync(path.join(root, 'resources/app-update.yml'), {force:true});
@@ -54,10 +57,16 @@ async function buildMsi(version = require('../package.json').version, outputDire
   if (!vs) throw Error('Visual C++ x64 build tools are required for MSI custom actions.');
   const batch = path.join(stage, 'compile.cmd');
   fs.writeFileSync(batch, `@echo off\r\ncall "${vs}\\VC\\Auxiliary\\Build\\vcvars64.bat" >nul\r\nif errorlevel 1 exit /b 1\r\ncl /nologo /std:c++17 /EHsc /MT /LD /W4 /O2 "${path.resolve('native/MsiActions.cpp')}" /Fo"${stage}\\MsiActions.obj" /link /OUT:"${stage}\\MsiActions.dll" /IMPLIB:"${stage}\\MsiActions.lib" msi.lib advapi32.lib shell32.lib ole32.lib\r\n`);
+  if (testFailure) {
+    const fixture = path.join(stage, 'FixtureFailure.cpp');
+    fs.writeFileSync(fixture, '#include <windows.h>\n#include <msi.h>\nextern "C" __declspec(dllexport) UINT __stdcall Fail(MSIHANDLE) { return ERROR_INSTALL_FAILURE; }\n');
+    fs.appendFileSync(batch, `if errorlevel 1 exit /b 1\r\ncl /nologo /MT /LD "${fixture}" /Fo"${stage}\\FixtureFailure.obj" /link /OUT:"${stage}\\FixtureFailure.dll" /IMPLIB:"${stage}\\FixtureFailure.lib"\r\n`);
+  }
   execFileSync(process.env.ComSpec || 'cmd.exe', ['/d', '/c', batch], {stdio:'inherit', windowsHide:true});
   const payload = declarations(root);
   const template = fs.readFileSync('installer/msi/NotebookAid.wxs', 'utf8').replace('@UI@', fs.readFileSync('installer/msi/UI.xml', 'utf8'));
-  const project = template.replaceAll('@VERSION@', version).replaceAll('@UPGRADE_CODE@', UPGRADE_CODE).replaceAll('@PRODUCT_CODE@', guid('product:' + version)).replaceAll('@ACTION_DLL@', xml(path.join(stage, 'MsiActions.dll'))).replaceAll('@ICON@', xml(path.resolve('assets/notebookaid.ico'))).replaceAll('@SIDEBAR@', xml(path.resolve('assets/installer-sidebar.bmp'))).replaceAll('@LICENSE@', xml(path.join(stage, 'license.rtf'))).replace('@FILES@', payload.files).replace('@COMPONENTS@', payload.components).replace('@TEST_ACTION@', testFailure ? '<CustomAction Id="FixtureFailure" Error="Synthetic MSI rollback fixture."/>' : '').replace('@TEST_SEQUENCE@', testFailure ? '<Custom Action="FixtureFailure" After="ApplyUserMetadata">NOT REMOVE</Custom>' : '');
+  const fixtureAction = testFailure ? `<Binary Id="FixtureFailureDll" SourceFile="${xml(path.join(stage, 'FixtureFailure.dll'))}"/><CustomAction Id="FixtureFailure" BinaryKey="FixtureFailureDll" DllEntry="Fail" Execute="deferred" Impersonate="yes" Return="check"/>` : '';
+  const project = template.replaceAll('@VERSION@', version).replaceAll('@UPGRADE_CODE@', UPGRADE_CODE).replaceAll('@PRODUCT_CODE@', guid('product:' + version)).replaceAll('@ACTION_DLL@', xml(path.join(stage, 'MsiActions.dll'))).replaceAll('@ICON@', xml(path.resolve('assets/notebookaid.ico'))).replaceAll('@SIDEBAR@', xml(path.resolve('assets/installer-sidebar.bmp'))).replaceAll('@LICENSE@', xml(path.join(stage, 'license.rtf'))).replace('@FILES@', payload.files).replace('@COMPONENTS@', payload.components).replace('@TEST_ACTION@', fixtureAction).replace('@TEST_SEQUENCE@', testFailure ? '<Custom Action="FixtureFailure" After="ApplyUserMetadata">NOT REMOVE</Custom>' : '');
   fs.writeFileSync(path.join(stage, 'license.rtf'), '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Segoe UI;}}\\f0\\fs18 ' + fs.readFileSync('LICENSE','utf8').replaceAll('\\','\\\\').replaceAll('{','\\{').replaceAll('}','\\}').replaceAll('\n','\\par\n') + '}');
   const wxs = path.join(stage, 'NotebookAid.wxs'); fs.writeFileSync(wxs, project);
   execFileSync(path.join(wix, 'candle.exe'), ['-nologo', '-arch', 'x64', '-out', stage + path.sep, wxs], {stdio:'inherit', windowsHide:true});

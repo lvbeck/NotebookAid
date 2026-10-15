@@ -64,7 +64,9 @@ function Run-Msi([string]$Mode, [string]$File, [string]$Arguments, [bool]$Failur
 function Assert-Installed([string]$Target, [string]$Scope, [string]$ExpectedVersion) {
     $data = Get-Content -LiteralPath (Join-Path $Target 'installation.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($data.owner -ne 'NotebookAid.Installation.v1' -or $data.installer -ne 'msi' -or $data.scope -ne $Scope) { throw 'Wrong MSI installation metadata.' }
-    if (!(Test-Path -LiteralPath (Join-Path $Target 'NotebookAid.exe'))) { throw 'Installed application missing.' }
+    foreach ($file in @('NotebookAid.exe','NotebookAid.Bridge.exe','NotebookAid.Passkey.exe','NotebookAid.SetupSupport.exe')) {
+        if (!(Test-Path -LiteralPath (Join-Path $Target $file))) { throw "Installed application resource missing: $file" }
+    }
     $hive = if ($Scope -eq 'machine') {'HKLM'} else {'HKCU'}
     $installer = New-Object -ComObject WindowsInstaller.Installer
     $products = @($installer.RelatedProducts('{2A38E827-A9E4-4B31-A9D5-ED345CB44129}'))
@@ -87,6 +89,24 @@ function Assert-Installed([string]$Target, [string]$Scope, [string]$ExpectedVers
 }
 $userArgs = 'ALLUSERS=2 MSIINSTALLPERUSER=1 INSTALLDESKTOPSHORTCUT=0 INSTALLSTARTMENUSHORTCUT=1 INSTALLFOLDER="' + $userTarget + '"'
 $machineArgs = 'ALLUSERS=1 INSTALLDESKTOPSHORTCUT=0 INSTALLSTARTMENUSHORTCUT=1 INSTALLFOLDER="' + $machineTarget + '"'
+function Assert-RolledBack([string]$Target, [string]$Hive) {
+    foreach ($file in @('NotebookAid.exe','installation.json','native-host.json','native-host-legacy.json')) {
+        if (Test-Path -LiteralPath (Join-Path $Target $file)) { throw "Fresh installation rollback left a file: $file" }
+    }
+    foreach ($name in $hostNames) {
+        $key = $Hive + ':\Software\Mozilla\NativeMessagingHosts\' + $name
+        if ((Test-Path -LiteralPath $key) -and (Get-Item -LiteralPath $key).GetValue('')) { throw 'Fresh rollback left a native bridge registration.' }
+    }
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    if (@($installer.RelatedProducts('{2A38E827-A9E4-4B31-A9D5-ED345CB44129}')).Count -ne 0) { throw 'Fresh rollback left an installed MSI product.' }
+}
+function Assert-FixtureFailure {
+    $log = Join-Path $job ("msi-$script:counter.log")
+    if (!(Select-String -LiteralPath $log -SimpleMatch 'CustomAction FixtureFailure returned actual error code 1603' -Quiet)) { throw 'The rollback fixture did not reach its deferred failure action.' }
+}
+Run-Msi '/i' $failedPackage $userArgs $true
+Assert-FixtureFailure
+Assert-RolledBack $userTarget HKCU
 # Older and failure packages contain synthetic program files; they are not historical release binaries.
 Run-Msi '/i' $oldPackage $userArgs
 Assert-Installed $userTarget user $older
@@ -103,6 +123,7 @@ Remove-Item -LiteralPath (Join-Path $userTarget 'NotebookAid-LICENSE.txt')
 Run-Msi '/fa' $package $userArgs
 if (!(Test-Path -LiteralPath (Join-Path $userTarget 'NotebookAid-LICENSE.txt'))) { throw 'MSI repair failed.' }
 Run-Msi '/i' $failedPackage $userArgs $true
+Assert-FixtureFailure
 Assert-Installed $userTarget user $version
 Run-Msi '/i' $oldPackage $userArgs $true
 Assert-Installed $userTarget user $version
@@ -119,13 +140,17 @@ if (!(Test-Path -LiteralPath $preserved) -or (Get-Item -LiteralPath $foreignKey)
 Run-Msi '/i' $package $machineArgs $true
 if ((Get-Item -LiteralPath $foreignKey).GetValue('') -ne $foreign) { throw 'All-user install changed a shadowing user bridge.' }
 Remove-Item -LiteralPath $foreignKey
+Run-Msi '/i' $failedPackage $machineArgs $true
+Assert-FixtureFailure
+Assert-RolledBack $machineTarget HKLM
 Run-Msi '/i' $package $machineArgs
 Assert-Installed $machineTarget machine $version
 Run-Msi '/i' $failedPackage $machineArgs $true
+Assert-FixtureFailure
 Assert-Installed $machineTarget machine $version
 Run-Msi '/fa' $package $machineArgs
 Assert-Installed $machineTarget machine $version
 Run-Msi '/x' $package $machineArgs
 if ((Test-Path -LiteralPath (Join-Path $machineTarget 'NotebookAid.exe')) -or (Test-Path -LiteralPath ('HKLM:\' + $identity))) { throw 'Machine uninstall failed.' }
-[ordered]@{version=$version;currentUser=$true;allUsers=$true;upgradeSynthetic=$true;reinstall=$true;repair=$true;rollback=$true;machineRollback=$true;downgradeRejected=$true;crossScopeRejected=$true;foreignStatePreserved=$true;shadowedBridgeRejected=$true;stableProductName=$true;unsignedUpdateRejected=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json')
+[ordered]@{version=$version;currentUser=$true;allUsers=$true;upgradeSynthetic=$true;reinstall=$true;repair=$true;rollback=$true;machineRollback=$true;freshRollback=$true;machineFreshRollback=$true;downgradeRejected=$true;crossScopeRejected=$true;foreignStatePreserved=$true;shadowedBridgeRejected=$true;stableProductName=$true;unsignedUpdateRejected=$true} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'report.json')
 Get-Content -LiteralPath (Join-Path $job 'report.json')
