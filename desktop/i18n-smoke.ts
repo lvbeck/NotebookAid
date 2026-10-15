@@ -16,5 +16,5 @@ export async function smokeI18n(window: BrowserWindow, directory: string): Promi
   }
   await run("const lang=document.querySelector('[data-testid=language]');lang.value='zh-CN';lang.dispatchEvent(new Event('change',{bubbles:true}))");
   await wait();
-  writeFileSync(join(directory,'i18n-report.json'),JSON.stringify({languages:8,keys:Object.keys(translations.en).length,contentPreserved:true,hongKongRegion:true}));
+  writeFileSync(join(directory,'i18n-report.json'),JSON.stringify({languages:Object.keys(translations).length,keys:Object.keys(translations.en).length,contentPreserved:true,hongKongRegion:true}));
 }

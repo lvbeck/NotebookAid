@@ -126,6 +126,8 @@ jobs:
           path: |
             output/ui-packaged/**/ui-report.json
             output/ui-packaged/**/ui-reopen.json
+            output/ui-packaged/**/i18n-report.json
+            output/ui-packaged/**/locale-*.png
             output/ui-packaged/**/smoke-error.txt
             output/editor-packaged/**/*-report.json
             output/editor-packaged/**/smoke-error.txt
