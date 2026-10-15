@@ -78,7 +78,12 @@ internal static class MsiUpdate
                 if (new Version(version) <= new Version(Assembly.GetExecutingAssembly().GetName().Version.ToString(3))) throw new IOException("MSI update is not newer than the installed version.");
                 int parentId; if (!Int32.TryParse(args[6], out parentId) || parentId <= 0) throw new IOException("Missing parent application process.");
                 try { using (var parent = Process.GetProcessById(parentId)) if (!parent.WaitForExit(60000)) throw new IOException("NotebookAid did not exit; update was not started."); } catch (ArgumentException) { }
-                string arguments = "/i \"" + file + "\" /norestart INSTALLFOLDER=\"" + root + "\"" + ((string)installation["scope"] == "machine" ? " ALLUSERS=1" : " ALLUSERS=2 MSIINSTALLPERUSER=1");
+                bool machine = (string)installation["scope"] == "machine";
+                string shortcuts = "";
+                using (var hive = Microsoft.Win32.RegistryKey.OpenBaseKey(machine ? Microsoft.Win32.RegistryHive.LocalMachine : Microsoft.Win32.RegistryHive.CurrentUser, Microsoft.Win32.RegistryView.Registry64))
+                using (var preferences = hive.OpenSubKey(@"Software\NotebookAid\MSIShortcuts"))
+                    shortcuts = " INSTALLDESKTOPSHORTCUT=" + (preferences != null && Object.Equals(preferences.GetValue("Desktop"), 1) ? "1" : "0") + " INSTALLSTARTMENUSHORTCUT=" + (preferences != null && Object.Equals(preferences.GetValue("StartMenu"), 1) ? "1" : "0");
+                string arguments = "/i \"" + file + "\" /norestart INSTALLFOLDER=\"" + root + "\"" + (machine ? " ALLUSERS=1" : " ALLUSERS=2 MSIINSTALLPERUSER=1") + shortcuts;
                 var start = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "msiexec.exe"), arguments) { UseShellExecute = true };
                 if ((string)installation["scope"] == "machine") start.Verb = "runas";
                 using (var process = Process.Start(start)) { process.WaitForExit(); if (process.ExitCode != 0 && process.ExitCode != 1602 && process.ExitCode != 3010) throw new IOException("Windows Installer returned " + process.ExitCode + "."); }

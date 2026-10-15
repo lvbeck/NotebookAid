@@ -39,6 +39,12 @@ function Assert-Installed([string]$Target, [string]$Scope, [string]$ExpectedVers
     $hive = if ($Scope -eq 'machine') {'HKLM'} else {'HKCU'}
     $entries = @(Get-ChildItem ($hive + ':\Software\Microsoft\Windows\CurrentVersion\Uninstall') | ForEach-Object {Get-ItemProperty -LiteralPath $_.PSPath} | Where-Object {$_.DisplayName -like 'NotebookAid*'})
     if ($entries.Count -ne 1 -or $entries[0].DisplayName -ne 'NotebookAid' -or $entries[0].DisplayVersion -ne $ExpectedVersion -or $entries[0].WindowsInstaller -ne 1) { throw 'MSI uninstall identity, name or version is incorrect.' }
+    $menu = [Environment]::GetFolderPath($(if ($Scope -eq 'machine') {'CommonPrograms'} else {'Programs'}))
+    $desktop = [Environment]::GetFolderPath($(if ($Scope -eq 'machine') {'CommonDesktopDirectory'} else {'DesktopDirectory'}))
+    $shortcut = Join-Path $menu 'NotebookAid.lnk'
+    if (!(Test-Path -LiteralPath $shortcut) -or (Test-Path -LiteralPath (Join-Path $desktop 'NotebookAid.lnk'))) { throw 'MSI shortcut selection or scope is incorrect.' }
+    $shell = New-Object -ComObject WScript.Shell
+    if ($shell.CreateShortcut($shortcut).TargetPath -ne (Join-Path $Target 'NotebookAid.exe')) { throw 'MSI Start menu shortcut target is incorrect.' }
     foreach ($name in $hostNames) {
         $key = $hive + ':\Software\Mozilla\NativeMessagingHosts\' + $name
         $manifest = (Get-Item -LiteralPath $key).GetValue('')

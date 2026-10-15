@@ -10,7 +10,7 @@ The native MSI is a separate Windows Installer package, not an EXE wrapper. Prod
 
 ## Installation
 
-The MSI wizard currently uses English and offers current-user or all-user installation, an installation folder, and optional desktop and Start menu shortcuts. The app retains all eight interface languages. All-user installation requires administrator permission and a subdirectory of Program Files. Install, upgrade, repair and uninstall require NotebookAid and its native helpers to be fully closed. The package rejects existing NSIS installations, cross-scope/path changes and another directory's bridge registration instead of overwriting them. Remove an old portable bridge using that portable copy's registration script before installing MSI. All-user installation also rejects a current-user bridge that would take precedence; other users must remove their own obsolete per-user bridge registrations when applicable.
+The MSI wizard currently uses English and offers current-user or all-user installation, an installation folder, and optional desktop and Start menu shortcuts (desktop off and Start menu on by default). The app retains all eight interface languages. All-user installation requires administrator permission and a subdirectory of Program Files. Install, upgrade, repair and uninstall require NotebookAid and its native helpers to be fully closed. The package rejects existing NSIS installations, cross-scope/path changes and another directory's bridge registration instead of overwriting them. Remove an old portable bridge using that portable copy's registration script before installing MSI. All-user installation also rejects a current-user bridge that would take precedence; other users must remove their own obsolete per-user bridge registrations when applicable.
 
 PowerShell examples (replace the version and package path):
 
@@ -21,7 +21,7 @@ msiexec.exe /fa "NotebookAid-0.15.6-Setup-x64.msi" ALLUSERS=2 MSIINSTALLPERUSER=
 msiexec.exe /x "NotebookAid-0.15.6-Setup-x64.msi"
 ```
 
-For unattended deployment add `/qn /norestart`. Set `INSTALLDESKTOPSHORTCUT=0` or `INSTALLSTARTMENUSHORTCUT=0` to omit a shortcut. Keep the original installation scope and directory for upgrades. Windows Installer owns installed files and rolls back failed transactions; unowned files are preserved. Uninstall removes only Native Messaging values still pointing to this installation. Installing an older version is rejected; for deliberate rollback uninstall the current application and reinstall the retained previous package after backing up notebooks. Application rollback is not notebook data rollback.
+For unattended deployment add `/qn /norestart`. Set `INSTALLDESKTOPSHORTCUT=0` or `INSTALLSTARTMENUSHORTCUT=0` to omit a shortcut. Keep the original installation scope and directory for upgrades. The MSI update worker also preserves the installed shortcut choices. Windows Installer owns installed files and rolls back failed transactions; unowned files are preserved. Uninstall removes only Native Messaging values still pointing to this installation. Installing an older version is rejected; for deliberate rollback uninstall the current application and reinstall the retained previous package after backing up notebooks. Application rollback is not notebook data rollback.
 
 ## GitHub-hosted MSI updates
 

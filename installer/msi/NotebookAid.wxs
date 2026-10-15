@@ -14,7 +14,7 @@
     <Property Id="ARPCONTACT" Value="it@live.cn"/>
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/lvbeck/NotebookAid"/>
     <Property Id="ARPPRODUCTICON" Value="NotebookAidIcon"/>
-    <Property Id="INSTALLDESKTOPSHORTCUT" Value="1" Secure="yes"/>
+    <Property Id="INSTALLDESKTOPSHORTCUT" Secure="yes"/>
     <Property Id="INSTALLSTARTMENUSHORTCUT" Value="1" Secure="yes"/>
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
     <Property Id="WixAppFolder" Value="WixPerUserFolder"/>
