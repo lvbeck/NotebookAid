@@ -21,13 +21,13 @@ NotebookAid is an open-source desktop notebook application with an optional Thun
 
 This project is in testing. No formal GitHub Release has been published.
 
-Windows and macOS share the numeric source version 0.15.6. Application and addon versions use major.minor.patch without platform suffixes.
+Windows and macOS share the numeric source version 0.15.7. Application and addon versions use major.minor.patch without platform suffixes.
 
 | Platform | Packages | Latest verified test build | Workflow |
 | --- | --- | --- | --- |
-| Windows x64 EXE | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [EXE / ZIP 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951594701) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| Windows x64 native MSI | Native Windows Installer package and SHA256 checksums; current-user or all-user installation | [MSI 0.15.6](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951974541) | [MSI installation and updates](docs/msi-testing.md) |
-| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, ten language setup guides and SHA256 checksums | [macOS 0.15.6 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 EXE | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [EXE / ZIP 0.15.7](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957258886) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 native MSI | Native Windows Installer package and SHA256 checksums; current-user or all-user installation | [MSI 0.15.7](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957099080) | [MSI installation and updates](docs/msi-testing.md) |
+| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, ten language setup guides and SHA256 checksums | [macOS 0.15.7 test build](https://github.com/lvbeck/NotebookAid/actions/runs/38703093814) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 To download, sign in to GitHub, open a successful run, then find **Artifacts**:
 
@@ -59,6 +59,8 @@ Thunderbird's current project baseline is Release 157.0.1. Newer releases and ES
 - An update mechanism exists, but current test packages have no active automatic-update feed. The GitHub update address is reserved for future signed releases; Actions artifacts are not an update feed.
 - Native MSI updates use a separate GitHub-hosted `latest-msi.json` channel, signature and product verification, and Windows Installer after confirmation. All-user updates may require UAC approval. MSI never installs an NSIS update. See the [MSI guide](docs/msi-testing.md).
 - AI authentication, model checks and authorized token renewal can contact the selected provider. Note text is sent for explicit generation requests. Local storage does not mean the application is always offline.
+
+The EXE and native MSI wizards support ten languages. Simplified Chinese uses Microsoft YaHei. DMG/ZIP packages include the ten-language app and setup guides; they have no Windows-style wizard. Defender scanning of these test packages does not establish why Chrome blocked a previous archive or guarantee that Safe Browsing will accept them. See [Chrome download protection](https://support.google.com/chrome/answer/6261569?hl=en).
 
 Read the [Code signing policy](docs/code-signing-policy.md) and [Privacy statement](docs/privacy.md) (English).
 

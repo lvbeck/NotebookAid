@@ -21,9 +21,9 @@ NotebookAid est une application de notes de bureau libre, avec un module Thunder
 
 Ces fichiers sont des artefacts de test, sans publication officielle. Windows et macOS partagent une version numérique. Connectez-vous à GitHub, ouvrez une exécution réussie et téléchargez ses Artifacts.
 
-- [Installateur EXE / ZIP portable](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-test`.
-- [Installateur MSI natif](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-msi-test`.
-- [Paquets macOS](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
+- [Installateur EXE / ZIP portable](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957258886): `NotebookAid-windows-x64-test`.
+- [Installateur MSI natif](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957099080): `NotebookAid-windows-x64-msi-test`.
+- [Paquets macOS](https://github.com/lvbeck/NotebookAid/actions/runs/38703093814): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
 
 ## Installation et limites
 

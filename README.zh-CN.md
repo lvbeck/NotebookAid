@@ -21,13 +21,13 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 
 项目目前处于测试阶段，尚未发布正式 GitHub Release。
 
-Windows与macOS源码统一使用纯数字版本0.15.6；应用及插件版本采用主版本.次版本.修订号，不添加平台后缀。
+Windows与macOS源码统一使用纯数字版本0.15.7；应用及插件版本采用主版本.次版本.修订号，不添加平台后缀。
 
 | 平台 | 产物 | 最新已验证测试构建 | 工作流 |
 | --- | --- | --- | --- |
-| Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.6 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951594701) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.6 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38690187888/artifacts/11951974541) | [MSI 安装和更新说明](docs/msi-testing.md) |
-| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、十语言安装说明和 SHA256 校验清单 | [macOS 0.15.6 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38690187771) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.7 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957258886) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.7 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957099080) | [MSI 安装和更新说明](docs/msi-testing.md) |
+| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、十语言安装说明和 SHA256 校验清单 | [macOS 0.15.7 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/38703093814) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 登录 GitHub，打开成功的运行记录，在 **Artifacts** 区域下载：
 
@@ -61,6 +61,8 @@ Thunderbird 当前项目基线为 Release 157.0.1；较新 Release 和 ESR 需�
 - AI 认证、模型检查及已授权的令牌续期可能访问所选提供商。笔记文字仅在明确请求生成时发送；本地存储不代表应用始终离线。
 
 公开说明：[Code signing policy](docs/code-signing-policy.md)、[Privacy statement](docs/privacy.md)（英文）。
+
+EXE 与原生 MSI 向导支持十种语言，简体中文默认微软雅黑。DMG／ZIP 提供十语言应用和安装指南，没有 Windows 式向导。Defender 扫描未检出威胁，不等同于确定 Chrome 的拦截原因，也不能保证新包不再被拦截。参见 [Chrome 下载保护说明](https://support.google.com/chrome/answer/6261569?hl=en)。
 
 ## 从源码运行
 

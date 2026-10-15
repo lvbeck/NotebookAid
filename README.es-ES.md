@@ -21,9 +21,9 @@ NotebookAid es una aplicación de notas de escritorio de código abierto con un 
 
 Son artefactos de prueba, sin publicación oficial. Windows y macOS comparten una versión numérica. Inicie sesión en GitHub, abra una ejecución correcta y descargue sus Artifacts.
 
-- [Instalador EXE / ZIP portátil](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-test`.
-- [Instalador MSI nativo](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml): `NotebookAid-windows-x64-msi-test`.
-- [Paquetes macOS](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
+- [Instalador EXE / ZIP portátil](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957258886): `NotebookAid-windows-x64-test`.
+- [Instalador MSI nativo](https://github.com/lvbeck/NotebookAid/actions/runs/38703093807/artifacts/11957099080): `NotebookAid-windows-x64-msi-test`.
+- [Paquetes macOS](https://github.com/lvbeck/NotebookAid/actions/runs/38703093814): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
 
 ## Instalación y límites
 
