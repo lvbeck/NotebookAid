@@ -46,7 +46,9 @@ const { execFileSync } = require('node:child_process');
   copyDependency('ical.js');
   copyDependency('electron-updater');
   writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'], jose: project.dependencies['jose'], parse5: project.dependencies['parse5'], marked: project.dependencies['marked'], 'ical.js': project.dependencies['ical.js'], 'electron-updater': project.dependencies['electron-updater'] } }));
+  const electronNotices = resolve('dist/electron-notices'); mkdirSync(electronNotices, { recursive: true });
   const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: mac ? 'darwin' : 'win32', arch, electronVersion: project.devDependencies.electron, overwrite: true, asar: true, prune: false,
+    afterExtract: [({ buildPath }) => require('./license-catalog.cjs').copyElectronNotices(electronNotices, buildPath)],
     extendInfo: mac ? { CFBundleLocalizations: ['en', 'de', 'fr', 'it', 'es', 'pt-PT', 'zh-CN', 'zh-HK', 'ja', 'ko'], CFBundleDevelopmentRegion: 'en' } : undefined,
     icon: resolve(mac ? 'assets/notebookaid.icns' : 'assets/notebookaid.ico'), appBundleId: 'de.zub-systems.notebookaid', appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid', ProductName: 'NotebookAid' },
     download: { cacheRoot: resolve('.cache/electron') }
@@ -105,7 +107,7 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/t05a-testing.md', join(packageRoot, 'T05A-TESTING.md'));
   cpSync('node_modules/@angular/cdk/LICENSE', join(packageRoot, 'CDK-LICENSE.txt'));
   cpSync('dist/renderer/3rdpartylicenses.txt', join(packageRoot, 'renderer-THIRD-PARTY-LICENSES.txt'));
-  require('./license-catalog.cjs').copyElectronNotices(packageRoot);
+  require('./license-catalog.cjs').copyElectronNotices(packageRoot, electronNotices);
   require('./distribution-licenses.cjs').distributionLicenses(packageRoot, stage);
   await require('./build-addons.cjs').buildAddons(releaseRoot);
   for (const name of Object.keys(require('./build-addons.cjs').addons)) cpSync(join(releaseRoot, name), join(packageRoot, name));

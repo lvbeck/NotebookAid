@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const {addonMaterials,prepareAddon,verifyAddonMaterials,updateCatalog}=require('../scripts/license-catalog.cjs');
+const {addonMaterials,prepareAddon,verifyAddonMaterials,updateCatalog,copyElectronNotices}=require('../scripts/license-catalog.cjs');
 fs.mkdirSync('output',{recursive:true});
 
 test('standalone XPI notices cover bundled Quill dependencies and reject missing or changed notices',()=>{
@@ -45,5 +45,21 @@ test('Windows autocrlf checkout preserves exact vendored JavaScript bytes',{skip
     const files=[['quill.js','quill/dist/quill.js'],['marked.js','marked/lib/marked.umd.js'],['purify.js','dompurify/dist/purify.js']];
     require('node:child_process').execFileSync('git',['-c','core.autocrlf=true','checkout-index','--prefix='+root.replaceAll('\\','/')+'/','--',...files.map(([file])=>'thunderbird/vendor/'+file)],{windowsHide:true});
     for(const [file,upstream]of files) assert.ok(fs.readFileSync(path.join(root,'thunderbird/vendor',file)).equals(fs.readFileSync(path.join('node_modules',upstream))),file);
+  } finally { fs.rmSync(root,{recursive:true,force:true}); }
+});
+
+test('Electron notices come from the extracted target distribution without an installed Electron binary',()=>{
+  const root=fs.mkdtempSync(path.resolve('output/license-electron-'));
+  try {
+    const source=path.join(root,'extracted'),target=path.join(root,'notices'),nested=path.join(source,'Electron.app/Contents/Resources');
+    fs.mkdirSync(nested,{recursive:true});fs.mkdirSync(target);
+    fs.writeFileSync(path.join(source,'LICENSE'),'target Electron license');
+    fs.writeFileSync(path.join(nested,'LICENSES.chromium.html'),'target dependency notices');
+    copyElectronNotices(target,source);
+    assert.equal(fs.readFileSync(path.join(target,'LICENSE'),'utf8'),'target Electron license');
+    assert.equal(fs.readFileSync(path.join(target,'LICENSES.chromium.html'),'utf8'),'target dependency notices');
+    fs.unlinkSync(path.join(nested,'LICENSES.chromium.html'));
+    assert.throws(()=>copyElectronNotices(target,source),/Missing Electron distribution notice/);
+    assert.throws(()=>copyElectronNotices(target),/Extracted Electron distribution/);
   } finally { fs.rmSync(root,{recursive:true,force:true}); }
 });

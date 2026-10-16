@@ -66,8 +66,8 @@ function updateCatalog(root) {
   fs.writeFileSync(file,JSON.stringify(catalog,null,2));
   return catalog;
 }
-function copyElectronNotices(root) {
-  const directory=path.join(path.dirname(require.resolve('electron/package.json')),'dist');
+function copyElectronNotices(root,directory) {
+  if(!directory||!fs.existsSync(directory)) throw Error('Extracted Electron distribution is required for notices');
   function find(folder,name) {
     const direct=path.join(folder,name);
     if(fs.existsSync(direct)&&fs.statSync(direct).isFile()) return direct;
