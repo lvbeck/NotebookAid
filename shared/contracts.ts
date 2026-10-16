@@ -21,6 +21,7 @@ export interface ThirdPartyCatalog { components: { name: string; version: string
 
 export interface PrototypeApi {
   thirdPartyCatalog(): Promise<ThirdPartyCatalog>;
+  openInformationLink(target: 'github'|'support'|'contact'): Promise<void>;
   updates: import('./updates').UpdatesApi;
   editCommand(action:'cut'|'copy'|'paste'|'selectAll'):Promise<void>;
   folderBulk: import('./batch').FolderBulkApi;

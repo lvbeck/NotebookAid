@@ -19,7 +19,7 @@ import type { AddonRequest, DesktopNoteTarget } from '../shared/addon';
 import { translate, type Locale } from '../src/app/i18n';
 import { smokeHtmlImport } from './html-import-smoke';
 import { smokeLibrary } from './smoke';
-import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, shell } from 'electron';
 import { chmodSync, mkdirSync, writeFileSync, existsSync, unlinkSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -160,6 +160,12 @@ async function start(): Promise<void> {
     const catalog = JSON.parse(readFileSync(join(root,'distribution-dependencies.json'),'utf8')) as import('../shared/contracts').ThirdPartyCatalog;
     if (!Array.isArray(catalog.components) || !Array.isArray(catalog.noticeFiles)) throw Error('INVALID_CATALOG');
     return { components: [...catalog.components,{name:'Node.js',version:process.versions.node,license:'See bundled notices',notices:['LICENSES.chromium.html']}], noticeFiles: catalog.noticeFiles };
+  });
+  ipcMain.handle('information:open-link', async (event, target: unknown) => {
+    authorize(event);
+    const links = { github: 'https://github.com/lvbeck/NotebookAid', support: 'https://buymeacoffee.com/lvbeck', contact: 'mailto:it@live.cn' };
+    if (typeof target !== 'string' || !Object.hasOwn(links,target)) throw new Error('INVALID_INPUT');
+    await shell.openExternal(links[target as keyof typeof links]);
   });
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });
   ipcMain.handle('prototype:sqlite', event => { protectedCaller(event); return runSqliteProbe(dataPath); });

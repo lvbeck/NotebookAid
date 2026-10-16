@@ -24,6 +24,7 @@
     </article>
     @defer (when active && section() === 'global') { <app-easter-settings /> }
     <app-updates [locale]="locale" />
+    <article class="panel settings-panel" data-testid="about-settings"><h2>{{ aboutTitle() }}</h2><app-about-content [locale]="locale" /></article>
   </div>
   <div [hidden]="section() !== 'library'">
     <label class="setting-row settings-panel"><span>{{ t('chooseLibrary') }}</span><select appSelect data-testid="settings-library-select" [ngModel]="selectedId()" (ngModelChange)="select($event)" [disabled]="prefs.busy() || workspace.switching() || upgrading()">@for (item of workspace.registry().entries; track item.id) { <option [value]="item.id">{{ item.name }}{{ item.current ? ' · ' + t('libCurrent') : '' }}</option> }</select></label>

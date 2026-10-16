@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { thirdPartyText } from './third-party-i18n';
 import type { ThirdPartyCatalog } from '../../shared/contracts';
+import { AboutContent } from './about-content';
 import { EasterBridge } from './easter-bridge';
 import { Component, inject } from '@angular/core';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
@@ -10,7 +11,7 @@ import type { Locale } from './i18n';
 import { projectLicense } from './project-license';
 
 export type InformationPage = 'license' | 'privacy' | 'about';
-@Component({standalone:true,imports:[IconComponent],template:`
+@Component({standalone:true,imports:[IconComponent,AboutContent],template:`
   <section class="app-confirm-dialog information-dialog" data-testid="information-dialog" [attr.data-page]="data.page">
     <header><h2 id="information-title">{{t(data.page)}}</h2><button class="icon-button" data-testid="information-close" [attr.aria-label]="t('close')" (click)="ref.close()"><app-icon name="X" /></button></header>
     @switch(data.page){
@@ -27,8 +28,7 @@ export type InformationPage = 'license' | 'privacy' | 'about';
         @for(key of privacyKeys;track key){<p>{{t(key)}}</p>}
       }
       @case('about'){
-        <div class="information-brand"><img src="assets/notebookaid-64.png" alt=""><div><h3>NotebookAid</h3><p>{{t('description')}}</p></div></div>
-        <p>{{taglinePrefix()}}<button class="easter-slogan" data-testid="egg-echo" (click)="eggs.collect('echo')">{{taglineEcho()}}</button></p><dl><dt>{{t('version')}}</dt><dd data-testid="information-version">{{data.version}}</dd><dt>{{t('author')}}</dt><dd>Jin Lu</dd><dt>{{t('contact')}}</dt><dd>it@live.cn</dd></dl><p>Copyright © 2026 Jin Lu · BSD-3-Clause</p>
+        <app-about-content [locale]="data.locale" [version]="data.version" />
       }
     }
     <footer><button class="secondary" data-testid="information-dismiss" (click)="ref.close()"><app-icon name="X" />{{t('close')}}</button></footer>
@@ -44,7 +44,4 @@ export class InformationDialog {
   label(index:0|1|2|3):string{return thirdPartyText(this.data.locale,index);}
   constructor(){if(this.data.page==='license')void window.notebookAid.thirdPartyCatalog().then(value=>this.catalog.set(value)).catch(()=>this.failed.set(true));}
   t(key:InformationKey):string{return informationText(this.data.locale,key);}
-  private taglineBreak():number { const text=this.t('tagline');return Math.max(text.lastIndexOf(','),text.lastIndexOf('，'))+1; }
-  taglinePrefix():string { return this.t('tagline').slice(0,this.taglineBreak()); }
-  taglineEcho():string { return this.t('tagline').slice(this.taglineBreak()); }
 }

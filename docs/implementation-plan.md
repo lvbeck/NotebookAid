@@ -1162,6 +1162,20 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - No next task, formal Release, tag or update-feed activation is authorized. Record this acceptance locally; do not start further development or release work. T15-A remains shelved.
 
 
+### About and settings support layout (2026-10-16; awaiting user acceptance)
+
+- Authorized by the user after approving the interactive preview: implement both locations, complete ten translations, package and update the portable test directory; no formal release. This is a scoped addition, not authorization to resume T15-A or any next task.
+- Numeric test version 0.15.10. Reusable About content preserves runtime version, author/contact, existing tagline Easter egg and full BSD-3-Clause license. Settings adds this content after application updates.
+- External links use fixed GitHub/support/contact targets validated in the main process. No remote widget or automatic request is introduced.
+- Validation and deployment results will be recorded after execution. Source remains uncommitted pending acceptance; no GitHub push or Release is authorized.
+
+- Validation completed: Angular production build and desktop TypeScript compilation passed. Full regression: 280 tests, 279 passed, 0 failed, 1 skipped. Development and packaged Electron UI/restart checks passed with isolated profiles; new assertions exercised settings support translations and dialog links/license for all ten locales. Packaged report: output/ui-packaged/1792140088382. Actual Chinese About screenshot was inspected.
+- Built local Windows 0.15.10 EXE, native MSI and portable ZIP; both embedded XPI files were verified against standalone files. MSI localization: ten languages, 37 native strings per language, Microsoft YaHei for Simplified Chinese. Existing dual-scope ICE105 and deserialized-field compiler warnings remain; this UI task did not change installer logic or repeat actual installation testing.
+- Defender scanned EXE/MSI/ZIP with remediation disabled; all three exit codes were 0 (output/package-security/report.json). This is not a Chrome Safe Browsing verdict. EXE SHA256 e19eef50e88364df59062869b7fab07fc8d0a40ad8b5cddfbe6144e8e6c7a4a3; MSI a568f85d21d17681fa0ff8cbf4a97ff2e146e737737670b50993d4ab1cc27022; ZIP 941c1225d3a979e4a54c9e2bf9c7f0bf4bdf6fa569e1f65d03b76b23da1aa346.
+- Initial deployment was safely blocked by the running installed application. After the user's explicit exit reply, Prepare-TestPortable.ps1 deployed C:\Softwares\NotebookAid-win32-x64 successfully: verified=true, backupCreated=false, bridgeManifestsRestored=2. Retained 0.15.9 ZIP is the program rollback source through the same guarded script after exiting. No notebook data migration was performed.
+- Awaiting user acceptance: open About and scroll to support; inspect settings bottom, privacy disclosure, full license and link destinations; switch interface languages and light/dark themes. Browser/email-client opening, physical keyboard/screen reader and real EXE/MSI installation remain manual checks. macOS was not rebuilt in this local Windows pass. No push, tag, formal Release or next-task work.
+
+
 ### Generated third-party notices correction (2026-10-16; awaiting user acceptance)
 
 - Authorized directly by the user: complete third-party statements, show component/version/license from the packaging manifest, complete XPI license material and add checks; package and deploy for acceptance without formal publication. Earlier About/support scope remains uncommitted pending acceptance.
@@ -1183,3 +1197,12 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - Actual user acceptance: "第三方声明补齐验收通过，下个任务是什么". Accepted scope is the 0.15.11 generated component/version/license catalog, on-demand license UI, XPI dependency notices and packaging validation.
 - Commit only this accepted correction. The earlier About/support redesign has no separate explicit acceptance and remains outside this commit. No next-task implementation, push or formal release is authorized.
 - The original numbered plan ends at T15. Remaining work is T15 release-readiness verification; T15-A stays shelved until explicitly resumed. No T16 has been defined or authorized.
+
+
+### About/support and user installation acceptance (2026-10-16; approved scope)
+
+- Direct user acceptance: "关于和赞助页面也验收通过。Windows EXE/MSI 的安装、升级、修复、卸载和桥接也验证通过。macOS：在 Mac mini 上安装验证通过、Thunderbird 插件及桥接未测试。签名与自动更新，Windows现在还没有签名，mac版本是自签名。自动更新还未设置，应该如何设置".
+- About/support UI, its ten-language text and related tests are now approved for local commit. Windows installation/upgrade/repair/uninstall/bridge outcomes are user-reported acceptance, not newly executed automated checks; the user did not specify Windows versions, install scopes or exact package versions, so no broader matrix is inferred. Mac mini installation is user-verified, while macOS Thunderbird integration remains untested.
+- Windows remains unsigned. Current macOS build script uses ad-hoc identity '-' and disables notarization; no trusted signed-update end-to-end result is claimed. Automatic updating is not enabled.
+- Read-only update analysis: Windows NSIS reads NOTEBOOKAID_UPDATE_URL/NOTEBOOKAID_UPDATE_PUBLISHER at build time and enforces signing. MSI has its own latest-msi.json feed and NOTEBOOKAID_MSI_PUBLISHER. Current macOS build has publish:null, and updateSourceReady currently requires publisherName even for macOS; platform-specific feed/signing configuration needs authorized implementation before macOS updating can be tested. Existing test workflows do not activate release/update publishing.
+- This turn records acceptance and explains setup only. No update logic/configuration activation, GitHub push, release/tag or T15-A work is authorized. Previously executed 0.15.11 checks remain the validation evidence; no source implementation change requires rerunning them.

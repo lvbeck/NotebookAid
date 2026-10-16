@@ -3,6 +3,7 @@ import type { PrototypeApi } from '../shared/contracts';
 
 const api: PrototypeApi = {
   thirdPartyCatalog: () => ipcRenderer.invoke('information:third-party'),
+  openInformationLink: target => ipcRenderer.invoke('information:open-link',target),
   updates: { state: () => ipcRenderer.invoke('updates:state'), check: () => ipcRenderer.invoke('updates:check'), install: () => ipcRenderer.invoke('updates:install'), onState: callback => { const listener = (_event: Electron.IpcRendererEvent, state: import('../shared/updates').UpdateState) => callback(state); ipcRenderer.on('updates:state', listener); return () => ipcRenderer.removeListener('updates:state', listener); } },
   editCommand:action=>ipcRenderer.invoke('prototype:edit-command',action),
   uiZoom: percent => ipcRenderer.invoke('prototype:ui-zoom', percent),

@@ -364,6 +364,13 @@ The shared application language list preserves the original eight-language order
 Fresh application-created notebooks, including the first default library directory and the settings Create action, start at latestNotebookSchemaVersion. Opening an existing notebook does not implicitly upgrade it; the explicit upgrade confirmation and backup workflow remains in place (2026-10-15).
 
 
+### About and support information (2026-10-16)
+
+- The About dialog and the bottom of global settings share software name, runtime version, author, contact, GitHub project link, expandable privacy statement, full BSD-3-Clause license, disclaimer and a voluntary Buy me a coffee action.
+- GitHub points to https://github.com/lvbeck/NotebookAid and support to https://buymeacoffee.com/lvbeck. Open external destinations only after an explicit click through a fixed desktop allowlist; do not embed remote donation widgets.
+- Translate all new explanatory text into the existing ten interface languages; preserve the Buy me a coffee brand and existing Easter egg triggers.
+
+
 ### Generated third-party inventory (2026-10-16)
 
 - The license dialog displays component name, shipped version and license from the actual distribution manifest, including renderer/runtime dependencies, Electron/Node and platform notices. The project license remains separate. Load inventory only when the license page opens.

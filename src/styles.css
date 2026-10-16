@@ -39,6 +39,23 @@ app-icon { display:inline-flex; flex-shrink:0; align-items:center; }
 .information-brand h3, .information-brand p { margin:0; }
 .information-dialog dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px 20px; }
 .information-dialog dd { margin:0; overflow-wrap:anywhere; }
+.about-content section { border-bottom:1px solid var(--line); padding:20px 0; }
+.about-content h3 { margin:0 0 16px; }
+.about-content p { line-height:1.8; }
+.about-metadata { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.about-content .about-metadata dl { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr); gap:14px 20px; margin:0 0 20px; }
+.about-content dt { color:var(--muted); }
+.about-content dd { margin:0; overflow-wrap:anywhere; }
+.about-content a, .about-link { color:var(--accent); }
+.about-links { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+.about-links a, .about-link, .about-coffee { display:inline-flex; align-items:center; justify-content:center; gap:10px; }
+.about-link { border:0; background:transparent; padding:0; font:inherit; cursor:pointer; }
+.about-links a { text-decoration:none; }
+.about-content .about-coffee { background:var(--accent); color:var(--accent-text); border-radius:10px; padding:14px 22px; text-decoration:none; }
+.about-content summary { cursor:pointer; font-weight:600; }
+.about-content .license-text { white-space:pre-wrap; overflow-wrap:anywhere; padding:16px; background:var(--bg); border:1px solid var(--line); border-radius:8px; font:12px/1.7 Consolas,monospace; }
+.about-copyright { font-size:12px; }
+@media(max-width:600px) { .about-metadata { grid-template-columns:minmax(0,1fr); gap:0; } }
 .note-card { margin-bottom:12px; }
 .note-list { overflow-y:auto; }
 .tagline { color:var(--muted); font-size:11px; margin:14px 8px 27px; letter-spacing:.5px; }

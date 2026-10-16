@@ -1,3 +1,4 @@
+import { aboutText } from '../src/app/about-i18n';
 import type { BrowserWindow } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -66,6 +67,7 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
     await click('menu-check-updates');
     await until("document.activeElement?.dataset.testid==='update-settings'&&document.querySelector('[data-testid=update-settings]').getClientRects().length>0");
     if (!await run(`document.querySelector('[data-testid=update-settings] h2').textContent===${JSON.stringify(updateText(locale,'title'))}`)) throw Error('Update settings are not localized');
+    if (!await run(`document.querySelector('[data-testid=about-settings] [data-testid=about-support]').textContent.trim()==='Buy me a coffee' && document.querySelector('[data-testid=about-settings]').textContent.includes(${JSON.stringify(aboutText(locale,'voluntary'))})`)) throw Error('Settings support translation missing: '+locale);
     for(const page of ['license','privacy','about'] as const){
       await click('application-menu');await until("document.querySelectorAll('.application-menu [role=menuitem]').length===5");
       await click('menu-'+page);await until(`document.querySelector('[data-testid=information-dialog]')?.dataset.page===${JSON.stringify(page)}`);
@@ -77,6 +79,12 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
       if(page==='license'&&!await run(`document.querySelector('.license-text').textContent===${JSON.stringify(projectLicense)}`))throw Error('License text changed');
       if(page==='privacy'&&!await run(`document.querySelector('[data-testid=information-dialog]').textContent.includes(${JSON.stringify(informationText(locale,'privacyAi'))})`))throw Error('Privacy content not localized');
       if(page==='about'&&!await run(`document.querySelector('[data-testid=information-version]').textContent===${JSON.stringify((await run('window.notebookAid.runtime()')).version)}`))throw Error('About version is stale');
+      if(page==='about') {
+        if(!await run(`document.querySelector('[data-testid=information-dialog] [data-testid=about-support]').getAttribute('href')==='https://buymeacoffee.com/lvbeck' && document.querySelector('[data-testid=information-dialog] [data-testid=about-github]').getAttribute('href')==='https://github.com/lvbeck/NotebookAid' && document.querySelector('[data-testid=information-dialog]').textContent.includes(${JSON.stringify(aboutText(locale,'support'))})`)) throw Error('About support links or translation missing: '+locale);
+        await run("document.querySelector('[data-testid=information-dialog] [data-testid=about-license]').open=true");
+        if(!await run(`document.querySelector('[data-testid=information-dialog] .license-text').textContent===${JSON.stringify(projectLicense)}`)) throw Error('About license incomplete');
+        await run("document.querySelector('[data-testid=information-dialog] [data-testid=about-license]').open=false");
+      }
       await until("document.activeElement?.dataset.testid==='information-close'");
       if(locale==='zh-CN'){window.showInactive();await run("document.querySelectorAll('[data-testid=notification] .notification-card-top button').forEach(button=>button.click());new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");await new Promise(resolve=>setTimeout(resolve,200));writeFileSync(join(directory,'information-'+page+'.png'),(await window.webContents.capturePage()).toPNG());}
       await run("document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',keyCode:27,bubbles:true,cancelable:true}))");await until("!document.querySelector('[data-testid=information-dialog]')");
