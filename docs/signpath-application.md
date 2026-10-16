@@ -92,3 +92,8 @@ Optional AI authentication, model checks and generation contact the provider sel
 5. 配置实际签名发布者和更新目录，先交付签名测试包；正式Release需用户另行授权。
 
 资料来源：[官方表单](https://signpath.org/apply)、[免费服务](https://signpath.org/)、[条件](https://signpath.org/terms.html)。以实际提交时官网为准。
+
+
+## Status update — 2026-10-16
+
+The maintainer reported that the SignPath application was not approved. Windows signing is suspended. The earlier application material is retained as historical preparation, not an active approval or signing arrangement. Update builds remain inactive candidates; macOS stays on manual updates.

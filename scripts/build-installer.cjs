@@ -3,6 +3,7 @@ const fs = require('node:fs'), path = require('node:path'), crypto = require('no
 const { execFileSync } = require('node:child_process');
 const project = require('../package.json');
 require('./check-version.cjs').checkVersion();
+const installerConfig = require('./installer-config.cjs');
 process.env.ELECTRON_BUILDER_CACHE = path.resolve('.cache/electron-builder');
 (async () => {
 const root = path.resolve('release', project.version, 'NotebookAid-win32-x64');
@@ -30,7 +31,7 @@ function collect(directory) {
 }
 collect(root);
 fs.writeFileSync(path.join(root, 'installation-files.json'), JSON.stringify({ owner: 'NotebookAid.Installation.v1', version: project.version, files }));
-const paths = await build({ prepackaged: root, config: require('./installer-config.cjs'), publish: 'never' });
+const paths = await build({ prepackaged: root, config: installerConfig, publish: 'never' });
   console.log(paths);
   for (const file of paths.filter(file => fs.existsSync(file) && fs.statSync(file).isFile())) console.log(crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'), path.basename(file));
 })().catch(error => { console.error(error); process.exit(1); });

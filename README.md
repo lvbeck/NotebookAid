@@ -54,7 +54,7 @@ Thunderbird's current project baseline is Release 157.0.1. Newer releases and ES
 
 ## Signing, updates and privacy
 
-- **Windows test packages are unsigned.** The maintainer has submitted the SignPath Foundation application and is awaiting review; signing has not been approved or enabled.
+- **Windows test packages are unsigned.** The SignPath Foundation application was not approved; Windows signing is suspended. Automatic updates remain disabled.
 - macOS test applications use ad-hoc signing, without Developer ID signing or Apple notarization. Gatekeeper may block them; do not disable system-wide security protections to run a test build.
 - An update mechanism exists, but current test packages have no active automatic-update feed. The GitHub update address is reserved for future signed releases; Actions artifacts are not an update feed.
 - Native MSI updates use a separate GitHub-hosted `latest-msi.json` channel, signature and product verification, and Windows Installer after confirmation. All-user updates may require UAC approval. MSI never installs an NSIS update. See the [MSI guide](docs/msi-testing.md).

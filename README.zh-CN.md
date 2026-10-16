@@ -54,7 +54,7 @@ Thunderbird 当前项目基线为 Release 157.0.1；较新 Release 和 ESR 需�
 
 ## 签名、更新与隐私
 
-- **Windows 测试包未签名。** 维护者已提交 SignPath Foundation 申请，正在等待审核；尚未获批或启用签名。
+- **Windows 测试包未签名。** SignPath Foundation 申请未获通过，Windows 签名暂时搁置，自动更新仍未启用。
 - macOS 测试应用使用 ad-hoc 签名，没有 Developer ID 签名及 Apple 公证。Gatekeeper 可能阻止打开，请勿为运行测试包而全局关闭系统安全机制。
 - 已实现更新机制，但当前测试包没有启用自动更新源。GitHub 更新地址留待后续签名发布使用；Actions 测试产物不是更新源。
 - 原生 MSI 使用独立的 GitHub `latest-msi.json` 更新渠道，检查签名与产品身份，经确认后交由 Windows Installer 安装。所有用户更新可能要求 UAC 授权；不会安装 NSIS 更新。见 [MSI 说明](docs/msi-testing.md)。

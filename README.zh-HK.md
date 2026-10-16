@@ -35,7 +35,7 @@ macOS 分別提供 Apple Silicon arm64 和 Intel x64 的 DMG、ZIP，另附 Note
 
 ## 簽署、更新與私隱
 
-Windows 測試套件尚未簽署，SignPath Foundation 申請仍在審核。Chrome 可能攔截下載；不能僅憑未簽署就斷定是誤報。請保留警告並核對來源和 SHA256，不要停用整體防護。
+Windows 測試套件尚未簽署，SignPath Foundation 申請未獲通過，Windows 簽署暫時擱置，自動更新仍未啟用。Chrome 可能攔截下載；不能僅憑未簽署就斷定是誤報。請保留警告並核對來源和 SHA256，不要停用整體防護。
 
 macOS 使用臨時簽署，沒有 Developer ID 簽署或 Apple 公證。真正的 Mac、Thunderbird、Keychain 及 AI 帳戶仍需實機驗證；此 macOS 測試版不支援 Passkey 應用程式鎖。Windows 10 也仍需實機驗證。
 

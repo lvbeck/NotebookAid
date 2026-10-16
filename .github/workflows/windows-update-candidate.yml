@@ -1,0 +1,75 @@
+name: Windows update candidates (no release)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-update-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      NOTEBOOKAID_UPDATE_URL: ''
+      NOTEBOOKAID_UPDATE_PUBLISHER: ''
+      NOTEBOOKAID_MSI_PUBLISHER: ''
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.21.0'
+          cache: npm
+      - name: Check inactive update policy
+        shell: pwsh
+        run: |
+          $policy = Get-Content config/github-updates.json -Raw | ConvertFrom-Json
+          if ($policy.windows.mode -ne 'prepare-only' -or $policy.windows.publisherName -or $policy.windows.requireSignature -ne $true -or $policy.macOS.mode -ne 'manual') { throw 'This workflow only prepares inactive Windows candidates.' }
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:platform
+      - run: npm run package
+      - run: npm run installer
+      - run: npm run installer:msi
+      - name: Verify MSI localization
+        shell: powershell
+        run: ./scripts/verify-msi-localization.ps1
+      - name: Build portable test ZIP
+        shell: powershell
+        run: ./scripts/Build-TestBundle.ps1
+      - name: Prepare inactive EXE and MSI update assets
+        run: node scripts/prepare-github-updates.cjs --candidate
+      - name: Scan Windows test installers and ZIP
+        shell: powershell
+        run: ./scripts/scan-windows-packages.ps1
+      - name: Verify packaged application UI with isolated fixtures
+        run: node scripts/ui-smoke.cjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: NotebookAid-windows-update-candidate-${{ github.run_id }}
+          path: |
+            release/update-candidate/
+            config/github-updates.json
+            docs/github-updates.md
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: NotebookAid-update-candidate-verification-${{ github.run_id }}
+          path: |
+            output/package-security/
+            output/msi-localization/report.json
+            output/ui-packaged/**/ui-report.json
+            output/ui-packaged/**/ui-reopen.json
+            output/ui-packaged/**/smoke-error.txt
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Summarize preparation status
+        shell: pwsh
+        run: |
+          'Update candidate only: unsigned; automatic updates disabled; macOS manual; no Release or tag created.' >> $env:GITHUB_STEP_SUMMARY

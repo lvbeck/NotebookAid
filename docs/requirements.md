@@ -375,3 +375,10 @@ Fresh application-created notebooks, including the first default library directo
 
 - The license dialog displays component name, shipped version and license from the actual distribution manifest, including renderer/runtime dependencies, Electron/Node and platform notices. The project license remains separate. Load inventory only when the license page opens.
 - Standalone XPI packages include complete bundled dependency notices, a versioned component inventory and the license file referenced by Quill. Packaging must verify their exact contents and reject vendored source/version mismatches.
+
+
+### GitHub update build preparation (2026-10-16)
+
+- Centralize the GitHub EXE/MSI update endpoints and inactive build policy. Windows signing is suspended after the unsuccessful SignPath application; signature checks must not be bypassed. macOS remains manual.
+- Add a manual Actions workflow that builds/verifies Windows update candidates and uploads only test artifacts. Candidate metadata must use non-live names and explicitly report that updating is disabled. No tag, Release or publish permission is authorized.
+- Future signed finalization must validate packaged feed configuration, payload inventory, trusted signer/publisher and actual product/version before hashing final installer bytes. Signing integration and real online update validation are deferred.

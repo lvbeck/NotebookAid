@@ -35,7 +35,7 @@ macOS는 Apple Silicon arm64 및 Intel x64용 DMG/ZIP, NotebookAid.xpi, 10개 �
 
 ## 서명, 업데이트 및 개인정보
 
-Windows 테스트 패키지는 서명되지 않았으며 SignPath Foundation 심사를 기다리고 있습니다. Chrome이 다운로드를 차단할 수 있습니다. 서명이 없다는 이유만으로 오탐이라고 단정할 수 없습니다. 경고를 보존하고 출처와 SHA256을 확인하세요. 시스템 전체 보안을 끄지 마세요.
+Windows 테스트 패키지는 서명되지 않았습니다. SignPath Foundation 신청이 승인되지 않아 Windows 서명은 보류 중이며 자동 업데이트도 비활성 상태입니다. Chrome이 다운로드를 차단할 수 있습니다. 서명이 없다는 이유만으로 오탐이라고 단정할 수 없습니다. 경고를 보존하고 출처와 SHA256을 확인하세요. 시스템 전체 보안을 끄지 마세요.
 
 macOS는 임시 서명을 사용하며 Developer ID 서명 또는 Apple 공증은 없습니다. 실제 Mac, Thunderbird, Keychain 및 AI 계정 테스트는 아직 필요합니다. 이 macOS 테스트 버전은 Passkey 앱 잠금을 지원하지 않습니다. Windows 10도 실제 기기 검증이 필요합니다.
 

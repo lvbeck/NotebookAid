@@ -35,7 +35,7 @@ Os pacotes são guardados 30 dias e os relatórios 14. Após expiração, escolh
 
 ## Assinatura, atualizações e privacidade
 
-Os pacotes Windows de teste não estão assinados. O pedido SignPath Foundation aguarda análise. O Chrome pode bloquear as transferências; a falta de assinatura não prova um falso positivo. Guarde o aviso e verifique a origem e SHA256 sem desativar a proteção geral.
+Os pacotes Windows de teste não estão assinados. O pedido SignPath Foundation não foi aprovado; a assinatura Windows está suspensa. As atualizações automáticas permanecem desativadas. O Chrome pode bloquear as transferências; a falta de assinatura não prova um falso positivo. Guarde o aviso e verifique a origem e SHA256 sem desativar a proteção geral.
 
 macOS usa assinatura ad hoc, sem Developer ID nem notarização Apple. Os testes reais de Mac, Thunderbird, Keychain e contas IA continuam pendentes. Este teste macOS não suporta bloqueio Passkey. Windows 10 também requer validação real.
 

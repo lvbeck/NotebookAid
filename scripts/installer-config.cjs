@@ -16,9 +16,10 @@ module.exports = {
     include: 'scripts/installer.nsh', license: 'LICENSE',
   },
 };
-const url = process.env.NOTEBOOKAID_UPDATE_URL;
+const updateEnvironment = require('./github-update-config.cjs').windowsEnvironment();
+const url = updateEnvironment.NOTEBOOKAID_UPDATE_URL;
 if (url) {
-  const address = new URL(url), publisher = process.env.NOTEBOOKAID_UPDATE_PUBLISHER;
+  const address = new URL(url), publisher = updateEnvironment.NOTEBOOKAID_UPDATE_PUBLISHER;
   if (address.protocol !== 'https:' || address.username || address.password || !publisher?.trim()) throw Error('HTTPS update source and signing publisher are required.');
   module.exports.publish = { provider: 'generic', url };
   module.exports.forceCodeSigning = true;

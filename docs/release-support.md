@@ -19,6 +19,6 @@ npm run installer
 
 ## 后续配置自动更新源
 
-GitHub Releases更新目录已保存为仓库变量NOTEBOOKAID_UPDATE_URL，当前测试工作流未使用，测试包不启用自动更新。维护者已手动提交SignPath申请，等待审核，尚未获批或签名。正式构建时配置 `NOTEBOOKAID_UPDATE_URL` 为 HTTPS 目录，`NOTEBOOKAID_UPDATE_PUBLISHER` 为签名证书的实际发布者；代码签名通过 electron-builder 支持的证书环境变量提供，不将私钥写入源码或日志。配置更新源后构建强制代码签名，没有证书应失败。保留并上传安装器、blockmap 和 latest.yml（稳定发布）到指定目录；上传属于后续显式发布授权，构建本身不会上传。当前测试包不提供真实在线更新承诺。
+2026-10-16：SignPath 申请未获通过，Windows 签名暂时搁置，macOS 继续手动更新。更新构建策略集中在 `config/github-updates.json`：Windows 为 `prepare-only`、发布者为空、强制保留签名检查；macOS 为 `manual`。新增手动触发的 Windows 更新候选工作流，仅上传 Actions 测试产物，不创建 Release、不发布正式更新清单，也不启用客户端更新。操作、预留地址、候选校验和未来签名接入步骤见[GitHub 更新构建指南](github-updates.md)。此前保存的仓库变量不会自动激活更新；正式签名、在线更新和公开发布仍需后续授权与实测。
 
 参考：[electron-builder NSIS](https://www.electron.build/nsis/)、[自动更新文档](https://www.electron.build/v26/docs/features/auto-update/)。详细验收和回滚见 [T15 验收](t15-testing.md)。

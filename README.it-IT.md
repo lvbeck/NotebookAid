@@ -35,7 +35,7 @@ Pacchetti conservati 30 giorni, rapporti 14. Dopo la scadenza scegli un’esecuz
 
 ## Firma, aggiornamenti e privacy
 
-I pacchetti Windows di prova non sono firmati. La richiesta SignPath Foundation è in attesa. Chrome può bloccare i download: la sola assenza di firma non dimostra un falso positivo. Conserva l’avviso e verifica origine e SHA256, senza disattivare le protezioni generali.
+I pacchetti Windows di prova non sono firmati. La richiesta SignPath Foundation non è stata approvata; la firma Windows è sospesa. Gli aggiornamenti automatici restano disattivati. Chrome può bloccare i download: la sola assenza di firma non dimostra un falso positivo. Conserva l’avviso e verifica origine e SHA256, senza disattivare le protezioni generali.
 
 macOS usa una firma ad hoc, senza Developer ID o autenticazione Apple. Restano da verificare Mac reali, Thunderbird, Keychain e account IA. Il blocco Passkey non è supportato in questa versione macOS. Anche Windows 10 richiede prove reali.
 

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/lvbeck/NotebookAid",
+  "windows": {
+    "mode": "prepare-only",
+    "feedBaseUrl": "https://github.com/lvbeck/NotebookAid/releases/latest/download/",
+    "msiFeedUrl": "https://github.com/lvbeck/NotebookAid/releases/latest/download/latest-msi.json",
+    "publisherName": null,
+    "requireSignature": true
+  },
+  "macOS": {
+    "mode": "manual"
+  }
+}

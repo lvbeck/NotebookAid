@@ -8,6 +8,7 @@ on:
       - '.github/workflows/windows-build.yml'
       - '.npmrc'
       - 'package*.json'
+      - 'config/github-updates.json'
       - 'scripts/**'
       - 'native/**'
       - 'installer/**'

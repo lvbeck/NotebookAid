@@ -1,6 +1,6 @@
 # Code signing policy
 
-Updated 15 October 2026. The maintainer reported manually submitting the SignPath Foundation application on 14 October 2026. Review is pending; no approval has been received and signing is not enabled. Current Windows test packages are unsigned.
+Updated 16 October 2026. The maintainer reported that the SignPath Foundation application was not approved. Windows signing is suspended and current Windows test packages remain unsigned. GitHub update builds prepare inactive candidates only; macOS remains on manual updates. The following SignPath-specific arrangements are historical proposals, not an active signing service.
 
 ## Project and proposed roles
 
@@ -23,7 +23,7 @@ Only after approval and actual service activation, replace this section with the
 
 > Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
 
-Until then, the homepage and download documentation must state that packages are unsigned and the application to SignPath is pending or only being prepared. This acknowledgment must not be presented as existing sponsorship before approval.
+Until then, the homepage and download documentation must state that packages are unsigned and the SignPath application was not approved and Windows signing is suspended. This acknowledgment must not be presented as existing sponsorship before approval.
 
 ## Privacy and distribution
 

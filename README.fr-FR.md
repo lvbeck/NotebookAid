@@ -35,7 +35,7 @@ Artefacts conservés 30 jours, rapports 14 jours. Après expiration, choisissez 
 
 ## Signature, mises à jour et confidentialité
 
-Les paquets Windows de test ne sont pas signés. La demande SignPath Foundation est en attente. Chrome peut bloquer le téléchargement ; l’absence de signature ne prouve pas un faux positif. Conservez l’avertissement, vérifiez la source et SHA256, sans désactiver la protection générale.
+Les paquets Windows de test ne sont pas signés. La demande SignPath Foundation n’a pas été approuvée ; la signature Windows est suspendue. Les mises à jour automatiques restent désactivées. Chrome peut bloquer le téléchargement ; l’absence de signature ne prouve pas un faux positif. Conservez l’avertissement, vérifiez la source et SHA256, sans désactiver la protection générale.
 
 macOS utilise une signature ad hoc, sans Developer ID ni notarisation Apple. Les essais réels Mac, Thunderbird, Keychain et comptes IA restent nécessaires. Le verrouillage Passkey est indisponible dans cette version macOS. Windows 10 reste à vérifier sur une machine réelle.
 

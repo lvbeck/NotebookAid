@@ -48,7 +48,7 @@ Die Thunderbird-Projektbasis ist Release 157.0.1. Neuere Releases und ESR benöt
 
 ## Signaturen, Updates und Datenschutz
 
-- **Windows-Testpakete sind nicht signiert.** Der Antrag bei der SignPath Foundation wurde eingereicht; Genehmigung und Einbindung stehen noch aus.
+- **Windows-Testpakete sind nicht signiert.** Der Antrag bei der SignPath Foundation wurde nicht genehmigt; die Windows-Signierung ist ausgesetzt. Automatische Updates bleiben deaktiviert.
 - macOS-Testanwendungen sind ad-hoc signiert, ohne Developer-ID-Signatur und Apple-Notarisierung. Gatekeeper kann den Start blockieren. Die systemweiten Sicherheitsfunktionen nicht für einen Test deaktivieren.
 - Der Update-Mechanismus ist vorbereitet, aber die Testpakete haben keine aktive Update-Quelle. GitHub Actions dient nur zum Testdownload; spätere signierte Updates können über GitHub Releases bereitgestellt werden.
 - Native MSI-Updates verwenden einen getrennten Kanal mit `latest-msi.json`, Größen-/SHA256-Prüfung sowie Prüfung von Authenticode-Signatur, Herausgeber und Produktidentität. Nach Bestätigung und Speichern offener Änderungen übernimmt Windows Installer die Aktualisierung im bisherigen Installationsumfang und Verzeichnis. Bei einer Installation für alle Benutzer kann UAC eine erneute Zustimmung verlangen. MSI installiert keine NSIS-Updates. Die Anwendung nach Abschluss manuell neu starten.

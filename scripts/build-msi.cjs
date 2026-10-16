@@ -29,6 +29,8 @@ function declarations(root) {
 async function buildMsi(version = require('../package.json').version, outputDirectory = path.resolve('release/msi'), testFailure = false) {
   if (process.platform !== 'win32') throw Error('Native MSI requires Windows.');
   require('./check-version.cjs').checkVersion();
+  const updatePolicy = require('./github-update-config.cjs').readConfig();
+  const updateEnvironment = require('./github-update-config.cjs').windowsEnvironment(process.env, updatePolicy);
   const parts = version.split('.').map(Number);
   if (!/^\d+\.\d+\.\d+$/.test(version) || parts[0] > 255 || parts[1] > 255 || parts[2] > 65535) throw Error('Invalid Windows Installer version.');
   const workspace = path.resolve('.'), stage = path.resolve('dist/msi'), root = path.join(stage, 'app');
@@ -47,8 +49,9 @@ async function buildMsi(version = require('../package.json').version, outputDire
   fs.writeFileSync(path.join(root, 'msi-owner.txt'), 'NotebookAid.MSI.v1\n');
   // MSI uses its own update feed and must never consume latest.yml / NSIS installers.
   fs.rmSync(path.join(root, 'resources/app-update.yml'), {force:true});
-  const publisher = process.env.NOTEBOOKAID_MSI_PUBLISHER;
-  if (publisher?.trim()) fs.writeFileSync(path.join(root, 'resources/msi-update.json'), JSON.stringify({provider:'github-msi',url:'https://github.com/lvbeck/NotebookAid/releases/latest/download/latest-msi.json',publisherName:publisher.trim()}));
+  const publisher = updateEnvironment.NOTEBOOKAID_MSI_PUBLISHER;
+  fs.rmSync(path.join(root, 'resources/msi-update.json'), {force:true});
+  if (publisher?.trim()) fs.writeFileSync(path.join(root, 'resources/msi-update.json'), JSON.stringify({provider:'github-msi',url:updatePolicy.windows.msiFeedUrl,publisherName:publisher.trim()}));
   const wix = await require('app-builder-lib/out/binDownload').getBinFromUrl('wix-4.0.0.5512.2', 'wix-4.0.0.5512.2.7z', 'fe677fcd837b18c9b912985d91636bbd8a1e800c3b3a6a841b6f96e89624e839');
   fs.copyFileSync(path.join(wix, 'LICENSE.TXT'), path.join(root, 'WIX-LICENSE.txt'));
   const notice = 'WiX build tools: Microsoft Reciprocal License (MS-RL). Bundled toolset pinned by electron-builder 26.15.3. Source: https://github.com/wixtoolset/wix3. No WiX source modifications.\n';

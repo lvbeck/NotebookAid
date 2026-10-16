@@ -35,7 +35,7 @@ macOS は Apple Silicon arm64 と Intel x64 の DMG・ZIP、NotebookAid.xpi、10
 
 ## 署名・更新・プライバシー
 
-Windows テストパッケージは未署名で、SignPath Foundation の審査待ちです。Chrome がダウンロードを遮断する場合があります。未署名だけを理由に誤検知と断定できません。警告を保持し、出所と SHA256 を確認してください。全体の保護を無効にしないでください。
+Windows テストパッケージは未署名です。SignPath Foundation の申請は承認されず、Windows の署名対応は保留中です。自動更新は引き続き無効です。Chrome がダウンロードを遮断する場合があります。未署名だけを理由に誤検知と断定できません。警告を保持し、出所と SHA256 を確認してください。全体の保護を無効にしないでください。
 
 macOS はアドホック署名であり、Developer ID 署名や Apple 公証はありません。実機の Mac、Thunderbird、Keychain、AI アカウントの検証は未完了です。この macOS テスト版は Passkey アプリロックに未対応です。Windows 10 も実機検証が必要です。
 
