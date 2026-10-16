@@ -1228,3 +1228,10 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - Actual user acceptance and authorization: "验收通过，提交并推送到 GitHub，运行新的更新候选构建工作流，检查结果，暂时不要正式发布。"
 - Commit the scoped preparation/configuration/tests/docs and push the accepted main-branch commits to the existing repository. Dispatch only the new Windows update candidate workflow explicitly; inspect its execution and artifacts. Push-triggered existing test workflows may also run.
 - No Release/tag, active feed publication, Windows signing bypass, macOS update activation or T15-A work is authorized. Hosted CI results will be recorded after inspection, without treating a failed run as successful.
+
+
+### T15 hosted update-candidate validation and checkout correction (2026-10-16)
+
+- Accepted main commits were pushed, ending at f26c9e3. Candidate run 38889193834 failed during platform tests before any packaging or candidate upload. Existing Windows test run 38889131774 also failed.
+- Failure: addon-payload, license-catalog and mac-addon-bundle tests reported vendored Quill byte mismatch. Local reproduction with git -c core.autocrlf=true checkout-index showed all three vendored JS files differed only by CRLF/LF conversion. Committed repository blobs still match the installed upstream bytes.
+- Minimal validation repair: .gitattributes marks thunderbird/vendor/*.js as -text, preserving exact upstream bytes; no library content or license-validation bypass is introduced. New autocrlf checkout regression and the three affected suites passed: 5 tests, 0 failures (output/github-ci-eol-fix-tests.log). This is a repair within the accepted workflow validation scope; no new task or release. Candidate workflow will be dispatched again after pushing the fix.

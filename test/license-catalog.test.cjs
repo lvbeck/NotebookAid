@@ -38,3 +38,12 @@ test('catalog merges actual renderer/runtime inventory and rejects missing distr
     assert.throws(()=>updateCatalog(root),/Missing distribution notice/);
   } finally { fs.rmSync(root,{recursive:true,force:true}); }
 });
+
+test('Windows autocrlf checkout preserves exact vendored JavaScript bytes',{skip:!fs.existsSync('.git')},()=>{
+  const root=fs.mkdtempSync(path.resolve('output/license-eol-'));
+  try {
+    const files=[['quill.js','quill/dist/quill.js'],['marked.js','marked/lib/marked.umd.js'],['purify.js','dompurify/dist/purify.js']];
+    require('node:child_process').execFileSync('git',['-c','core.autocrlf=true','checkout-index','--prefix='+root.replaceAll('\\','/')+'/','--',...files.map(([file])=>'thunderbird/vendor/'+file)],{windowsHide:true});
+    for(const [file,upstream]of files) assert.ok(fs.readFileSync(path.join(root,'thunderbird/vendor',file)).equals(fs.readFileSync(path.join('node_modules',upstream))),file);
+  } finally { fs.rmSync(root,{recursive:true,force:true}); }
+});

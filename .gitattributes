@@ -1,0 +1,2 @@
+# Preserve exact upstream bytes for vendored JavaScript license/version checks.
+thunderbird/vendor/*.js -text
