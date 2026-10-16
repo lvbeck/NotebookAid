@@ -17,7 +17,10 @@ export interface RuntimeInfo {
   pid: number;
 }
 
+export interface ThirdPartyCatalog { components: { name: string; version: string; license: string; notices: string[] }[]; noticeFiles: string[]; }
+
 export interface PrototypeApi {
+  thirdPartyCatalog(): Promise<ThirdPartyCatalog>;
   updates: import('./updates').UpdatesApi;
   editCommand(action:'cut'|'copy'|'paste'|'selectAll'):Promise<void>;
   folderBulk: import('./batch').FolderBulkApi;

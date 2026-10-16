@@ -18,6 +18,7 @@ fs.copyFileSync(path.join(path.dirname(elevate), 'COPYING'), path.join(root, 'NS
 fs.copyFileSync('node_modules/electron-builder/LICENSE', path.join(root, 'INSTALLER-BUILDER-LICENSE.txt'));
 fs.copyFileSync('docs/third-party/LGPL-2.1.txt', path.join(root, 'INSTALLER-LGPL-2.1.txt'));
 fs.copyFileSync('node_modules/app-builder-lib/templates/nsis/include/StdUtils.nsh', path.join(root, 'STDUTILS-NOTICE.nsh'));
+require('./license-catalog.cjs').updateCatalog(root);
 const files = {};
 function collect(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {

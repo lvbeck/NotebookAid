@@ -22,5 +22,6 @@ function distributionLicenses(packageRoot, stage) {
   visit(path.join(stage, 'node_modules'));
   fs.writeFileSync(path.join(packageRoot, 'runtime-THIRD-PARTY-LICENSES.txt'), texts.join('\n'));
   fs.writeFileSync(path.join(packageRoot, 'distribution-dependencies.json'), JSON.stringify({ schemaVersion: 1, runtime: records, rendererNotice: 'renderer-THIRD-PARTY-LICENSES.txt', electronNotice: ['LICENSE', 'LICENSES.chromium.html'], projectNotice: 'NotebookAid-LICENSE.txt' }, null, 2));
+  require('./license-catalog.cjs').updateCatalog(packageRoot);
 }
 module.exports = { distributionLicenses };

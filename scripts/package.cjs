@@ -105,6 +105,7 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/t05a-testing.md', join(packageRoot, 'T05A-TESTING.md'));
   cpSync('node_modules/@angular/cdk/LICENSE', join(packageRoot, 'CDK-LICENSE.txt'));
   cpSync('dist/renderer/3rdpartylicenses.txt', join(packageRoot, 'renderer-THIRD-PARTY-LICENSES.txt'));
+  require('./license-catalog.cjs').copyElectronNotices(packageRoot);
   require('./distribution-licenses.cjs').distributionLicenses(packageRoot, stage);
   await require('./build-addons.cjs').buildAddons(releaseRoot);
   for (const name of Object.keys(require('./build-addons.cjs').addons)) cpSync(join(releaseRoot, name), join(packageRoot, name));

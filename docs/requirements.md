@@ -362,3 +362,9 @@ Windows EXE/MSI and macOS DMG/ZIP must embed both NotebookAid.xpi and NotebookAi
 The shared application language list preserves the original eight-language order and places Japanese then Korean last, including interface and translation selectors (user direction, 2026-10-15).
 
 Fresh application-created notebooks, including the first default library directory and the settings Create action, start at latestNotebookSchemaVersion. Opening an existing notebook does not implicitly upgrade it; the explicit upgrade confirmation and backup workflow remains in place (2026-10-15).
+
+
+### Generated third-party inventory (2026-10-16)
+
+- The license dialog displays component name, shipped version and license from the actual distribution manifest, including renderer/runtime dependencies, Electron/Node and platform notices. The project license remains separate. Load inventory only when the license page opens.
+- Standalone XPI packages include complete bundled dependency notices, a versioned component inventory and the license file referenced by Quill. Packaging must verify their exact contents and reject vendored source/version mismatches.

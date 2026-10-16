@@ -16,6 +16,7 @@ async function verifyAddons(root, reference) {
     const expected = JSON.parse(fs.readFileSync(path.join(source, 'manifest.json'), 'utf8'));
     if (manifest.version !== expected.version || manifest.browser_specific_settings.gecko.id !== expected.browser_specific_settings.gecko.id) throw Error('Addon identity or version mismatch: ' + file);
     if (!read('LICENSE').equals(fs.readFileSync('LICENSE'))) throw Error('Addon license mismatch: ' + file);
+    require('./license-catalog.cjs').verifyAddonMaterials(source,read);
     hashes[name] = digest(file);
     if (reference && hashes[name] !== digest(path.join(reference, name))) throw Error('Embedded addon differs from standalone addon: ' + file);
   }
@@ -32,6 +33,7 @@ async function buildAddons(output = path.resolve('release')) {
     try {
       fs.cpSync(source, stage, { recursive: true });
       fs.copyFileSync('LICENSE', path.join(stage, 'LICENSE'));
+      require('./license-catalog.cjs').prepareAddon(source,stage);
       await archive('zip', path.join(output, name), stage, { withoutDir: true });
     } finally { fs.rmSync(stage, { recursive: true, force: true }); }
   }

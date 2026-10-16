@@ -70,6 +70,10 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
       await click('application-menu');await until("document.querySelectorAll('.application-menu [role=menuitem]').length===5");
       await click('menu-'+page);await until(`document.querySelector('[data-testid=information-dialog]')?.dataset.page===${JSON.stringify(page)}`);
       if(!await run(`document.querySelector('#information-title').textContent===${JSON.stringify(informationText(locale,page))}`))throw Error('Information title not localized');
+      if(page==='license') {
+        await until("!!document.querySelector('[data-testid=third-party-components] tbody tr')");
+        if(!await run("['quill','lucide','@simplewebauthn/server','electron-updater','Node.js'].every(name=>[...document.querySelectorAll('[data-testid=third-party-components] tbody tr')].some(row=>row.cells[0].textContent===name&&row.cells[1].textContent&&row.cells[2].textContent))")) throw Error('Packaged license catalog incomplete');
+      }
       if(page==='license'&&!await run(`document.querySelector('.license-text').textContent===${JSON.stringify(projectLicense)}`))throw Error('License text changed');
       if(page==='privacy'&&!await run(`document.querySelector('[data-testid=information-dialog]').textContent.includes(${JSON.stringify(informationText(locale,'privacyAi'))})`))throw Error('Privacy content not localized');
       if(page==='about'&&!await run(`document.querySelector('[data-testid=information-version]').textContent===${JSON.stringify((await run('window.notebookAid.runtime()')).version)}`))throw Error('About version is stale');

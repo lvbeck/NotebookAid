@@ -1160,3 +1160,26 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - Actual user acceptance: "GitHub Actions 打包和 README 下载链接更新验收通过，暂时不进行下个任务，也不要正式发布。"
 - Accepted source/build commit 900ccb4 and README/CI documentation commit f8261d9, covering Windows run 38720219079 and macOS run 38720219074. Existing validation limits remain unchanged.
 - No next task, formal Release, tag or update-feed activation is authorized. Record this acceptance locally; do not start further development or release work. T15-A remains shelved.
+
+
+### Generated third-party notices correction (2026-10-16; awaiting user acceptance)
+
+- Authorized directly by the user: complete third-party statements, show component/version/license from the packaging manifest, complete XPI license material and add checks; package and deploy for acceptance without formal publication. Earlier About/support scope remains uncommitted pending acceptance.
+- Test version 0.15.11. The generated distribution inventory merges actual renderer notices and shipped runtime manifests, with platform-specific notice files. The dialog loads it on demand; project license remains separate. The XPI inventory includes the Quill dependency tree and full notices plus quill.js.LICENSE.txt; compatibility XPI declares no bundled libraries.
+- Validation/deployment results pending. No next task, GitHub push, tag or Release is authorized.
+
+- Build and packaging passed. Focused tests verify complete Quill/XPI dependency coverage, rejection of missing or changed notice text and vendored source mismatches, component deduplication and missing distribution notice failures. Final Windows catalog contains 67 generated component/version rows plus the running Node.js row supplied from the actual Electron runtime; XPI lists 11 bundled components.
+- Initial parallel regression: 282 tests, 279 passed, 2 failed, 1 skipped. Failures were a backups.json EPERM rename and one WRITE_FAILED row during the 80-task import (output/licenses-tests.log). Separate Tasks and backup retests passed 20/20 and 10/10. After packaging ended, the complete serial rerun passed 281/282, 0 failed, 1 skipped (output/licenses-tests-final.log); no core backup/import behavior was changed. The external lock holder was not established.
+- Packaged isolated Electron UI and restart checks passed, including all ten locales, generated table rows/versions/licenses, existing About/support behavior and project-license content. Report: output/ui-packaged/1792143097234. The UI check reads the package-root manifest through authorized on-demand IPC.
+- Both embedded XPI files pass complete notice-content checks and match standalone artifacts. MSI File table independently contains distribution-dependencies.json, both aggregate notice files and both XPI files (output/licenses-msi-files.json). MSI localization passed ten languages with 37 native strings per language and Microsoft YaHei for Simplified Chinese. No actual MSI/EXE installation was executed; existing installer compiler and dual-scope ICE105 warnings remain unchanged. macOS packaging code was updated to retain Electron notices, but no macOS build was run locally.
+
+- Final Defender scans of EXE/MSI/ZIP each returned exit code 0 with remediation disabled (output/package-security/report.json); no Chrome verdict is inferred. Final EXE SHA256 b9852d7358b9f508f37d57287b1cf1a6aee161d8e48e136948df2075e0fd13c0; MSI 8fc06b32297eae5dfad2792f498c418d9131926d8b00939878ed672e157cb7bd; ZIP 1caf3a036c8d9dacf47d1f2800e85e64defb96e102704781d771b87eb74aa1b6.
+- Prepare-TestPortable.ps1 deployed 0.15.11 to C:\Softwares\NotebookAid-win32-x64 successfully, verified=true, backupCreated=false, bridgeManifestsRestored=2. Retained 0.15.10 ZIP supports program rollback after exiting; notebook data was not migrated.
+- Awaiting acceptance: open Application menu > Licenses, scroll to the component table and verify name/version/license plus generated notice files; switch interface languages and light/dark themes. Check the standalone XPI contains THIRD-PARTY-LICENSES.txt, third-party-components.json and vendor/quill.js.LICENSE.txt. Real installation and macOS runtime remain outside this local validation. Source remains uncommitted; no GitHub push, formal release, next task or T15-A work was performed.
+
+
+### Generated third-party notices acceptance (2026-10-16; approved)
+
+- Actual user acceptance: "第三方声明补齐验收通过，下个任务是什么". Accepted scope is the 0.15.11 generated component/version/license catalog, on-demand license UI, XPI dependency notices and packaging validation.
+- Commit only this accepted correction. The earlier About/support redesign has no separate explicit acceptance and remains outside this commit. No next-task implementation, push or formal release is authorized.
+- The original numbered plan ends at T15. Remaining work is T15 release-readiness verification; T15-A stays shelved until explicitly resumed. No T16 has been defined or authorized.

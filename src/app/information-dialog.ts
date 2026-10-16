@@ -1,3 +1,6 @@
+import { signal } from '@angular/core';
+import { thirdPartyText } from './third-party-i18n';
+import type { ThirdPartyCatalog } from '../../shared/contracts';
 import { EasterBridge } from './easter-bridge';
 import { Component, inject } from '@angular/core';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
@@ -14,7 +17,10 @@ export type InformationPage = 'license' | 'privacy' | 'about';
       @case('license'){
         <h3>{{t('project')}}</h3><pre class="license-text">{{license}}</pre>
         <h3>{{t('thirdParty')}}</h3><p>{{t('thirdPartyHint')}}</p>
-        <ul>@for(file of notices;track file){<li>{{file}}</li>}</ul><button class="icon-button" data-testid="egg-opensource" [attr.aria-label]="t('project')" (click)="eggs.collect('opensource')"><app-icon name="Heart" /></button>
+        @if(catalog(); as entries){
+          <div class="third-party-table"><table data-testid="third-party-components"><thead><tr><th>{{label(0)}}</th><th>{{t('version')}}</th><th>{{t('license')}}</th></tr></thead><tbody>@for(item of entries.components;track item.name+'@'+item.version){<tr><td>{{item.name}}</td><td>{{item.version}}</td><td>{{item.license}}</td></tr>}</tbody></table></div>
+          <h3>{{label(3)}}</h3><ul>@for(file of entries.noticeFiles;track file){<li>{{file}}</li>}</ul>
+        } @else { <p role="status">{{label(failed()?2:1)}}</p> }<button class="icon-button" data-testid="egg-opensource" [attr.aria-label]="t('project')" (click)="eggs.collect('opensource')"><app-icon name="Heart" /></button>
       }
       @case('privacy'){
         <h3>{{t('privacyTitle')}}</h3>
@@ -33,7 +39,10 @@ export class InformationDialog {
   readonly eggs=inject(EasterBridge);
   readonly license=projectLicense;
   readonly privacyKeys:InformationKey[]=['privacyLocal','privacyAi','privacyCredentials','privacyBridge','privacyBackup'];
-  readonly notices=['NotebookAid-LICENSE.txt','renderer-THIRD-PARTY-LICENSES.txt','CDK-LICENSE.txt','DRIVER-JS-LICENSE.txt','ICAL-LICENSE.txt','PARSE5-LICENSE.txt','MARKED-LICENSE.txt','JOSE-LICENSE.txt'];
+  readonly catalog=signal<ThirdPartyCatalog|null>(null);
+  readonly failed=signal(false);
+  label(index:0|1|2|3):string{return thirdPartyText(this.data.locale,index);}
+  constructor(){if(this.data.page==='license')void window.notebookAid.thirdPartyCatalog().then(value=>this.catalog.set(value)).catch(()=>this.failed.set(true));}
   t(key:InformationKey):string{return informationText(this.data.locale,key);}
   private taglineBreak():number { const text=this.t('tagline');return Math.max(text.lastIndexOf(','),text.lastIndexOf('，'))+1; }
   taglinePrefix():string { return this.t('tagline').slice(0,this.taglineBreak()); }

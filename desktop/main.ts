@@ -154,6 +154,13 @@ async function start(): Promise<void> {
   tray.setToolTip('NotebookAid');
   updateTray(storage.locale());
   tray.on('double-click', () => { void createWindow(); });
+  ipcMain.handle('information:third-party', event => {
+    authorize(event);
+    const root = app.isPackaged ? (process.platform === 'darwin' ? process.resourcesPath : dirname(process.execPath)) : join(app.getAppPath(),'release',app.getVersion(),'NotebookAid-win32-x64');
+    const catalog = JSON.parse(readFileSync(join(root,'distribution-dependencies.json'),'utf8')) as import('../shared/contracts').ThirdPartyCatalog;
+    if (!Array.isArray(catalog.components) || !Array.isArray(catalog.noticeFiles)) throw Error('INVALID_CATALOG');
+    return { components: [...catalog.components,{name:'Node.js',version:process.versions.node,license:'See bundled notices',notices:['LICENSES.chromium.html']}], noticeFiles: catalog.noticeFiles };
+  });
   ipcMain.handle('prototype:runtime', event => { authorize(event); return runtime(); });
   ipcMain.handle('prototype:sqlite', event => { protectedCaller(event); return runSqliteProbe(dataPath); });
   ipcMain.handle('prototype:hide', event => { authorize(event); mainWindow?.hide(); });
