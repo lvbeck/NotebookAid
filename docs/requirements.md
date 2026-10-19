@@ -419,3 +419,10 @@ User authorization: save notebook settings inside each notebook directory in pre
 - Default to ten results, with 10/20/50/100 options. Return metadata only; open the selected result through the existing save/session flow. Preserve existing locked-note exclusion, clear stale results on notebook/security changes, and avoid automatic startup body searches.
 - Supply complete labels for the existing ten locale IDs, build Windows EXE/MSI/portable ZIP, verify and update the authorized test directory, then wait for user acceptance. No formal release or remote push.
 - Follow-up preview approval: align Add keyword and the entire AND/OR group to the keyword input width/left edge, excluding the remove control. Replace the descendant hint with a checkbox checked by default; unchecked limits the selected folder to direct notes only. Reset/new notebook restores the default. Existing callers without the new boolean retain descendant-inclusive behavior. Reuse the complete ten-language Include subfolders labels.
+
+## T19 notebook color skins
+
+- Implement ten notebook-color-derived skins, each with light/dark modes and automatic switching with the active notebook. Follow system remains available. Keep the default violet palette; the later user correction restores the initial muted Mist blue theme.
+- Restore the original Mist blue name, selector swatch and full light/dark palette; retain version 0.15.18. Keep skin controls within existing notebook Appearance; do not add a main-page skin picker.
+- Preserve legacy and custom colors without rewriting stored notebook data. The interim Capri blue selector color maps to Mist blue; custom colors use the closest preset hue, with a neutral fallback.
+- Supply names in all ten languages, build and verify Windows EXE/MSI/portable ZIP, update the authorized test directory and await acceptance. No formal release or remote push.

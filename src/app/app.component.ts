@@ -1,3 +1,4 @@
+import { notebookSkinIndex, skinTokens } from '../../shared/notebook-skin';
 import { AdvancedSearchComponent } from './advanced-search.component';
 import { searchText } from './search-i18n';
 import { printText, type PrintKey } from './print-i18n';
@@ -692,6 +693,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
   private applyTheme(): void {
     document.documentElement.dataset['theme'] = this.theme() === 'system' ? (this.media.matches ? 'dark' : 'light') : this.theme();
+    const registry = this.workspace.registry();
+    const color = registry.entries.find(entry => entry.id === registry.activeId)?.appearance?.color;
+    const index = notebookSkinIndex(color);
+    const tokens = skinTokens(index, document.documentElement.dataset['theme'] === 'dark');
+    document.documentElement.dataset['skin'] = String(index);
+    for (const [key, value] of Object.entries(tokens)) {
+      const name = key === 'on' ? 'accent-text' : key === 'soft' ? 'accent-soft' : key;
+      document.documentElement.style.setProperty('--' + name, value);
+    }
+    document.documentElement.style.setProperty('--editor', tokens['surface']);
     document.documentElement.lang = regionalLocale(this.locale());
     this.localizeEditor();
   }

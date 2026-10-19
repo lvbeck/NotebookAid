@@ -1,3 +1,4 @@
+import { notebookSkinColors, notebookSkinIndex, skinName } from '../../shared/notebook-skin';
 import { settingsLayoutText } from './settings-layout-i18n';
 import { EasterBridge } from './easter-bridge';
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnDestroy, ViewChild, inject, signal } from '@angular/core';
@@ -66,8 +67,8 @@ export class CoverCropDialog implements AfterViewInit, OnDestroy {
 @Component({ selector: 'app-notebook-appearance', standalone: true, imports: [FormsModule, IconComponent], template: `
   <article class="panel settings-panel notebook-appearance" data-testid="notebook-appearance">
     <h2>{{ appearanceTitle() }}</h2><h3>{{ t('color') }}</h3>
-    <div class="appearance-color-row"><label><input type="color" data-testid="notebook-color" [(ngModel)]="color" [disabled]="busy()" [attr.aria-label]="t('color')"></label><span>{{ color.toUpperCase() }}</span><span class="muted">{{ t('default') }}</span></div>
-    <div class="notebook-swatches">@for (swatch of colors; track swatch) { <button type="button" class="secondary notebook-swatch" [class.selected]="color === swatch" [attr.aria-pressed]="color === swatch" [attr.aria-label]="swatch" [title]="swatch" [disabled]="busy()" (click)="color = swatch"><span [style.background]="swatch"></span></button> }</div>
+    <div class="appearance-color-row"><label><input type="color" data-testid="notebook-color" [(ngModel)]="color" [disabled]="busy()" [attr.aria-label]="t('color')"></label><span>{{ color.toUpperCase() }}</span><span class="muted">{{ colorLabel() }}</span></div>
+    <div class="notebook-swatches">@for (swatch of colors; track swatch) { <button type="button" class="secondary notebook-swatch" [class.selected]="color === swatch" [attr.aria-pressed]="color === swatch" [attr.aria-label]="swatchLabel(swatch)" [title]="swatchLabel(swatch)" [disabled]="busy()" (click)="color = swatch"><span [style.background]="swatch"></span></button> }</div>
     <h3>{{ t('cover') }} <button class="icon-button" data-testid="egg-dawn" [attr.aria-label]="t('cover')" (click)="eggs.collect('dawn')"><app-icon name="Sun" /></button></h3><div class="notebook-cover-actions"><div class="notebook-cover">@if (cover) { <img [src]="cover" [alt]="t('cover')"> } @else { <span class="notebook-cover-placeholder" [style.color]="color"><app-icon name="Image" /><small>{{ t('empty') }}</small></span> }</div><div><div class="actions"><button class="secondary" data-testid="notebook-cover-choose" [disabled]="busy() || workspace.switching() || entry.availability !== 'available'" (click)="choose()"><app-icon name="ImagePlus" />{{ t('choose') }}</button><button class="secondary" data-testid="notebook-cover-remove" [disabled]="busy() || !cover" (click)="cover = null; preset = ''"><app-icon name="X" />{{ t('remove') }}</button></div><p class="muted">1:1 · 512 × 512</p></div></div>
     <h3>{{ t('presets') }}</h3><div class="notebook-preset-grid">@for (name of presets; track name; let i = $index) { <button class="notebook-preset" [attr.aria-label]="coverLabel(i)" [title]="coverLabel(i)" [attr.aria-pressed]="preset === name" [disabled]="busy()" [attr.data-cover-preset]="name" (click)="choosePreset(name)"><img [src]="'assets/notebook-covers/' + name + '.svg'" [alt]="coverLabel(i)"><span>{{ coverLabel(i) }}</span></button> }</div>
     <p class="muted">{{ t('hint') }}</p>@if (entry.appearanceIssue) { <p class="warning">{{ t('damaged') }}</p> }
@@ -81,13 +82,15 @@ export class NotebookAppearanceComponent implements OnChanges, OnDestroy {
   readonly workspace = inject(NoteWorkspace);
   private readonly dialogs = inject(Dialog);
   readonly busy = signal(false); readonly message = signal(''); readonly failed = signal(false);
-  readonly colors = ['#7460c9', '#bd9da6', '#9aa99b', '#92a8ba', '#c3b397', '#a6a4af', '#b89b88', '#a3b6b1', '#afa2bb', '#bcc1a2'];
+  readonly colors = notebookSkinColors;
   readonly presets = presetCovers;
   color = '#7460c9'; cover: string | null = null; preset = '';
   private id = ''; private alive = true; private crop?: DialogRef<string>;
   private baseline = defaultNotebookAppearance();
   t(key: AppearanceKey): string { return appearanceText(this.locale, key); }
   appearanceTitle(): string { return settingsLayoutText(this.locale, 'appearance'); }
+  colorLabel(): string { return skinName(this.locale, notebookSkinIndex(this.color)); }
+  swatchLabel(color: string): string { return skinName(this.locale, notebookSkinIndex(color)) + ' · ' + color.toUpperCase(); }
   coverLabel(index: number): string { return coverName(this.locale, index); }
   ngOnChanges(): void {
     const changed = this.entry.id !== this.id;

@@ -1,3 +1,4 @@
+import { smokeSkin } from './skin-smoke';
 import { smokeEaster } from './easter-smoke';
 import { smokeArchive } from './archive-smoke';
 import { smokeSearch } from './search-smoke';
@@ -290,6 +291,7 @@ app.on('before-quit', event => {
 async function runSmoke(window: BrowserWindow): Promise<void> {
   if (process.env['NOTEBOOKAID_SEARCH_TEST'] === '1') { try { await smokeSearch(window, dataPath); await quitByUser(true); } catch(error) { writeFileSync(join(dataPath, 'smoke-error.txt'), String(error)); app.exit(1); } return; }
   try {
+    if(process.env['NOTEBOOKAID_SKIN_TEST']==='1'){await smokeSkin(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_EASTER_TEST']==='1'){await smokeEaster(window,dataPath,easterRequests);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_STARTUP_TEST']==='1'){await smokeStartup(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_DECRYPT_TEST']==='1'){await smokeDecrypt(window,dataPath);await quitByUser(true);return;}
