@@ -4,6 +4,7 @@ import { join, relative, resolve, sep } from 'node:path';
 import { createServer } from 'node:net';
 import type { NoteLibrary } from '../core/library';
 import { LibraryError } from '../core/library';
+import { ExternalNoteService } from '../core/external-notes';
 import { bridgeEndpoint, prepareBridgeEndpoint } from './bridge-endpoint';
 import { FrameDecoder, encodeFrame } from './framing';
 
@@ -55,6 +56,7 @@ export async function startMcpProbe(options: {
   assertProbeHome(workspace, dataPath);
   const library = context().library;
   if (library.path !== realpathSync(join(dataPath, 'library'))) throw new Error('UNSAFE_PROBE_LIBRARY');
+  const service = new ExternalNoteService(() => { const state = context(); return { library: state.library, appUnlocked: state.unlocked, busy: false }; }, () => ({ libraryId: library.libraryId, folderId: null }));
   const endpoint = bridgeEndpoint(join(dataPath, 'mcp-probe'));
   prepareBridgeEndpoint(endpoint);
   const token = randomBytes(32).toString('hex');
@@ -79,8 +81,9 @@ export async function startMcpProbe(options: {
           if (!state.unlocked) throw new Error('APP_LOCKED');
           if (state.library !== library || request.libraryId !== library.libraryId) throw new Error('LIBRARY_CHANGED');
           const input = parseProbeInput(request.params);
-          const result = library.create(input.requestId, { title: input.title, body: input.body, primaryFormat: input.format ?? 'text' });
-          const receipt = { noteId: result.note.id, version: result.note.version, saved: result.saved, indexed: result.indexed };
+          const result = service.create({ ...input, libraryId: request.libraryId });
+          if (!result.ok) { socket.end(encodeFrame(result)); return; }
+          const receipt = result.value;
           operations.push(receipt);
           try { writeFileSync(join(dataPath, 'mcp-probe-evidence.json'), JSON.stringify({ pid: process.pid, windowCount: windowCount(), operations })); }
           catch { console.error('MCP_PROBE_EVIDENCE_UNAVAILABLE'); }

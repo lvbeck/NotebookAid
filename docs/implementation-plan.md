@@ -1443,3 +1443,19 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - MCP-04 must add one user-interactive Windows Passkey authentication flow when an authorized request encounters an application lock. Reuse registered credentials and verified assertions; never read/export private keys or bypass required user verification. Keep the editor hidden, coordinate concurrent attempts into one authentication session, and keep authentication waiting separate from note creation/tool timeouts.
 - After successful authentication, recheck client permission, application state and bound notebook before retrying the original requestId. Cancel, failure or timeout must leave the app locked and create nothing; do not repeatedly prompt. Application Passkey unlock does not decrypt password-protected notebook content.
 - Only MCP-02 is authorized to start now. MCP-03 onward remain unstarted, and MCP-04's decision is a recorded requirement rather than permission to implement it ahead of its task gate.
+
+### MCP-02 core create entry (2026-10-19; awaiting acceptance)
+
+- MCP-01 accepted source/tests/docs were inspected and committed locally as 4e70443 (Validate background note creation through local MCP). Pending editor View/version/package work was excluded with scoped index patches and remains uncommitted. No remote Git operation.
+- Added shared/external-notes.ts and core/external-notes.ts: a protocol-independent create contract and service using the running host's existing NoteLibrary writer. The host supplies binding and current app/library/busy state separately from the untrusted request. No identity store, new public endpoint, UI or SDK dependency was added.
+- The entry binds library and exact folder, defaults to TXT, accepts Markdown, rejects unknown authority/path fields and malformed/oversized content, and returns a limited receipt without title/body/path. Core capacity is 2 MiB UTF-8 and 300 title UTF-16 code units. The existing connection probe retains its smaller transfer limits.
+- Application and notebook password locks fail independently. Existing core operation IDs, durable revisions, index status, events and editor ownership remain authoritative; index-only failure remains saved=true/indexed=false. The MCP-01 synthetic probe now routes through this service, without enabling production access.
+- Desktop compilation and 42 related core/library/addon/security/probe tests passed. Final Unicode and actual target-switch/retracted-binding assertions are checked in the targeted suite. The real Codex/SDK probe validates 13 connection checks through the new core entry with zero windows and exact content after reopen. Evidence and limitations: [MCP core testing](mcp-core-testing.md), output/mcp02/latest-success.json.
+- Product version remains 0.15.19. This is a core-module handoff, with no new application package verification or portable replacement, production plugin installation, model request, source commit for MCP-02, formal release or MCP-03 work. Real Passkey UI remains scheduled for MCP-04.
+- Awaiting user acceptance. Roll back only the new service/contract/tests/docs and the narrow probe call change; preserve 4e70443, all unrelated pending work and all user data.
+
+### MCP-02 acceptance (2026-10-19; approved)
+
+- Actual user instruction: "MCP-02 验收通过，继续 MCP-03，仍按项目规则逐项交付、等待验收。"
+- MCP-02 is accepted. Commit only its core service, shared contract, narrow connection-probe change, tests and documents locally. Preserve unrelated pending work and all user data; no remote Git operation or release.
+- Only MCP-03 client identity and persistent scoped authorization may start. Passkey authentication UI remains scheduled for MCP-04; plugin distribution remains scheduled for MCP-06. Do not mark later tasks accepted or start them automatically.
