@@ -456,22 +456,25 @@ export class NoteLibrary {
   query(input: NoteQuery = {}, addon = false): { notes: NoteSummary[]; total: number } {
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw new LibraryError('INVALID_INPUT');
     const { text = '', tagIds = [], view = 'all', offset = 0, limit = 50 } = input;
+    const { keywords, matchMode = 'AND' } = input;
+    if (input.includeDescendants !== undefined && typeof input.includeDescendants !== 'boolean') throw new LibraryError('INVALID_INPUT');
+    if ((keywords !== undefined && (!Array.isArray(keywords) || keywords.length > 8 || keywords.some(term => typeof term !== 'string' || term.length > 300))) || !['AND', 'OR'].includes(matchMode)) throw new LibraryError('INVALID_INPUT');
     if (typeof text !== 'string' || text.length > 300 || !Array.isArray(tagIds) || tagIds.length > 100 || !['all', 'pinned', 'recent', 'trash'].includes(view) || !Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new LibraryError('INVALID_INPUT');
     for (const id of tagIds) this.id(id);
     const folders = new Set<string | null>();
     if (input.folderId !== undefined) {
       if (input.folderId !== null) this.id(input.folderId);
       folders.add(input.folderId);
-      if (input.folderId !== null) for (let i = 0; i < 16; i++) for (const folder of this.structure.folders) if (folders.has(folder.parentId)) folders.add(folder.id);
+      if (input.folderId !== null && input.includeDescendants !== false) for (let i = 0; i < 16; i++) for (const folder of this.structure.folders) if (folders.has(folder.parentId)) folders.add(folder.id);
     }
-    const terms = text.normalize('NFKC').toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const terms = keywords === undefined ? text.normalize('NFKC').toLowerCase().trim().split(/\s+/).filter(Boolean) : keywords.map(term => term.normalize('NFKC').toLowerCase().trim()).filter(Boolean);
     const rows = [...this.catalog.values()].filter(note => {
       if (addon && (note.visibleInThunderbird === false || note.deletedAt)) return false;
       if ((view === 'trash' ? !note.deletedAt : !!note.deletedAt) || (folders.size && !folders.has(note.folderId)) || !tagIds.every(id => note.tagIds.includes(id)) || (view === 'pinned' && !note.pinned) || (view === 'recent' && !this.recent[note.id])) return false;
       if (!terms.length) return true;
       if (note.body === undefined) { const loaded = this.read(note.id); this.validatePlacement(loaded); Object.assign(note, loaded); }
       const content = `${note.title}\n${note.primaryFormat === 'delta' ? deltaText(note.body!) : note.body}`.normalize('NFKC').toLowerCase();
-      return terms.every(term => content.includes(term));
+      return matchMode === 'OR' ? terms.some(term => content.includes(term)) : terms.every(term => content.includes(term));
     });
     rows.sort((a, b) => view === 'trash' ? b.deletedAt!.localeCompare(a.deletedAt!) || a.id.localeCompare(b.id) : view === 'recent' ? this.recent[b.id].localeCompare(this.recent[a.id]) || a.id.localeCompare(b.id) : Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id));
     return { total: rows.length, notes: rows.slice(offset, offset + limit).map(({ body: _body, revisionId: _revision, generatedSummary: _generated, generatedTranslation: _translation, taskSource: _taskSource, ...summary }) => ({ ...summary, tagIds: [...summary.tagIds] })) };

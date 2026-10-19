@@ -59,8 +59,8 @@ export async function smokeOrganization(window: BrowserWindow, directory: string
   await click(`[data-folder="${parent}"]`); await input('note-search', 'needle 中文');
   await until("document.querySelector('[data-testid=query-total]').textContent.trim()==='1'");
   await input('note-search', 'not-found'); await until("!!document.querySelector('[data-testid=empty-results]')");
-  await click('[data-testid=clear-filters]'); await click('[data-testid=pinned-tab]');
-  await until("document.querySelector('[data-testid=query-total]').textContent.trim()==='1'");
+  await click('[data-testid=clear-filters]'); await click('[data-testid=advanced-search-tab]'); await click('[data-testid=advanced-pinned]'); await click('[data-testid=advanced-submit]');
+  await until("document.querySelector('[data-testid=advanced-total]').textContent.trim()==='1' && !document.querySelector('[data-testid=advanced-submit]').disabled");await click('[data-search-note]');await until("!document.querySelector('.editor-pane').hidden");
   await input('note-folder', '', 'change');
   await until("(async () => (await window.notebookAid.library.list()).value[0].folderId===null)()");
   const after = (await run('window.notebookAid.library.list()')).value[0];

@@ -55,14 +55,9 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
   if (await run(`!!document.querySelector('[data-folder="${child}"]')`)) throw Error('Child folder visible before expansion');
   await run("document.querySelector('.folder-toggle').click()"); await until(`!!document.querySelector('[data-folder="${child}"]')`);
   if (!await run("!!(document.querySelector('[data-testid=sidebar-toggle]').compareDocumentPosition(document.querySelector('[data-testid=exit-app]')) & Node.DOCUMENT_POSITION_FOLLOWING)")) throw Error('Sidebar exit/collapse order mismatch');
-  await click('sidebar-toggle'); await click('folder-browser');
-  await until(`!!document.querySelector('[data-browser-folder="${child}"]')`);
-  await run(`document.querySelector('[data-browser-toggle="${parent}"]').click()`);
-  await until(`!document.querySelector('[data-browser-folder="${child}"]')`);
-  await run(`document.querySelector('[data-browser-toggle="${parent}"]').click()`);
-  await until(`!!document.querySelector('[data-browser-folder="${child}"]')`);
-  await run(`document.querySelector('[data-browser-folder="${child}"]').click()`);
-  await until("!document.querySelector('.folder-browser-menu')");
+  await click('sidebar-toggle'); await click('advanced-search-tab');
+  await until(`document.querySelector('[data-testid=advanced-folder] option[value="${child}"]')`);
+  await click('recent-tab');
   await click('sidebar-toggle');
   await click('unfiled-folder');
   await click('create-note'); await click('create-markdown'); await until("!!document.querySelector('[data-testid=note-title]') && !document.querySelector('[data-testid=note-title]').disabled");

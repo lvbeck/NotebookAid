@@ -1,3 +1,5 @@
+import { AdvancedSearchComponent } from './advanced-search.component';
+import { searchText } from './search-i18n';
 import { printText, type PrintKey } from './print-i18n';
 import { BackupProgressComponent, BackupProgressService } from './backup-progress';
 import { EasterBridge } from './easter-bridge';
@@ -65,10 +67,12 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [BackupProgressComponent, StartupProgressComponent,TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [AdvancedSearchComponent, BackupProgressComponent, StartupProgressComponent,TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
+  async openAdvancedSearch(): Promise<void> { if (!this.workspace.switching() && await this.workspace.flush()) { this.editorFullscreen.set(false); this.tab.set('search'); } }
+  searchLabel(): string { return searchText(this.locale(), 'title'); }
   readonly backupProgress = inject(BackupProgressService);
   tasksLabel():string{return tasksText(this.locale(),'menu');}
   async importTasks():Promise<void>{
@@ -244,7 +248,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly historyNoteId = signal('');
   async openHistory(): Promise<void> { if (await this.workspace.flush()) { this.historyNoteId.set(this.workspace.session()?.note.id || ''); this.editorFullscreen.set(false); this.tab.set('history'); } }
   async trashCurrent(): Promise<void> { if (await this.workspace.lifecycleAction('trash')) { this.editorFullscreen.set(false); this.tab.set('trash'); } else { requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-testid=note-trash]')?.focus()); } }
-  readonly tab = signal<'editor' | 'diagnostics' | 'settings' | 'libraries' | 'organization' | 'trash' | 'history'>('editor');
+  readonly tab = signal<'editor' | 'diagnostics' | 'settings' | 'libraries' | 'organization' | 'trash' | 'history' | 'search'>('editor');
   readonly runtime = signal<RuntimeInfo | null>(null);
   readonly sqliteResult = signal('');
   readonly roundtripResult = signal('');

@@ -1,3 +1,4 @@
+import { searchText, tagPalette, tagColorName } from './search-i18n';
 import { lifecycleText, type LifecycleKey } from './lifecycle-i18n';
 import { NgTemplateOutlet } from '@angular/common';
 import { DragDropModule, type CdkDragDrop } from '@angular/cdk/drag-drop';
@@ -46,7 +47,8 @@ import { translate, type Locale, type MessageKey } from './i18n';
             }
           </div>
           <label>{{ t('tagName') }}<input data-testid="tag-name" [(ngModel)]="tagName" maxlength="80"></label>
-          <label>{{ t('tagColor') }}<span class="tag-color-control"><input type="color" data-testid="tag-color" [(ngModel)]="tagColor" [attr.aria-label]="t('tagColor')"><span class="tag-color-preview" [style.background-color]="tagColor" aria-hidden="true"></span><output data-testid="tag-color-value">{{ tagColor }}</output></span></label>
+          <fieldset class="tag-palette" [attr.aria-label]="paletteLabel()"><legend>{{ paletteLabel() }}</legend><div class="tag-palette-grid">@for (color of palette; track color; let index = $index) { <label class="tag-palette-option"><input type="radio" name="tag-preset" [value]="color" [ngModel]="tagColor.toUpperCase()" (ngModelChange)="tagColor = $event" [attr.aria-label]="colorName(index) + ' ' + color" [attr.data-preset-color]="color"><span class="tag-palette-swatch" [style.background]="color"><app-icon name="Check" /></span><span>{{ colorName(index) }}</span></label> }</div></fieldset>
+          <label>{{ customLabel() }}<span class="tag-color-control"><input type="color" data-testid="tag-color" [(ngModel)]="tagColor" [attr.aria-label]="t('tagColor')"><span class="tag-color-preview" [style.background-color]="tagColor" aria-hidden="true"></span><output data-testid="tag-color-value">{{ tagColor }}</output></span></label>
           <button class="primary" data-testid="tag-save" (click)="saveTag()" [disabled]="!tagName.trim() || workspace.organizationBusy() || workspace.switching()"><app-icon name="Save" />{{ t('save') }}</button>
           @if (existing('tag')) { <button class="secondary" data-testid="tag-delete" [disabled]="workspace.organizationBusy() || workspace.switching()" (click)="remove('tag')"><app-icon name="Trash2" />{{ l('remove') }}</button> }
         </article>
@@ -55,6 +57,10 @@ import { translate, type Locale, type MessageKey } from './i18n';
     </section>`
 })
 export class OrganizationComponent {
+  readonly palette = tagPalette;
+  paletteLabel(): string { return searchText(this.locale, 'palette'); }
+  customLabel(): string { return searchText(this.locale, 'custom'); }
+  colorName(index: number): string { return tagColorName(this.locale, index); }
   l(key: LifecycleKey): string { return lifecycleText(this.locale, key); }
   existing(kind: 'folder' | 'tag'): boolean { return kind === 'folder' ? this.workspace.organization().folders.some(row => row.id === this.folderId) : this.workspace.organization().tags.some(row => row.id === this.tagId); }
   async remove(kind: 'folder' | 'tag'): Promise<void> { this.lastAction = kind === 'folder' ? 'delete-folder' : 'delete-tag'; if (await this.workspace.deleteOrganization(kind, kind === 'folder' ? this.folderId : this.tagId)) { if (kind === 'folder') this.newFolder(); else this.newTag(); } }
