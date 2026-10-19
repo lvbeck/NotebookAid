@@ -26,17 +26,15 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 - 当前用户登录自启动可选窗口或后台模式，默认关闭；真实注销／登录和实体 macOS 行为仍需人工验证。
 - 本地 Codex MCP 插件支持向一个明确授权的文件夹创建 TXT／Markdown 笔记，提供所有者确认、范围授权及本地客户端凭据加密。应用锁可能要求交互式 Passkey 验证，不会启用自动向 AI 提交正文。
 
-[大纲测试与回退](docs/outline-testing.md)。本轮本地修改已通过用户验收；T15-A 继续搁置，不推送、不正式发布。
+[大纲测试与回退](docs/outline-testing.md).
 
 本地后续版本 0.15.23 新增 Markdown 分割线及 H4/H5/H6 富文本编辑、工具栏操作和源码往返检查。已通过用户验收，参见[测试与回退](docs/markdown-blocks-testing.md)。
 
 本地 0.15.23 为 Markdown 新增离线 KaTeX 公式：行内 `$…$`／`\(…\)` 与块级 `$$…$$`／`\[…\]`。点击公式可编辑 LaTeX 源码并预览，也可从现有工具栏插入；Markdown 保留源码，支持撤销重做和 PDF 公式输出。许可证清单包含 KaTeX、随包字体及依赖声明。已通过用户验收，参见[公式测试与回退](docs/math-testing.md)。
 
-## 测试下载
+## 下载
 
-项目目前处于测试阶段，尚未发布正式 GitHub Release。
-
-当前本地源码版本为 0.15.23。下方 CI 下载链接仍对应此前已验证的 0.15.11 构建，不代表已运行新的远程构建或正式发布。
+[下载 NotebookAid 0.15.23（Windows 和 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23)。安装包和 SHA256 校验清单附于发布页面。Windows 安装器未签名；macOS 使用 ad-hoc 签名，未经公证。自动更新仍未启用。下方旧 CI 测试链接仅供参考。
 
 | 平台 | 产物 | 最新已验证测试构建 | 工作流 |
 | --- | --- | --- | --- |

@@ -19,7 +19,6 @@ NotebookAid es una aplicación de notas de escritorio de código abierto con un 
 
 ## Cambios locales recientes
 
-La versión local del código es 0.15.23. Las descargas CI siguientes siguen correspondiendo a las compilaciones 0.15.11 verificadas anteriormente; no se anuncia una nueva compilación remota ni una publicación oficial.
 
 - Vista ofrece diseño continuo, páginas A4, Plegar en el sitio y Esquema y texto. Los títulos Markdown # y las listas TXT - con sangría forman el esquema sin reescribir el texto. Plegar en el sitio es de solo lectura con Editar texto; Esquema y texto conserva el editor original.
 - La barra fija del editor cubre ambos márgenes laterales en modo oscuro. Diez temas siguen el cuaderno activo y la apariencia clara/oscura; el violeta se denomina Violeta aurora.
@@ -28,15 +27,15 @@ La versión local del código es 0.15.23. Las descargas CI siguientes siguen cor
 - El inicio de sesión automático del usuario actual es opcional, desactivado por defecto, en ventana o en segundo plano. Siguen pendientes una sesión real y pruebas en un Mac físico.
 - El plugin local Codex MCP crea notas TXT/Markdown en una carpeta autorizada expresamente, con confirmación del propietario, permisos limitados y credenciales locales cifradas. El bloqueo puede requerir una verificación Passkey interactiva. No activa el envío automático a la IA.
 
-[Pruebas del esquema y reversión](docs/outline-testing.md). Los cambios locales han sido aceptados por el usuario; T15-A sigue aplazado. Sin push ni publicación oficial.
+[Pruebas del esquema y reversión](docs/outline-testing.md).
 
 La versión local 0.15.23 añade edición enriquecida de líneas horizontales Markdown y títulos H4/H5/H6, con acciones en la barra y comprobación de conversión del código fuente. Aceptado por el usuario; consulte [pruebas y reversión](docs/markdown-blocks-testing.md).
 
 La versión local 0.15.23 añade fórmulas KaTeX sin conexión en Markdown: `$…$` / `\(…\)` en línea y `$$…$$` / `\[…\]` en bloque. Haga clic para editar y previsualizar LaTeX o inserte una fórmula desde la barra existente. Markdown conserva el código, con deshacer/rehacer y fórmulas en PDF. El catálogo de licencias incluye KaTeX, fuentes y dependencias. Aceptado por el usuario; consulte [pruebas y reversión](docs/math-testing.md).
 
-## Descargas de prueba
+## Descargas
 
-Son artefactos de prueba, sin publicación oficial. Windows y macOS comparten una versión numérica. Inicie sesión en GitHub, abra una ejecución correcta y descargue sus Artifacts.
+[Descargar NotebookAid 0.15.23 para Windows y macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). Los paquetes y las sumas SHA256 se adjuntan a la versión. Los instaladores Windows no están firmados; macOS usa firma ad hoc sin notarización. Las actualizaciones automáticas siguen desactivadas. Los antiguos enlaces CI siguientes se conservan como referencia.
 
 - [Instalador EXE / ZIP portátil 0.15.11](https://github.com/lvbeck/NotebookAid/actions/runs/38891357620/artifacts/12042182601): `NotebookAid-windows-x64-test`.
 - [Instalador MSI nativo 0.15.11](https://github.com/lvbeck/NotebookAid/actions/runs/38891357620/artifacts/12041793159): `NotebookAid-windows-x64-msi-test`.

@@ -19,7 +19,6 @@ NotebookAid 是開源桌面筆記應用程式，提供可選的 Thunderbird 附�
 
 ## 近期本機更新
 
-目前本機原始碼版本為 0.15.23。下方 CI 下載連結仍對應先前已驗證的 0.15.11 建置，並不代表已執行新的遠端建置或正式發佈。
 
 - 檢視支援連續版面、A4 風格分頁、就地摺疊及目錄與內文。Markdown 的 # 標題與 TXT 的縮排 - 清單可建立大綱，不會重寫筆記內文。就地摺疊為唯讀檢視，可選擇「編輯內文」；目錄與內文保留原編輯區。
 - 修正深色模式下編輯區置頂列左右兩側的遮蓋邊界。十種筆記本外觀隨目前筆記本及深淺主題自動切換，紫色預設重新命名為「極光紫」。
@@ -28,15 +27,15 @@ NotebookAid 是開源桌面筆記應用程式，提供可選的 Thunderbird 附�
 - 目前使用者登入時自動啟動可選視窗或背景模式，預設關閉；實際登出／登入與實體 macOS 行為仍需手動驗證。
 - 本機 Codex MCP 外掛可在一個明確授權的資料夾建立 TXT／Markdown 筆記，提供擁有者確認、範圍授權及本機用戶端憑證加密。應用程式鎖可能要求互動式 Passkey 驗證，不會自動向 AI 提交內文。
 
-[大綱測試與回復](docs/outline-testing.md)。本輪本機修改已通過使用者驗收；T15-A 繼續擱置，不推送、不正式發佈。
+[大綱測試與回復](docs/outline-testing.md).
 
 本機後續版本 0.15.23 新增 Markdown 分隔線及 H4/H5/H6 富文字編輯、工具列操作和原始碼往返檢查。已通過使用者驗收，請參閱[測試與回復](docs/markdown-blocks-testing.md)。
 
 本機 0.15.23 為 Markdown 新增離線 KaTeX 公式：行內 `$…$`／`\(…\)` 與區塊 `$$…$$`／`\[…\]`。按一下公式可編輯 LaTeX 原始碼並預覽，也可從現有工具列插入；Markdown 保留原始碼，支援復原、重做及 PDF 公式輸出。授權清單包含 KaTeX、隨附字型及依賴聲明。已通過使用者驗收，請參閱[公式測試與回復](docs/math-testing.md)。
 
-## 測試版下載
+## 下載
 
-目前僅提供測試產物，尚未正式發佈。Windows 與 macOS 共用純數字版本號。登入 GitHub，選擇成功的執行記錄，再到 Artifacts 下載。
+[下載 NotebookAid 0.15.23（Windows 及 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23)。安裝套件及 SHA256 核對清單附於發佈頁面。Windows 安裝程式未簽署；macOS 使用 ad-hoc 簽署，未經公證。自動更新仍未啟用。下方舊 CI 測試連結僅供參考。
 
 - [EXE 安裝程式／可攜式 ZIP 0.15.11](https://github.com/lvbeck/NotebookAid/actions/runs/38891357620/artifacts/12042182601): `NotebookAid-windows-x64-test`.
 - [原生 MSI 安裝程式 0.15.11](https://github.com/lvbeck/NotebookAid/actions/runs/38891357620/artifacts/12041793159): `NotebookAid-windows-x64-msi-test`.

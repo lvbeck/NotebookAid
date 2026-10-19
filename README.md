@@ -26,17 +26,15 @@ NotebookAid is an open-source desktop notebook application with an optional Thun
 - Optional current-user login startup defaults off, with Window or Background mode. Real logout/login and physical macOS behavior still require manual verification.
 - The local Codex MCP plugin supports explicitly authorized TXT/Markdown note creation in one folder, with owner confirmation, scoped authorization and encrypted local client credentials. App locking can require interactive Passkey verification. It does not enable automatic AI submission.
 
-[Outline testing and rollback](docs/outline-testing.md). This local follow-up has passed user acceptance; T15-A remains shelved. No push or formal release.
+[Outline testing and rollback](docs/outline-testing.md).
 
 Local follow-up 0.15.23 adds Markdown horizontal rules and H4/H5/H6 rich-text editing, toolbar actions and source-preserving roundtrip checks. Accepted by the user; see [testing and rollback](docs/markdown-blocks-testing.md).
 
 Local 0.15.23 adds offline KaTeX formulas to Markdown: inline `$…$` / `\(…\)` and block `$$…$$` / `\[…\]`. Click a formula to edit its LaTeX source and preview it; existing toolbar actions insert formulas. Source remains in Markdown, with undo/redo and rendered PDF output. KaTeX, bundled fonts and dependency notices appear in the license catalog. Accepted by the user; see [formula testing and rollback](docs/math-testing.md).
 
-## Test downloads
+## Downloads
 
-This project is in testing. No formal GitHub Release has been published.
-
-The local source version is 0.15.23. The CI download links below still refer to the previously verified 0.15.11 builds; no new remote build or formal release is claimed.
+[Download NotebookAid 0.15.23 for Windows and macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). Packages and SHA256 checksums are attached to the release. Windows installers are unsigned; macOS packages use ad-hoc signing without notarization. Automatic updates remain disabled. The older CI test links below are retained for reference.
 
 | Platform | Packages | Latest verified test build | Workflow |
 | --- | --- | --- | --- |

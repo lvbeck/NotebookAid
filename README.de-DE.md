@@ -26,15 +26,15 @@ NotebookAid ist eine quelloffene Desktop-Anwendung für Notizbücher mit einer o
 - Der optionale Autostart für den aktuellen Benutzer ist standardmäßig aus und bietet Fenster- oder Hintergrundmodus. Echte Anmeldungen und physische macOS-Tests stehen weiterhin aus.
 - Das lokale Codex-MCP-Plugin erstellt ausdrücklich autorisierte TXT-/Markdown-Notizen in einem Ordner, mit Eigentümerbestätigung, begrenzten Berechtigungen und verschlüsselten lokalen Client-Zugangsdaten. Die App-Sperre kann eine interaktive Passkey-Prüfung verlangen. Inhalte werden dadurch nicht automatisch an KI gesendet.
 
-[Gliederung testen und zurücksetzen](docs/outline-testing.md). Diese lokalen Änderungen wurden vom Benutzer abgenommen; T15-A bleibt zurückgestellt. Kein Push und keine offizielle Veröffentlichung.
+[Gliederung testen und zurücksetzen](docs/outline-testing.md).
 
 Die lokale Folgeversion 0.15.23 ergänzt die Rich-Text-Bearbeitung von Markdown-Trennlinien und H4/H5/H6 mit Werkzeugleistenaktionen und Prüfung der Quelltextkonvertierung. Vom Benutzer abgenommen; siehe [Tests und Rücksetzung](docs/markdown-blocks-testing.md).
 
 Die lokale Version 0.15.23 ergänzt offline verfügbare KaTeX-Formeln in Markdown: `$…$` / `\(…\)` im Text und `$$…$$` / `\[…\]` als Block. Formeln lassen sich anklicken, als LaTeX bearbeiten und vorab ansehen oder über die vorhandene Werkzeugleiste einfügen. Markdown behält den Quelltext; Rückgängig/Wiederholen und PDF-Formeln werden unterstützt. KaTeX, Schriftarten und Abhängigkeiten stehen im Lizenzkatalog. Vom Benutzer abgenommen; siehe [Formeltests und Rücksetzung](docs/math-testing.md).
 
-## Testversionen herunterladen
+## Downloads
 
-Die lokale Quellversion ist 0.15.23. Die folgenden CI-Downloads verweisen weiterhin auf die zuvor geprüften Builds 0.15.11; ein neuer Remote-Build oder eine offizielle Veröffentlichung wird nicht behauptet.
+[NotebookAid 0.15.23 für Windows und macOS herunterladen](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). Pakete und SHA256-Prüfsummen sind der Veröffentlichung beigefügt. Windows-Installer sind unsigniert; macOS verwendet Ad-hoc-Signierung ohne Notarisierung. Automatische Updates bleiben deaktiviert. Ältere CI-Testlinks stehen unten als Referenz.
 
 | Plattform / Paket | Download | Inhalt |
 | --- | --- | --- |

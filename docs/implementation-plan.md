@@ -1659,3 +1659,8 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - Actual user acceptance: "KaTeX 公式、Markdown 分割线和 H4/H5/H6 富文本编辑、多语言 README 及第三方声明验收通过，请按项目规则提交这些修改。T15-A 继续搁置，不进行下个任务，不正式发布、不推送。"
 - Accepted scope: offline inline/display KaTeX formulas with editable LaTeX, Markdown horizontal rules and H4/H5/H6 rich editing, ten-language controls and README updates, third-party code/font/dependency attribution, and related source, tests, packaging integration and version 0.15.23. Commit this accepted scope on local main. Exclude T15-A prototype assets/probes, dependencies, generated packages, output and secrets.
 - The verified build, regression, packaged UI, distribution and portable-deployment evidence above remains applicable with its documented limitations. This acceptance changes documentation status only and does not require another build or portable replacement. No next task, push, tag or formal release is authorized.
+
+### GitHub publication authorization (2026-10-19)
+
+- Later direct user decision: "检查结果可以，姓名、公开联系邮箱和必要的第三方声明保留，不需要修改。T15-A 继续搁置，暂时不进行下个任务，推送到github并发布新版本。" This explicitly supersedes the earlier no-push/no-release restriction for publishing the accepted 0.15.23 scope.
+- Publish local main and version v0.15.23 to lvbeck/NotebookAid with verified distribution assets, updated ten-language download pointers and candid signing/testing limitations. Retain public identity and required attribution. T15-A remains excluded; no new development task or automatic-update activation is authorized. Publication completion and CI results must be verified before reporting success.
