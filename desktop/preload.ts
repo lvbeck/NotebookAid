@@ -91,6 +91,7 @@ const api: PrototypeApi = {
     duplicate:(request,title)=>ipcRenderer.invoke('library:duplicate',request,title),
     importFile: () => ipcRenderer.invoke('library:importFile'),
     exportFile: input => ipcRenderer.invoke('library:exportFile', input),
+    printNote: (input, mode) => ipcRenderer.invoke('library:printNote', input, mode),
     begin: noteId => ipcRenderer.invoke('library:begin', noteId),
     end: (token, generation) => ipcRenderer.invoke('library:end', token, generation),
     save: request => ipcRenderer.invoke('library:save', request),

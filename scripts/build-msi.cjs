@@ -45,7 +45,7 @@ async function buildMsi(version = require('../package.json').version, outputDire
   fs.cpSync(source, root, {recursive:true, filter: file => !['installation.json', 'native-host.json', 'native-host-legacy.json', 'Uninstall NotebookAid.exe'].includes(path.basename(file))});
   const csc = path.join(process.env.WINDIR, 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
   execFileSync(csc, ['/nologo', '/target:exe', '/platform:x64', '/define:MSI_UPDATE', '/reference:System.Web.Extensions.dll', '/reference:System.Core.dll', '/out:' + path.join(root, 'NotebookAid.SetupSupport.exe'), path.resolve('native/SetupSupport.cs'), path.resolve('native/MsiUpdate.cs'), require('./native-assembly-info.cjs').writeNativeAssemblyInfo(stage)], {stdio:'inherit', windowsHide:true});
-  for (const file of ['NotebookAid.exe', 'NotebookAid.Bridge.exe', 'NotebookAid.Passkey.exe', 'NotebookAid.SetupSupport.exe', 'resources/app.asar']) if (!fs.existsSync(path.join(root, file))) throw Error('Missing MSI program resource: ' + file);
+  for (const file of ['NotebookAid.exe', 'NotebookAid.Bridge.exe', 'NotebookAid.Passkey.exe','NotebookAid.Print.exe', 'NotebookAid.SetupSupport.exe', 'resources/app.asar']) if (!fs.existsSync(path.join(root, file))) throw Error('Missing MSI program resource: ' + file);
   fs.writeFileSync(path.join(root, 'msi-owner.txt'), 'NotebookAid.MSI.v1\n');
   // MSI uses its own update feed and must never consume latest.yml / NSIS installers.
   fs.rmSync(path.join(root, 'resources/app-update.yml'), {force:true});

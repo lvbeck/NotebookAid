@@ -157,12 +157,12 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   const exportRoot = join(tmpdir(), `notebookaid-export-${basename(directory)}`); mkdirSync(exportRoot, { recursive: true });
   const exported = join(exportRoot, 'copy.html');
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: exported }));
-  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]').textContent.includes('导出成功')");
+  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('导出成功')");
   if (readFileSync(exported, 'utf8') !== '\ufeff' + htmlCopy || await body() !== basic) throw Error('Export snapshot/UTF-8 marker mismatch or note mutated');
-  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]').textContent.includes('导出失败')");
+  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('导出失败')");
   if (readFileSync(exported, 'utf8') !== '\ufeff' + htmlCopy) throw Error('Export overwrote existing file');
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: null }));
-  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]').textContent.includes('取消')");
+  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('取消')");
   await input('export-format', 'text', 'change'); await click('prepare-export');
   const textCopy = await run("document.querySelector('[data-testid=export-preview]').value");
   if (!textCopy.includes('中文标题') || textCopy.includes('**粗体**')) throw Error('Markdown to TXT failed');
@@ -271,6 +271,30 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
     if (format === 'html' && (!converted.includes('&lt;b&gt;') || converted.includes('<b>'))) throw Error('TXT to HTML interpreted tags');
     if (format === 'markdown' && !converted.includes('\\*\\*不是粗体\\*\\*')) throw Error('TXT to Markdown interpreted emphasis');
   }
+  await click('print-note'); await until("!!document.querySelector('[data-testid=print-direct]')"); await click('print-direct');
+  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')");
+  if (await run("!!document.querySelector('[data-testid=print-preview-dialog]')")) throw Error('Unexpected application print preview');
+  const pdfPath = join(exportRoot, 'note-print.pdf');
+  writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: pdfPath }));
+  await click('print-note'); await click('print-pdf');
+  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')");
+  if (!readFileSync(pdfPath).subarray(0,5).equals(Buffer.from('%PDF-'))) throw Error('PDF export is invalid');
+  await click('print-note'); await click('print-pdf');
+  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('失败')");
+  writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: null }));
+  await click('print-note'); await click('print-pdf'); await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('取消')");
+  for (const format of ['markdown', 'html', 'delta']) {
+    await click('create-note'); await click('create-' + format); await click('source-mode');
+    await until("!!document.querySelector('[data-testid=body-source]')");
+    const content = format === 'markdown' ? '# PDF Markdown\n\n**Bold fixture**' : format === 'html' ? '<script>throw Error("unsafe")</script><img src="https://example.invalid/private.png"><h2>PDF HTML</h2>'+Array.from({length:120},(_,i)=>'<p>Print paragraph '+i+'</p>').join('') : JSON.stringify({format:'NotebookAidDelta',version:1,ops:[{insert:'PDF Delta',attributes:{bold:true}},{insert:'\n'}]});
+    await input('body-source', content); await input('note-title', 'PDF ' + format); await save();
+    if (format === 'delta') await click('rich-mode');
+    writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({path:join(exportRoot,'note-'+format+'.pdf')}));
+    await click('print-note'); await click('print-pdf');
+    await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')");
+    if (!readFileSync(join(exportRoot,'note-'+format+'.pdf')).subarray(0,5).equals(Buffer.from('%PDF-'))) throw Error('Invalid PDF: '+format);
+  }
+  writeFileSync(join(directory, 'print-report.json'), JSON.stringify({ directPrint:true, nativePrintSimulated:true, pdfGenerated:true, formats:['text','markdown','html','delta'], unsafeHtmlFixture:true, overwriteRejected:true, cancelled:true }));
   await click('libraries-tab'); await run(`document.querySelector('[data-library-id="${original}"] [data-testid=library-open]').click()`);
   await until("!document.querySelector('[data-testid=library-add]').disabled");
   // Remove only the temporary registry entry; retain all fixture files for inspection.

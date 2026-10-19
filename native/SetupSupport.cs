@@ -44,7 +44,7 @@ internal static class SetupSupport
 #if SETUP_TEST
         if (Environment.GetEnvironmentVariable("NOTEBOOKAID_SETUP_TEST_BUSY") == "1") throw new IOException("Simulated running application.");
 #else
-        foreach (string name in new[] { "NotebookAid", "NotebookAid.Bridge", "NotebookAid.Passkey" })
+        foreach (string name in new[] { "NotebookAid", "NotebookAid.Bridge", "NotebookAid.Passkey", "NotebookAid.Print" })
             if (Process.GetProcessesByName(name).Length != 0) throw new IOException("Exit NotebookAid and its native helpers before installation or removal.");
 #endif
     }

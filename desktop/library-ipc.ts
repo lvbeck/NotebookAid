@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { planTasks, executeTasksAsync, tasksRows, TasksError, type TasksPlan } from '../core/tasks';
 import type { TasksResult } from '../shared/tasks';
 import { printRecovery } from './recovery-print';
+import { renderNotePrint } from './note-print';
 import { BackupStore, pathsOverlap, verifyBackup } from '../core/backups';
 import { backupText } from '../src/app/backup-i18n';
 import type { ExitCommand, ExitState } from '../shared/dialog';
@@ -30,7 +31,7 @@ import { LibraryRegistry } from '../core/registry';
 import { validateAppearance } from '../core/notebook-appearance';
 import { SettingsStore } from '../core/settings';
 import { formatExtensions, type NoteInput, type Result, type SaveRequest } from '../shared/library';
-import { importNote, exportNote } from '../core/note-files';
+import { importNote, exportNote, exportPdf } from '../core/note-files';
 import { cleanSvg } from './svg-import';
 import { readAttachmentFile } from '../core/attachments';
 import { cleanHtmlImport } from './html-import';
@@ -440,6 +441,34 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       const source = note ? { items: note.attachments ?? [], read: (item: import('../shared/attachments').Attachment) => library.attachmentBytes(note.id, item.id) } : undefined;
       exportNote(path, input, [dataPath, app.isPackaged ? dirname(process.execPath) : app.getAppPath(), ...manager().state().entries.map(entry => entry.path)], source);
       return true;
+    } finally { choosing = false; }
+  });
+  handle('printNote', async (_owner, input: NoteInput, mode: unknown) => {
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE');
+    if (!input || input.primaryFormat !== 'html' || typeof input.title !== 'string' || input.title.length > 300 || typeof input.body !== 'string' || input.body.includes('\0') || Buffer.byteLength(input.body) > 12 * 1024 * 1024 || typeof input.attachmentNoteId !== 'string' || !['print', 'pdf'].includes(mode as string)) throw new LibraryError('INVALID_INPUT');
+    const library = get(), note = library.read(input.attachmentNoteId);
+    choosing = true;
+    try {
+      const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
+      if (note.encrypted && !await confirmPlainExport(target)) return false;
+      let path: string | null = null;
+      if (mode === 'pdf') {
+        if (selfTest && existsSync(join(dataPath, 'note-file-dialog.json'))) path = await fileDialog();
+        else {
+          const name = input.title.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/[. ]+$/, '').slice(0, 80) || 'NotebookAid';
+          const selected = await dialog.showSaveDialog(target, { defaultPath: name + '.pdf', filters: [{ name: 'PDF', extensions: ['pdf'] }] });
+          path = selected.canceled ? null : selected.filePath ?? null;
+        }
+        if (!path) return false;
+      }
+      library.read(note.id);
+      const result = await renderNotePrint(target, input.title, input.body, mode === 'pdf', selfTest);
+      if (Buffer.isBuffer(result)) {
+        try { exportPdf(path!, result, [dataPath, app.isPackaged ? dirname(process.execPath) : app.getAppPath(), ...manager().state().entries.map(entry => entry.path)]); }
+        finally { result.fill(0); }
+        return true;
+      }
+      return result;
     } finally { choosing = false; }
   });
   const confirmPlainExport = async (target: BrowserWindow): Promise<boolean> => !showConfirmations || dialogs.ask(target, { kind: 'warning', title: translate(currentLocale(), 'exportCopy'), message: securityText(currentLocale(), 'plainExport'), cancelLabel: securityText(currentLocale(), 'cancel'), confirmLabel: securityText(currentLocale(), 'confirm') });

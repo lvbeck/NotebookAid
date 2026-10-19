@@ -53,7 +53,7 @@ static void Idle() {
     PROCESSENTRY32W item = {}; item.dwSize = sizeof(item);
     bool busy = false;
     if (Process32FirstW(snapshot, &item)) do {
-        if (!_wcsicmp(item.szExeFile, L"NotebookAid.exe") || !_wcsicmp(item.szExeFile, L"NotebookAid.Bridge.exe") || !_wcsicmp(item.szExeFile, L"NotebookAid.Passkey.exe")) busy = true;
+        if (!_wcsicmp(item.szExeFile, L"NotebookAid.exe") || !_wcsicmp(item.szExeFile, L"NotebookAid.Bridge.exe") || !_wcsicmp(item.szExeFile, L"NotebookAid.Passkey.exe") || !_wcsicmp(item.szExeFile, L"NotebookAid.Print.exe")) busy = true;
     } while (Process32NextW(snapshot, &item));
     CloseHandle(snapshot);
     if (busy) throw std::runtime_error("Exit NotebookAid and its native helpers before installation, repair or removal.");

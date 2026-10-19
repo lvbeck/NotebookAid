@@ -1,3 +1,4 @@
+import { printText, type PrintKey } from './print-i18n';
 import { BackupProgressComponent, BackupProgressService } from './backup-progress';
 import { EasterBridge } from './easter-bridge';
 import { Onboarding } from './onboarding';
@@ -305,6 +306,37 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
   }
   toggleSource(value: boolean): void { if (this.composing) return; this.sourceMode.set(value); if (!value) this.loadSource(); }
+  printLabel(key: PrintKey): string { return printText(this.locale(), key); }
+  async openPrint(pdf: boolean): Promise<void> {
+    const session = this.workspace.session();
+    if (!session || this.composing || this.fileBusy() || this.workspace.switching()) return;
+    this.fileBusy.set(true); this.fileMessage.set('');
+    try {
+      let html: string;
+      if (this.format() === 'delta') {
+        this.loadSource(); if (this.warning()) throw Error('UNSUPPORTED_DELTA');
+        html = semanticHtml(this.editor.getSemanticHTML());
+      } else html = this.format() === 'html' ? this.source() : previewHtml(this.source(), this.format());
+      const parsed = new DOMParser().parseFromString(html, 'text/html');
+      const title = this.title;
+      for (const image of parsed.querySelectorAll('img')) {
+        const reference = image.getAttribute('data-note-src') || image.getAttribute('src') || '';
+        const id = /^attachments\/([a-f0-9-]{36})$/i.exec(reference)?.[1];
+        if (id && session.note.attachments?.some(item => item.id === id)) {
+          const result = await window.notebookAid.library.previewAttachment(session.note.id, id);
+          if (result.ok && result.value.dataUrl) image.setAttribute('src', result.value.dataUrl);
+          else image.removeAttribute('src');
+        } else if (!/^data:image\/(png|jpeg|gif|webp);base64,/i.test(reference)) image.removeAttribute('src');
+      }
+      if (this.workspace.session()?.generation !== session.generation) return;
+      const body = Array.from(parsed.head.querySelectorAll('style')).map(node => node.outerHTML).join('') + parsed.body.innerHTML;
+      const input: NoteInput = { title, body, primaryFormat: 'html', attachmentNoteId: session.note.id };
+      if (new TextEncoder().encode(body).length > 12 * 1024 * 1024) throw Error('INVALID_INPUT');
+      const result = await window.notebookAid.library.printNote(input, pdf ? 'pdf' : 'print');
+      this.fileMessage.set(!result.ok ? this.printLabel('failed') + ' · ' + result.code : this.printLabel(result.value ? 'success' : 'cancelled'));
+    } catch { this.fileMessage.set(this.printLabel('failed')); }
+    finally { this.fileBusy.set(false); }
+  }
   prepareExport(): void {
     if (!this.workspace.session() || this.composing) return;
     if (this.format() === 'delta') {

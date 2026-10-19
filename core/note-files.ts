@@ -27,6 +27,17 @@ export function importNote(path: string): NoteInput {
 
 export function exportNote(path: string, input: NoteInput, protectedRoots: string[], source?: NativeAttachmentSource): void {
   if (!input || !Object.hasOwn(formatExtensions, input.primaryFormat) || typeof input.body !== 'string' || input.body.includes('\0') || Buffer.byteLength(input.body) > limit) throw new LibraryError('INVALID_INPUT');
+  const target = exportTarget(path, formatExtensions[input.primaryFormat], protectedRoots);
+  // Never overwrite an existing file, even if the selection races another writer.
+  const fd = openSync(target, 'wx');
+  // A UTF-8 BOM makes standalone HTML fragments readable without a charset declaration.
+  const text = input.primaryFormat === 'html' && !input.body.startsWith('\ufeff') ? '\ufeff' + input.body : input.body;
+  let complete = false;
+  try { if (input.primaryFormat === 'delta') writeNative(fd, input, source); else writeFileSync(fd, text, 'utf8'); fsyncSync(fd); complete = true; }
+  finally { closeSync(fd); if (!complete) unlinkSync(target); }
+}
+
+function exportTarget(path: string, extension: string, protectedRoots: string[]): string {
   // Resolve junctions in the parent before comparing protected application/library paths.
   const target = resolve(realpathSync(dirname(path)), basename(path));
   if (/[<>:"/\\|?*\x00-\x1f]/.test(basename(target)) || /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(basename(target))) throw new LibraryError('INVALID_INPUT');
@@ -36,12 +47,14 @@ export function exportNote(path: string, input: NoteInput, protectedRoots: strin
     const distance = relative(canonical.toLowerCase(), target.toLowerCase());
     if (!distance || (!distance.startsWith(`..${sep}`) && distance !== '..' && !require('node:path').isAbsolute(distance))) throw new LibraryError('INVALID_INPUT');
   }
-  if (extname(target).toLowerCase() !== `.${formatExtensions[input.primaryFormat]}`) throw new LibraryError('INVALID_INPUT');
-  // Never overwrite an existing file, even if the selection races another writer.
-  const fd = openSync(target, 'wx');
-  // A UTF-8 BOM makes standalone HTML fragments readable without a charset declaration.
-  const text = input.primaryFormat === 'html' && !input.body.startsWith('\ufeff') ? '\ufeff' + input.body : input.body;
+  if (extname(target).toLowerCase() !== `.${extension}`) throw new LibraryError('INVALID_INPUT');
+  return target;
+}
+
+export function exportPdf(path: string, bytes: Buffer, protectedRoots: string[]): void {
+  if (!bytes.subarray(0, 5).equals(Buffer.from('%PDF-'))) throw new LibraryError('INVALID_INPUT');
+  const target = exportTarget(path, 'pdf', protectedRoots), fd = openSync(target, 'wx', 0o600);
   let complete = false;
-  try { if (input.primaryFormat === 'delta') writeNative(fd, input, source); else writeFileSync(fd, text, 'utf8'); fsyncSync(fd); complete = true; }
+  try { writeFileSync(fd, bytes); fsyncSync(fd); complete = true; }
   finally { closeSync(fd); if (!complete) unlinkSync(target); }
 }

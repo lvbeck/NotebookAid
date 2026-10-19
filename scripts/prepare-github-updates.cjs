@@ -21,7 +21,7 @@ function verifySignatures(files,publisher,version) {
 function verifyInventory(workspace,root,version) {
   const inventory=JSON.parse(fs.readFileSync(path.join(root,'installation-files.json'),'utf8'));
   if(inventory.owner!=='NotebookAid.Installation.v1'||inventory.version!==version||!inventory.files) throw Error('Invalid signed payload inventory.');
-  for(const file of ['NotebookAid.exe','NotebookAid.Bridge.exe','NotebookAid.Passkey.exe','NotebookAid.SetupSupport.exe','resources/app-update.yml']) if(!Object.hasOwn(inventory.files,file)) throw Error('Incomplete signed payload inventory.');
+  for(const file of ['NotebookAid.exe','NotebookAid.Bridge.exe','NotebookAid.Passkey.exe','NotebookAid.Print.exe','NotebookAid.SetupSupport.exe','resources/app-update.yml']) if(!Object.hasOwn(inventory.files,file)) throw Error('Incomplete signed payload inventory.');
   for(const [relative,digest] of Object.entries(inventory.files)) {
     const file=inside(workspace,path.join(root,relative));
     if(!file.startsWith(root+path.sep)||sha(file,'sha256')!==digest) throw Error('Signed payload inventory mismatch.');
@@ -49,7 +49,7 @@ function prepare(options={}) {
     const publisher=environment.NOTEBOOKAID_UPDATE_PUBLISHER;
     if(nsis.provider!=='generic'||nsis.url!==config.windows.feedBaseUrl||![].concat(nsis.publisherName||[]).includes(publisher)||native.provider!=='github-msi'||native.url!==config.windows.msiFeedUrl||native.publisherName!==publisher) throw Error('Packaged update configuration mismatch.');
     const programRoot=path.dirname(nsisResources);
-    const helpers=[programRoot,path.dirname(msiResources)].flatMap(root=>['NotebookAid.exe','NotebookAid.Bridge.exe','NotebookAid.Passkey.exe','NotebookAid.SetupSupport.exe'].map(file=>inside(workspace,path.join(root,file))));
+    const helpers=[programRoot,path.dirname(msiResources)].flatMap(root=>['NotebookAid.exe','NotebookAid.Bridge.exe','NotebookAid.Passkey.exe','NotebookAid.Print.exe','NotebookAid.SetupSupport.exe'].map(file=>inside(workspace,path.join(root,file))));
     verifyInventory(workspace,programRoot,version);
     verifySignatures([exe,msi,...helpers],publisher,version);
   }

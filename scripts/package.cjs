@@ -65,6 +65,7 @@ const { execFileSync } = require('node:child_process');
     cpSync('docs/macos-testing.md', join(packageRoot, 'MACOS-TESTING.md'));
     cpSync('node_modules/@electron/osx-sign/LICENSE', join(packageRoot, 'OSX-SIGN-LICENSE.txt'));
   } else {
+  cpSync(require('./build-print-helper.cjs').buildPrintHelper(), join(packageRoot, 'NotebookAid.Print.exe'));
   cpSync('dist/NotebookAid.Passkey.exe', join(packageRoot, 'NotebookAid.Passkey.exe'));
   const compiler = join(process.env.WINDIR || 'C:/Windows', 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
   execFileSync(compiler, ['/nologo', '/target:exe', '/platform:x64', '/reference:System.Web.Extensions.dll', '/out:' + join(packageRoot, 'NotebookAid.Bridge.exe'), resolve('native/Bridge.cs'), require('./native-assembly-info.cjs').writeNativeAssemblyInfo()], { stdio: 'inherit', windowsHide: true });

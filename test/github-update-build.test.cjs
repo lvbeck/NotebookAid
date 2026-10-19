@@ -61,7 +61,7 @@ test('unsigned artifacts never pass the future signed finalizer even with matchi
   fs.writeFileSync(path.join(program,'resources/app-update.yml'),yaml.dump({provider:'generic',url:config.windows.feedBaseUrl,publisherName:config.windows.publisherName}));
   fs.writeFileSync(path.join(native,'resources/msi-update.json'),JSON.stringify({provider:'github-msi',url:config.windows.msiFeedUrl,publisherName:config.windows.publisherName}));
   const files={};
-  for(const file of ['NotebookAid.exe','NotebookAid.Bridge.exe','NotebookAid.Passkey.exe','NotebookAid.SetupSupport.exe']) {
+  for(const file of ['NotebookAid.exe','NotebookAid.Bridge.exe','NotebookAid.Passkey.exe','NotebookAid.Print.exe','NotebookAid.SetupSupport.exe']) {
     for(const root of [program,native]) fs.writeFileSync(path.join(root,file),'unsigned fixture');
     files[file]=crypto.createHash('sha256').update(fs.readFileSync(path.join(program,file))).digest('hex');
   }

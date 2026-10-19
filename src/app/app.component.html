@@ -189,7 +189,12 @@
         </div>
 
         </div>
+          <button class="secondary" data-testid="print-note" [cdkMenuTriggerFor]="printOptions" [disabled]="workspace.switching() || fileBusy()"><app-icon name="Printer" />{{printLabel('print')}}</button>
         </div>
+        <ng-template #printOptions><div cdkMenu class="editor-table-menu" [attr.aria-label]="printLabel('print')">
+          <button cdkMenuItem data-testid="print-direct" (cdkMenuItemTriggered)="openPrint(false)"><app-icon name="Printer" />{{printLabel('print')}}</button>
+          <button cdkMenuItem data-testid="print-pdf" (cdkMenuItemTriggered)="openPrint(true)"><app-icon name="FileOutput" />{{printLabel('pdf')}}</button>
+        </div></ng-template>
         <ng-template #tableMenu>
           <div cdkMenu class="editor-table-menu" [attr.aria-label]="t('tableTools')">
             <button cdkMenuItem data-testid="insert-table" (cdkMenuItemTriggered)="tableAction('insertTable')" [cdkMenuItemDisabled]="inTable()"><app-icon name="Table2" />{{ t('insertTable') }}</button>
@@ -240,9 +245,9 @@
           <section class="export-preview panel"><h3>{{ t('exportPreviewTitle') }}</h3><p class="muted">{{ t(format() === 'delta' ? 'deltaExportHint' : 'exportHint') }}</p>
             <textarea data-testid="export-preview" [value]="preview.body" readonly [attr.aria-label]="t('exportPreviewTitle')"></textarea>
             <div class="actions"><button class="primary" data-testid="confirm-export" (click)="saveExport()" [disabled]="fileBusy()"><app-icon name="Save" />{{ t('exportConfirm') }}</button><button class="secondary" (click)="exportPreview.set(null)" [disabled]="fileBusy()"><app-icon name="X" />{{ t('noticeClose') }}</button></div>
-            <p role="status" data-testid="file-message">{{ fileMessage() }}</p>
           </section>
         }
+        @if (fileMessage()) { <p role="status" data-testid="file-message">{{ fileMessage() }}</p> }
         <footer class="editor-footer"><span>{{ t('ready') }}</span></footer>
         </div>
       </section>
