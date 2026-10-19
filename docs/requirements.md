@@ -426,3 +426,8 @@ User authorization: save notebook settings inside each notebook directory in pre
 - Restore the original Mist blue name, selector swatch and full light/dark palette; retain version 0.15.18. Keep skin controls within existing notebook Appearance; do not add a main-page skin picker.
 - Preserve legacy and custom colors without rewriting stored notebook data. The interim Capri blue selector color maps to Mist blue; custom colors use the closest preset hue, with a neutral fallback.
 - Supply names in all ten languages, build and verify Windows EXE/MSI/portable ZIP, update the authorized test directory and await acceptance. No formal release or remote push.
+
+### Startup settings (2026-10-19)
+
+- Add Startup settings immediately after Basic settings. Automatic startup defaults off; its Window/Background segmented controls are disabled while off and initially select Background. Startup is local to the current device/user. Manual launch still opens the window; background login launch exposes the existing tray entry.
+- Preserve the delivered version 0.15.19; no formal release or next numbered task.

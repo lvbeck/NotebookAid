@@ -610,3 +610,5 @@ summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 
 input[type=checkbox], input[type=radio], input[type=range] { accent-color:var(--accent); }
 ::selection { background:var(--accent-soft); color:var(--text); }
+
+.login-startup-modes { margin-top:16px; }

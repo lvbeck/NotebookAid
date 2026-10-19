@@ -20,6 +20,7 @@ import { DeltaError } from '../shared/delta-document';
 import { validateNative } from '../core/delta-files';
 import { attachmentHash } from '../core/attachments';
 import { translate, type Locale } from '../src/app/i18n';
+import { synchronizeLoginStartup } from './login-startup';
 import { defaultSettings } from '../shared/settings';
 import { app, dialog, ipcMain, nativeImage, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
 import { existsSync, readFileSync, lstatSync, readdirSync, writeFileSync } from 'node:fs';
@@ -345,7 +346,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     localeChanged(settings.get().global.locale);
     return settingsSnapshot();
   });
-  handle('updateSettings', (_owner, patch: unknown) => { if (!settings) throw new LibraryError('REGISTRY_INVALID'); const state = settings.update(patch); localeChanged(state.global.locale); return settingsSnapshot(); });
+  handle('updateSettings', (_owner, patch: unknown) => { if (!settings) throw new LibraryError('REGISTRY_INVALID'); const state = settings.update(patch, patch !== null && typeof patch === 'object' && Object.hasOwn(patch, 'loginStartup') ? next => { if (!selfTest) synchronizeLoginStartup(app, process.platform, app.isPackaged, process.execPath, next.global.loginStartup); } : undefined); localeChanged(state.global.locale); return settingsSnapshot(); });
   handle('librarySettings', (_owner, id: string, value: unknown) => { if (!settings || !manager().has(id)) throw new LibraryError('INVALID_INPUT'); manager().updateNotebookSettings(id, { autosave: value }); return settingsSnapshot(); });
   handle('organization', () => get().organization());
   handle('editOrganization', (_owner, input) => get().editOrganization(input));
@@ -626,6 +627,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     addonContext: () => { if(batchBusy)throw new LibraryError('LIBRARY_IN_USE');const library = get(); return { library, name: manager().currentName(), unlocked: true, locale: currentLocale(), theme: settings?.get().global.theme ?? 'system' }; },
     locale: currentLocale,
     zoom: () => { try { return (settings ?? (existsSync(join(dataPath, 'settings.json')) ? new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }) : null))?.get().global.zoomPercent ?? 100; } catch { return 100; } },
+    loginStartup: () => { try { return (settings ?? (existsSync(join(dataPath, 'settings.json')) ? new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }) : null))?.get().global.loginStartup; } catch { return undefined; } },
     theme: () => { try { return (settings ?? (existsSync(join(dataPath, 'settings.json')) ? new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }) : null))?.get().global.theme ?? 'system'; } catch { return 'system' as const; } },
     lock: () => { pendingFolder=null;pendingTasks=null; nativeImports.clear(); clearImport(); if (registry?.state().activeId) get().lockSecurity(); },
     release: (owner: string) => { if(pendingFolder?.owner===owner)pendingFolder=null; if(pendingTasks?.owner===owner)pendingTasks=null; dialogs.cancel(); nativeImports.clear(owner); clearImport(); registry?.release(owner); if (registry?.state().activeId) registry.get().lockSecurity(); },

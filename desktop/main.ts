@@ -1,3 +1,5 @@
+import { loginLaunchHidden } from './login-startup';
+import { smokeLoginStartup } from './login-startup-smoke';
 import { smokeSkin } from './skin-smoke';
 import { smokeEaster } from './easter-smoke';
 import { smokeArchive } from './archive-smoke';
@@ -39,7 +41,6 @@ import { smokePasskey } from './passkey-smoke';
 
 const easterRequests: string[] = [];
 const selfTest = process.argv.includes('--self-test') || process.argv.includes('--self-test-reopen');
-const background = process.argv.includes('--background');
 const dataPath = process.env['NOTEBOOKAID_TEST_HOME'] || migrateAppData(app.getPath('appData'), pid => { try { process.kill(pid,0); return true; } catch { return false; } });
 mkdirSync(dataPath, { recursive: true });
 app.setPath('userData', dataPath);
@@ -200,7 +201,9 @@ async function start(): Promise<void> {
   ai = registerAi(dataPath, protectedCaller, selfTest && process.env['NOTEBOOKAID_AI_TEST'] === '1', () => passkeys.gate.unlocked);
   writing = registerWriting(storage, ai, protectedCaller);
   await startBridge();
-  if (!background || selfTest) {
+  const loginStartup = storage.loginStartup();
+  const hiddenLogin = loginLaunchHidden(process.platform, process.argv, loginStartup, process.platform === 'darwin' && !selfTest && app.getLoginItemSettings().wasOpenedAtLogin);
+  if (!hiddenLogin || selfTest) {
     const window = await createWindow(!selfTest);
     if (selfTest) await runSmoke(window);
   }
@@ -291,6 +294,7 @@ app.on('before-quit', event => {
 async function runSmoke(window: BrowserWindow): Promise<void> {
   if (process.env['NOTEBOOKAID_SEARCH_TEST'] === '1') { try { await smokeSearch(window, dataPath); await quitByUser(true); } catch(error) { writeFileSync(join(dataPath, 'smoke-error.txt'), String(error)); app.exit(1); } return; }
   try {
+    if(process.env['NOTEBOOKAID_LOGIN_STARTUP_TEST']==='1'){await smokeLoginStartup(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_SKIN_TEST']==='1'){await smokeSkin(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_EASTER_TEST']==='1'){await smokeEaster(window,dataPath,easterRequests);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_STARTUP_TEST']==='1'){await smokeStartup(window,dataPath);await quitByUser(true);return;}

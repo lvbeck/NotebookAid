@@ -8,6 +8,7 @@ const { effectiveAutosave } = require('../dist/runtime/shared/settings');
 const empty = { locale: null, theme: null, autosave: null };
 function fixture() { const root = path.resolve('output/settings-tests'); fs.mkdirSync(root, { recursive: true }); return fs.mkdtempSync(path.join(root, 'case-')); }
 const code = expected => error => error.code === expected;
+
 test('legacy settings are backed up before import and imported only once', () => {
   const root = fixture(); const legacy = { locale: 'de', theme: 'dark', autosave: JSON.stringify({ enabled: false, minutes: 10 }) };
   const store = new SettingsStore(root, legacy);
@@ -70,3 +71,27 @@ test('sidebar preference accepts booleans, preserves old settings, and survives 
 });
 test('translation language supports all ten locales and persists independently of UI language',()=>{const root=fixture(),store=new SettingsStore(root,empty);assert.equal(store.get().global.translationLocale,undefined);for(const locale of ['en','de','fr','it','es','pt-PT','ja','ko','zh-CN','zh-TW'])assert.equal(store.update({translationLocale:locale}).global.translationLocale,locale);store.update({translationLocale:'de'});store.update({locale:'fr'});assert.equal(new SettingsStore(root,empty).get().global.translationLocale,'de');const before=store.get();for(const value of [null,'xx','pt','zh-HK','__proto__',1,{}])assert.throws(()=>store.update({translationLocale:value}),code('INVALID_INPUT'));assert.deepEqual(store.get(),before);});
 test('AI assistance defaults on for legacy settings and persists without changing provider credentials',()=>{const root=fixture(),store=new SettingsStore(root,empty);assert.equal(store.get().global.aiEnabled??true,true);store.update({aiEnabled:false});assert.equal(new SettingsStore(root,empty).get().global.aiEnabled,false);const before=store.get();for(const value of [null,0,'false',{},[]])assert.throws(()=>store.update({aiEnabled:value}),code('INVALID_INPUT'));assert.deepEqual(store.get(),before);store.update({aiEnabled:true});assert.equal(new SettingsStore(root,empty).get().global.aiEnabled,true);});
+
+
+test('login startup defaults off, validates modes and removes the disabled preference', () => {
+  const directory=fixture(), store=new SettingsStore(directory,empty);
+  assert.equal(store.get().global.loginStartup,undefined);
+  for(const value of [null,true,{}, {enabled:true,mode:'hidden'},{enabled:'true',mode:'background'},{enabled:true,mode:'window',path:'bad'}]) assert.throws(()=>store.update({loginStartup:value}),code('INVALID_INPUT'));
+  store.update({loginStartup:{enabled:true,mode:'background'}});
+  assert.deepEqual(new SettingsStore(directory,empty).get().global.loginStartup,{enabled:true,mode:'background'});
+  store.update({loginStartup:{enabled:true,mode:'window'}});
+  store.update({loginStartup:{enabled:false,mode:'window'}});
+  assert.equal(Object.hasOwn(store.get().global,'loginStartup'),false);
+});
+
+test('login startup registration failure and settings write failure restore previous state', () => {
+  const directory=fixture();let fail=false, registered=false;
+  const store=new SettingsStore(directory,empty,()=>{if(fail)throw Error('disk failure');});
+  const sync=next=>{registered=next.global.loginStartup?.enabled??false;};
+  fail=true;
+  assert.throws(()=>store.update({loginStartup:{enabled:true,mode:'background'}},sync),code('WRITE_FAILED'));
+  assert.equal(registered,false);assert.equal(store.get().global.loginStartup,undefined);
+  fail=false;
+  assert.throws(()=>store.update({loginStartup:{enabled:true,mode:'background'}},next=>{sync(next);if(registered)throw Error('OS failure');}),/OS failure/);
+  assert.equal(registered,false);assert.equal(new SettingsStore(directory,empty).get().global.loginStartup,undefined);
+});

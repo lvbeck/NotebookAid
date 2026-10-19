@@ -1,3 +1,4 @@
+import { loginStartupText, type LoginStartupKey } from './login-startup-i18n';
 import { AboutContent } from './about-content';
 import { informationText } from './information-i18n';
 import { settingsLayoutText, type SettingsLayoutKey } from './settings-layout-i18n';
@@ -48,6 +49,9 @@ export class SettingsComponent {
   readonly languages = languages;
   readonly zoomPercentages = zoomPercentages;
   readonly notePageSizes = notePageSizes;
+  startupText(key: LoginStartupKey): string { return loginStartupText(this.locale, key); }
+  async startupEnabled(event: Event): Promise<void> { const input = event.target as HTMLInputElement; await this.prefs.update({ loginStartup: { enabled: input.checked, mode: this.prefs.state().global.loginStartup?.mode ?? 'background' } }); input.checked = this.prefs.state().global.loginStartup?.enabled ?? false; }
+  async startupMode(mode: 'window' | 'background', event: Event): Promise<void> { if (!this.prefs.state().global.loginStartup?.enabled) return; const input = event.target as HTMLInputElement; await this.prefs.update({ loginStartup: { enabled: true, mode } }); input.closest('[role=radiogroup]')?.querySelectorAll<HTMLInputElement>('input').forEach(item => item.checked = item.value === (this.prefs.state().global.loginStartup?.mode ?? 'background')); }
   pageSizeLabel(): string { return pageSizeText(this.locale); }
   async pageSize(event: Event): Promise<void> { const input = event.target as HTMLSelectElement; await this.prefs.update({ notePageSize: Number(input.value) }); input.value = String(this.prefs.state().global.notePageSize ?? 30); }
   ui(key: UiKey): string { return uiText(this.locale, key); }

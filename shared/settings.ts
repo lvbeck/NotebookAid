@@ -2,12 +2,13 @@ import type { Result } from './library';
 export const locales = ['en', 'de', 'fr', 'it', 'es', 'pt-PT', 'ja', 'ko', 'zh-CN', 'zh-TW'] as const;
 export type SettingsLocale = typeof locales[number];
 export type SettingsTheme = 'light' | 'dark' | 'system';
+export interface LoginStartupSettings { enabled: boolean; mode: 'window' | 'background'; }
 export interface AutosaveSettings { enabled: boolean; minutes: number; }
 export const notePageSizes = [10, 20, 30, 50, 100] as const;
-export interface GlobalSettings { autoUpdates?: boolean; easterEggs?: import('./easter-eggs').EasterState; notePageSize?: number; onboarding?: import('./onboarding').OnboardingState; zoomPercent?: number; locale: SettingsLocale; theme: SettingsTheme; translationLocale?: SettingsLocale; aiEnabled?: boolean; masterPasswordDefault?: boolean; sidebarCollapsed?: boolean; autosave: AutosaveSettings; }
+export interface GlobalSettings { loginStartup?: LoginStartupSettings; autoUpdates?: boolean; easterEggs?: import('./easter-eggs').EasterState; notePageSize?: number; onboarding?: import('./onboarding').OnboardingState; zoomPercent?: number; locale: SettingsLocale; theme: SettingsTheme; translationLocale?: SettingsLocale; aiEnabled?: boolean; masterPasswordDefault?: boolean; sidebarCollapsed?: boolean; autosave: AutosaveSettings; }
 export interface SettingsState { schemaVersion: 1; global: GlobalSettings; libraries: Record<string, AutosaveSettings>; }
 export interface LegacySettings { locale: string | null; theme: string | null; autosave: string | null; }
-export interface GlobalSettingsPatch { autoUpdates?: boolean; easterEggs?: import('./easter-eggs').EasterState; notePageSize?: number; onboarding?: import('./onboarding').OnboardingState; zoomPercent?: number; locale?: SettingsLocale; theme?: SettingsTheme; translationLocale?: SettingsLocale; aiEnabled?: boolean; masterPasswordDefault?: boolean; sidebarCollapsed?: boolean; autosave?: Partial<AutosaveSettings>; }
+export interface GlobalSettingsPatch { loginStartup?: LoginStartupSettings; autoUpdates?: boolean; easterEggs?: import('./easter-eggs').EasterState; notePageSize?: number; onboarding?: import('./onboarding').OnboardingState; zoomPercent?: number; locale?: SettingsLocale; theme?: SettingsTheme; translationLocale?: SettingsLocale; aiEnabled?: boolean; masterPasswordDefault?: boolean; sidebarCollapsed?: boolean; autosave?: Partial<AutosaveSettings>; }
 export const defaultSettings: SettingsState = { schemaVersion: 1, global: { locale: 'zh-CN', theme: 'system', masterPasswordDefault: false, autosave: { enabled: true, minutes: 5 } }, libraries: {} };
 export function effectiveAutosave(state: SettingsState, entryId: string | null): AutosaveSettings { return (entryId && state.libraries[entryId]) || state.global.autosave; }
 export interface SettingsApi {

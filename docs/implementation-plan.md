@@ -1411,3 +1411,11 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - Actual user acceptance: "验收皮肤选择". Accepted delivery is the 0.15.18 Mist blue correction, including ten notebook-derived light/dark skins, automatic notebook switching and ten translated names. Earlier checks and physical-platform/installation limitations remain as recorded above.
 - Commit only the accepted skin source, tests and documentation locally. Exclude generated packages, output and shelved T15-A assets/probes. No remote push or formal release.
 - The next request is a preview only: an editor View settings icon offers Continuous layout (default) and a new Paginated layout with A4-like page separators. Application implementation, version changes and packaging for that request are not authorized yet.
+
+### Startup settings acceptance (2026-10-19; approved)
+
+- Actual user acceptance: "开机自动启动和切换按钮间距修复验收通过，暂时不进行下个任务，也不要正式发布。"
+- Accepted scope: local login-startup settings after Basic settings, default off, default Background mode, disabled controls while off, switchable Window/Background mode, ten translated labels, validated persistence and failure recovery, Windows application-identity registration/readback/removal, and 16px mode-control spacing.
+- Delivered in the unchanged 0.15.19 test build. Sixteen targeted regressions, the isolated native Windows registration/readback/removal probe and development/packaged UI checks passed before acceptance. Distribution verification matched 128 inventory files, six checksums and both XPIs. Deployment verified the retained ZIP (SHA256 030f6c0b1cadc9ac210d7356e382d4e20f86d3af058afd5ebcaca48eadf94693) and restored two bridge manifests.
+- This acceptance does not establish an independently observed OS logout/login or physical macOS run. Commit only the accepted startup source/tests/docs locally; keep the editor View layouts, color rename and their pending version/package changes uncommitted until explicit acceptance. Do not push, formally release or begin another task.
+- Acceptance and rollback guide: [Login startup testing](login-startup-testing.md).

@@ -10,7 +10,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function check(value: unknown): asserts value { if (!value) throw new LibraryError('INVALID_INPUT'); }
 function object(value: unknown, keys: string[]): asserts value is Record<string, any> { check(value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every(key => keys.includes(key))); }
 function autosave(value: unknown): asserts value is AutosaveSettings { object(value, ['enabled', 'minutes']); check(typeof value.enabled === 'boolean' && Number.isInteger(value.minutes) && value.minutes >= 1 && value.minutes <= 60); }
-function global(value: unknown): void { object(value, ['autoUpdates', 'locale', 'theme', 'translationLocale', 'aiEnabled', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault', 'zoomPercent', 'onboarding', 'notePageSize', 'easterEggs']); check(locales.includes(value.locale) && ['system', 'light', 'dark'].includes(value.theme)); check(value.translationLocale === undefined || locales.includes(value.translationLocale)); check(value.aiEnabled === undefined || typeof value.aiEnabled === 'boolean'); check(value.sidebarCollapsed === undefined || typeof value.sidebarCollapsed === 'boolean'); check(value.masterPasswordDefault === undefined || typeof value.masterPasswordDefault === 'boolean'); check(value.onboarding === undefined || validOnboarding(value.onboarding)); check(value.zoomPercent === undefined || validZoom(value.zoomPercent)); check(value.notePageSize === undefined || notePageSizes.includes(value.notePageSize)); check(value.easterEggs === undefined || validEasterState(value.easterEggs)); check(value.autoUpdates === undefined || typeof value.autoUpdates === 'boolean'); autosave(value.autosave); }
+function global(value: unknown): void { object(value, ['loginStartup', 'autoUpdates', 'locale', 'theme', 'translationLocale', 'aiEnabled', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault', 'zoomPercent', 'onboarding', 'notePageSize', 'easterEggs']); check(locales.includes(value.locale) && ['system', 'light', 'dark'].includes(value.theme)); check(value.translationLocale === undefined || locales.includes(value.translationLocale)); check(value.aiEnabled === undefined || typeof value.aiEnabled === 'boolean'); check(value.sidebarCollapsed === undefined || typeof value.sidebarCollapsed === 'boolean'); check(value.masterPasswordDefault === undefined || typeof value.masterPasswordDefault === 'boolean'); check(value.onboarding === undefined || validOnboarding(value.onboarding)); check(value.zoomPercent === undefined || validZoom(value.zoomPercent)); check(value.notePageSize === undefined || notePageSizes.includes(value.notePageSize)); check(value.easterEggs === undefined || validEasterState(value.easterEggs)); check(value.autoUpdates === undefined || typeof value.autoUpdates === 'boolean'); if (value.loginStartup !== undefined) { object(value.loginStartup, ['enabled', 'mode']); check(typeof value.loginStartup.enabled === 'boolean' && ['window', 'background'].includes(value.loginStartup.mode)); } autosave(value.autosave); }
 export class SettingsStore {
   private state!: SettingsState;
   private readonly file: string;
@@ -53,12 +53,16 @@ export class SettingsStore {
     return this.get();
   }
   get(): SettingsState { return structuredClone(this.state); }
-  update(patch: unknown): SettingsState {
-    object(patch, ['autoUpdates', 'locale', 'theme', 'translationLocale', 'aiEnabled', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault', 'zoomPercent', 'onboarding', 'notePageSize', 'easterEggs']); check(Object.keys(patch).length > 0);
+  update(patch: unknown, synchronize?: (next: SettingsState, previous: SettingsState) => void): SettingsState {
+    object(patch, ['loginStartup', 'autoUpdates', 'locale', 'theme', 'translationLocale', 'aiEnabled', 'autosave', 'sidebarCollapsed', 'masterPasswordDefault', 'zoomPercent', 'onboarding', 'notePageSize', 'easterEggs']); check(Object.keys(patch).length > 0);
     if (patch.autosave !== undefined) object(patch.autosave, ['enabled', 'minutes']);
     const next = this.get();
     next.global = { ...next.global, ...patch, autosave: { ...next.global.autosave, ...patch.autosave } };
-    global(next.global); return this.persist(next);
+    global(next.global);
+    if (next.global.loginStartup?.enabled === false) delete next.global.loginStartup;
+    const previous = this.get();
+    try { synchronize?.(next, previous); return this.persist(next); }
+    catch (error) { try { synchronize?.(previous, next); } catch { /* Preserve the original failure; the user can retry the startup setting. */ } throw error; }
   }
   override(id: unknown, value: unknown): SettingsState {
     check(typeof id === 'string' && uuid.test(id)); if (value !== null) autosave(value);
