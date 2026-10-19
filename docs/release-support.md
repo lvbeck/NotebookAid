@@ -8,6 +8,7 @@ Windows x64，Node 24.21.0，PowerShell，系统 .NET Framework C# 编译器；E
 
 ```powershell
 npm ci
+npm ci --prefix mcp --ignore-scripts
 npm run build
 npm run test:platform
 npm run package

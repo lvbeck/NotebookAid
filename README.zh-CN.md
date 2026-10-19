@@ -72,6 +72,7 @@ EXE 与原生 MSI 向导支持十种语言，简体中文默认微软雅黑。DM
 
 ```sh
 npm ci
+npm ci --prefix mcp --ignore-scripts
 npm run build
 npm run test:platform
 npm start

@@ -14,6 +14,7 @@ on:
       - 'installer/**'
       - 'desktop/**'
       - 'core/**'
+      - 'mcp/**'
       - 'shared/**'
       - 'src/**'
       - 'assets/**'
@@ -41,6 +42,7 @@ jobs:
           node-version: '24.21.0'
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix mcp --ignore-scripts
       - run: npm run build
       - run: npm run test:platform
       - name: Package application with verified Thunderbird addons
@@ -58,6 +60,9 @@ jobs:
       - name: Create portable ZIP and addon packages
         shell: powershell
         run: ./scripts/Build-TestBundle.ps1
+      - name: Verify distribution inventory and MCP runtime
+        shell: powershell
+        run: ./scripts/Verify-TestDelivery.ps1
       - name: Verify test artifacts
         shell: pwsh
         run: |
@@ -74,7 +79,7 @@ jobs:
           }
           foreach ($name in $expected) { if ($name -notin $verified) { throw "Missing artifact: $name" } }
           $numericVersion = ($version -replace '^([0-9]+\.[0-9]+\.[0-9]+).*$', '$1') + '.0'
-          foreach ($name in @('Bridge', 'Passkey', 'SetupSupport', 'Print')) {
+          foreach ($name in @('Bridge', 'Passkey', 'SetupSupport', 'Print', 'McpCrypt')) {
             $metadata = (Get-Item -LiteralPath "release/$version/NotebookAid-win32-x64/NotebookAid.$name.exe").VersionInfo
             if ($metadata.ProductName -ne 'NotebookAid' -or $metadata.ProductVersion -ne $version -or $metadata.FileVersion -ne $numericVersion) { throw "Native metadata mismatch: $name" }
           }
@@ -83,7 +88,7 @@ jobs:
           try {
             $entries = @($zip.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
             foreach ($entry in $entries) { if ($entry -match '(^/|^[A-Za-z]:|(^|/)\.\.(/|$))') { throw 'Unsafe archive entry.' } }
-            foreach ($name in @('NotebookAid.exe', 'resources/app.asar', 'NotebookAid.Bridge.exe', 'NotebookAid.Passkey.exe','NotebookAid.Print.exe', 'Register-Bridge.ps1', 'LICENSE', 'installation-files.json', 'NotebookAid.xpi')) {
+            foreach ($name in @('NotebookAid.exe', 'resources/app.asar', 'NotebookAid.Bridge.exe', 'NotebookAid.Passkey.exe','NotebookAid.Print.exe', 'NotebookAid.McpCrypt.exe', 'resources/mcp/server.cjs', 'resources/mcp/components.json', 'resources/mcp/THIRD-PARTY-NOTICES.txt', 'MCP-FINAL-TESTING.md', 'Register-Bridge.ps1', 'LICENSE', 'installation-files.json', 'NotebookAid.xpi')) {
               if ("NotebookAid-win32-x64/$name" -notin $entries) { throw "Missing portable resource: $name" }
             }
           } finally { $zip.Dispose() }

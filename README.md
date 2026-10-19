@@ -72,6 +72,7 @@ From the repository root:
 
 ```sh
 npm ci
+npm ci --prefix mcp --ignore-scripts
 npm run build
 npm run test:platform
 npm start

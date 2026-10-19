@@ -57,6 +57,6 @@ codex plugin add 'notebookaid@notebookaid-local-<clientId>'
 
 应用版本保持 0.15.19，插件协议包版本 0.1.0。没有新应用 EXE／MSI／ZIP、安装验证或便携程序替换；当前便携测试程序仍不包含 MCP-06 界面与 helper。应用最终分发、实际打包路径／Electron fuses、安装升级与便携部署验证属于 MCP-07。自然语言模型调用、物理 Mac／Keychain、真实 Passkey UI、公共插件目录提交与跨用户解密拒绝实测均未验证。没有将已有 AI 账号接入当作新 API 资格，没有调用 AI 或产生模型费用。
 
-本项源码未提交，等待验收，不推进 MCP-07。源代码回滚只撤销 MCP 设置、broker、独立包和构建接线，恢复原 main 入口，保留 8d4edc1 与更早验收提交及其他未验收 UI／版本改动。不要整文件重置 package.json、main.ts 或混合文档。
+MCP-06 已验收并本地提交为 e5a7619；MCP-07 已获授权，其最终交付与回滚见 [Windows 最终交付验收](mcp-final-testing.md)。本页上方的未验证项描述 MCP-06 交付时的范围。源代码回滚只撤销 MCP 设置、broker、独立包和构建接线，恢复原 main 入口，保留 8d4edc1 与更早验收提交及其他未验收 UI／版本改动。不要整文件重置 package.json、main.ts 或混合文档。
 
 撤销真实客户端后，从 Codex 卸载对应插件／marketplace，再关闭 NotebookAid；此时可以移走对应的非秘密 mcp-plugins/<clientId> 和已失效的加密 profile，保留服务端授权状态的既有备份策略。不要为了回滚程序恢复旧授权文件，这可能重新启用已撤销的权限。不删除已创建笔记、主密码或 Passkey。测试只产生新的 output 目录，可保留证据，无需回滚用户数据。

@@ -81,6 +81,7 @@ const { execFileSync } = require('node:child_process');
   cpSync('dist/mcp', join(packageRoot, mac ? 'NotebookAid.app/Contents/Resources/mcp' : 'resources/mcp'), { recursive: true });
   cpSync('docs/t15-testing.md', join(packageRoot, 'T15-TESTING.md'));
   cpSync('docs/release-support.md', join(packageRoot, 'RELEASE-SUPPORT.md'));
+  cpSync('docs/mcp-final-testing.md', join(packageRoot, 'MCP-FINAL-TESTING.md'));
   cpSync('LICENSE', join(packageRoot, 'NotebookAid-LICENSE.txt'));
   cpSync('docs/t02-testing.md', join(packageRoot, 'T02-TESTING.md'));
   cpSync('docs/t03-testing.md', join(packageRoot, 'T03-TESTING.md'));

@@ -11,12 +11,14 @@ fs.writeFileSync(path.join(home, 'mcp-probe-fixture.json'), JSON.stringify({ pur
 const codexHome = path.join(home, 'isolated-codex'); fs.mkdirSync(codexHome);
 const config = path.join(process.env.CODEX_HOME || path.join(require('node:os').homedir(), '.codex'), 'config.toml');
 const digest = () => fs.existsSync(config) ? createHash('sha256').update(fs.readFileSync(config)).digest('hex') : null; const original = digest();
-const report = { task: 'MCP-06', fixture: home, checks: {}, isolatedCodexInstallation: true, globalPluginInstalled: false, modelRequests: 0, physicalPasskeyTested: false };
+const packaged = process.argv[2] ? path.resolve(process.argv[2]) : null;
+if (packaged && path.basename(packaged) !== 'NotebookAid.exe') throw Error('INVALID_PACKAGE_EXECUTABLE');
+const report = { task: packaged ? 'MCP-07' : 'MCP-06', executable: packaged, fixture: home, checks: {}, isolatedCodexInstallation: true, globalPluginInstalled: false, modelRequests: 0, physicalPasskeyTested: false };
 let codex, client;
 let stage = 'UI';
 const bounded = (promise, ms, code) => { let timer; return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(Error(code)), ms); })]).finally(() => clearTimeout(timer)); };
 const env = { ...process.env, NOTEBOOKAID_TEST_HOME: home, NOTEBOOKAID_MCP_SETUP_TEST: '1' }; delete env.ELECTRON_RUN_AS_NODE;
-const app = spawn(require('electron'), ['.', '--self-test'], { cwd: workspace, env, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] }); app.stderr.on('data', () => {}); app.on('error', () => {});
+const app = spawn(packaged || require('electron'), packaged ? ['--self-test', '--mcp-test-workspace', workspace] : ['.', '--self-test'], { cwd: workspace, env, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] }); app.stderr.on('data', () => {}); app.on('error', () => {});
 async function waitFile(name, timeout = 60000) { for (let i = 0; i < timeout / 100; i++) { if (fs.existsSync(path.join(home, name))) return; if (app.exitCode !== null) throw Error('APP_EXITED'); await new Promise(resolve => setTimeout(resolve, 100)); } throw Error('FIXTURE_TIMEOUT'); }
 function rpc(child) {
   const pending = new Map(); let sequence = 0;
@@ -29,6 +31,8 @@ async function main() {
   await waitFile('mcp-setup-ready.json');
   const ready = JSON.parse(fs.readFileSync(path.join(home, 'mcp-setup-ready.json'), 'utf8')); Object.assign(report.checks, ready.checks);
   const plugin = path.join(ready.pluginRoot, 'plugins/notebookaid'), server = JSON.parse(fs.readFileSync(path.join(plugin, '.mcp.json'), 'utf8')).mcpServers.notebookaid;
+  if (packaged) { assert.equal(server.command, packaged); assert(!server.args.includes(workspace + path.sep + 'dist')); report.checks.packagedExecutablePath = true; }
+  fs.writeFileSync(path.join(home, 'mcp-setup-command'), 'hide'); await waitFile('mcp-hidden'); assert.equal(JSON.parse(fs.readFileSync(path.join(home, 'mcp-hidden'))).hidden, true); report.checks.backgroundWindowHidden = true;
   stage = 'BROKER';
   const transport = new StdioClientTransport({ command: server.command, args: server.args, stderr: 'pipe' }); transport.stderr?.on('data', chunk => { const code = chunk.toString().trim(); if (/^[A-Z_]+$/.test(code)) report.runtimeDiagnostic = code; });
   client = new Client({ name: 'notebookaid-plugin-validator', version: '0.1.0' }); await bounded(client.connect(transport), 20000, 'BROKER_CONNECT_FAILED');
@@ -36,6 +40,7 @@ async function main() {
   const input = { requestId: randomUUID(), title: 'Synthetic installed plugin', body: '中文 encrypted profile 📝' };
   const result = await client.callTool({ name: 'notebookaid_create_note', arguments: input }); const receipt = result.structuredContent;
   assert.equal(receipt.ok, true); report.checks.secretFreeSdkCreate = true;
+  const replay = await client.callTool({ name: 'notebookaid_create_note', arguments: input }); assert.deepEqual(replay.structuredContent, receipt); report.checks.sameRequestReusesReceipt = true;
   const run = args => { const result = spawnSync('codex', args, { cwd: workspace, env: codexEnv, windowsHide: true, encoding: 'utf8', timeout: 60000 }); if (result.status !== 0) throw Error('ISOLATED_PLUGIN_INSTALL_FAILED'); return result; };
   stage = 'INSTALL'; run(['plugin', 'marketplace', 'add', ready.pluginRoot]);
   const market = JSON.parse(fs.readFileSync(path.join(ready.pluginRoot, '.agents/plugins/marketplace.json'), 'utf8')).name;
@@ -67,6 +72,6 @@ main().catch(error => { report.ok = false; report.failure = /^[A-Z_]+$/.test(err
   if (codex && codex.exitCode === null) { const exited = once(codex, 'exit'); codex.stdin.end(); await bounded(exited, 3000, 'cleanup').catch(() => codex.kill()); }
   if (app.exitCode === null) { fs.writeFileSync(path.join(home, 'mcp-setup-command'), 'stop'); await bounded(once(app, 'exit'), 5000, 'cleanup').catch(() => app.kill()); }
   report.globalConfigChanged = original !== digest(); if (report.globalConfigChanged) { report.ok = false; process.exitCode = 1; }
-  const output = path.join(workspace, 'output/mcp06'); fs.mkdirSync(output, { recursive: true }); fs.writeFileSync(path.join(home, 'mcp-plugin-report.json'), JSON.stringify(report, null, 2)); if (report.ok) fs.writeFileSync(path.join(output, 'latest-success.json'), JSON.stringify(report, null, 2));
+  const output = path.join(workspace, packaged ? 'output/mcp07' : 'output/mcp06'); fs.mkdirSync(output, { recursive: true }); fs.writeFileSync(path.join(home, 'mcp-plugin-report.json'), JSON.stringify(report, null, 2)); if (report.ok) fs.writeFileSync(path.join(output, 'latest-success.json'), JSON.stringify(report, null, 2));
   process.stdout.write(JSON.stringify(report, null, 2) + '\n');
 });

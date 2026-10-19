@@ -9,7 +9,12 @@ export async function startMcpStdio(): Promise<void> {
   if (!process.argv.includes('--mcp-profile') || !id) throw Error('PROFILE_REQUIRED');
   const testIndex = process.argv.indexOf('--mcp-test-home');
   let directory = join(app.getPath('appData'), 'NotebookAid', 'state');
-  if (testIndex !== -1) { if (app.isPackaged) throw Error('INVALID_TEST_HOME'); directory = process.argv[testIndex + 1]!; assertProbeHome(app.getAppPath(), directory); }
+  if (testIndex !== -1) {
+    const workspaceIndex = process.argv.indexOf('--mcp-test-workspace');
+    const workspace = app.isPackaged ? workspaceIndex !== -1 && process.argv[workspaceIndex + 1] : app.getAppPath();
+    if (!workspace) throw Error('INVALID_TEST_HOME');
+    directory = process.argv[testIndex + 1]!; assertProbeHome(workspace, directory);
+  }
   app.setPath('userData', directory);
   app.setPath('sessionData', join(directory, 'session'));
   await app.whenReady();

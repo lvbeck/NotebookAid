@@ -37,6 +37,12 @@ export function registerMcpSetup(directory: string, host: Awaited<ReturnType<typ
             const security = after.library.securityState(); if (security.configured && !security.unlocked) throw Error('NOTEBOOK_LOCKED');
             const args = app.isPackaged ? [] : [app.getAppPath()];
             if (!app.isPackaged && process.env['NOTEBOOKAID_TEST_HOME']) args.push('--mcp-test-home', directory);
+            if (app.isPackaged && process.env['NOTEBOOKAID_MCP_SETUP_TEST'] === '1' && process.argv.includes('--self-test')) {
+              const workspace = process.argv[process.argv.indexOf('--mcp-test-workspace') + 1];
+              if (!workspace) throw Error('UNSAFE_PROBE_HOME');
+              (await import('./mcp-probe.js')).assertProbeHome(workspace, directory);
+              args.push('--mcp-test-workspace', workspace, '--mcp-test-home', directory);
+            }
             writeMcpPlugin(directory, issued.clientId, process.execPath, args, readFileSync(join(app.getAppPath(), 'LICENSE'), 'utf8'));
             await host.start();
             return { ok: true, value: await state(), createdId: issued.clientId };

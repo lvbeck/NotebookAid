@@ -1,6 +1,7 @@
 import { loginLaunchHidden } from './login-startup';
 import { externalAccessHost } from './external-access';
 import { registerMcpSetup } from './mcp-setup';
+import { assertProbeHome } from './mcp-probe';
 import { smokeLoginStartup } from './login-startup-smoke';
 import { smokeSkin } from './skin-smoke';
 import { smokeEaster } from './easter-smoke';
@@ -44,6 +45,11 @@ import { smokePasskey } from './passkey-smoke';
 const easterRequests: string[] = [];
 const selfTest = process.argv.includes('--self-test') || process.argv.includes('--self-test-reopen');
 const dataPath = process.env['NOTEBOOKAID_TEST_HOME'] || migrateAppData(app.getPath('appData'), pid => { try { process.kill(pid,0); return true; } catch { return false; } });
+const mcpTestWorkspace = app.isPackaged ? process.argv[process.argv.indexOf('--mcp-test-workspace') + 1] : app.getAppPath();
+if (process.env['NOTEBOOKAID_MCP_SETUP_TEST'] === '1') {
+  if (!selfTest || !mcpTestWorkspace) throw Error('UNSAFE_PROBE_HOME');
+  assertProbeHome(mcpTestWorkspace, dataPath);
+}
 mkdirSync(dataPath, { recursive: true });
 app.setPath('userData', dataPath);
 app.setPath('sessionData', join(dataPath, 'session'));
@@ -310,7 +316,7 @@ app.on('before-quit', event => {
 });
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
-  if (process.env['NOTEBOOKAID_MCP_SETUP_TEST'] === '1' && !app.isPackaged) { try { await (await import('./mcp-setup-smoke.js')).smokeMcpSetup(window, dataPath, app.getAppPath()); await quitByUser(true); } catch (error) { writeFileSync(join(dataPath, 'smoke-error.txt'), error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : 'MCP_SETUP_SMOKE_FAILED'); app.exit(1); } return; }
+  if (process.env['NOTEBOOKAID_MCP_SETUP_TEST'] === '1') { try { await (await import('./mcp-setup-smoke.js')).smokeMcpSetup(window, dataPath, mcpTestWorkspace!); await quitByUser(true); } catch (error) { writeFileSync(join(dataPath, 'smoke-error.txt'), error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : 'MCP_SETUP_SMOKE_FAILED'); app.exit(1); } return; }
   if (process.env['NOTEBOOKAID_SEARCH_TEST'] === '1') { try { await smokeSearch(window, dataPath); await quitByUser(true); } catch(error) { writeFileSync(join(dataPath, 'smoke-error.txt'), String(error)); app.exit(1); } return; }
   try {
     if(process.env['NOTEBOOKAID_LOGIN_STARTUP_TEST']==='1'){await smokeLoginStartup(window,dataPath);await quitByUser(true);return;}

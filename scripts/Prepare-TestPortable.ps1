@@ -17,11 +17,11 @@ function Assert-TargetReady {
     foreach ($ancestor in @('C:\Softwares', $target)) {
         if ((Test-Path -LiteralPath $ancestor) -and ((Get-Item -LiteralPath $ancestor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Linked target rejected' }
     }
-    if (Get-Process -Name NotebookAid,NotebookAid.Bridge,NotebookAid.Passkey,NotebookAid.Print -ErrorAction SilentlyContinue) { throw 'Exit NotebookAid and its native helpers before preparing the portable folder.' }
+    if (Get-Process -Name NotebookAid,NotebookAid.Bridge,NotebookAid.Passkey,NotebookAid.Print,NotebookAid.McpCrypt -ErrorAction SilentlyContinue) { throw 'Exit NotebookAid and its native helpers before preparing the portable folder.' }
     if (Test-Path -LiteralPath $target) {
         Assert-PlainTree $target
         $data = Get-ChildItem -LiteralPath $target -Recurse -Force | Where-Object {
-            $_.Name -in @('library.json','settings.json','libraries.json','notes','userData','portable_data') -or $_.Extension -in @('.sqlite','.db')
+            $_.Name -in @('library.json','settings.json','libraries.json','notes','userData','portable_data','mcp-profiles','mcp-plugins','external-clients.json','app-passkeys.json') -or $_.Extension -in @('.sqlite','.db')
         }
         if ($data) { throw 'Possible user data found in the portable folder. Inspect it before replacing files.' }
     }
@@ -54,7 +54,7 @@ try {
         finally { $stream.Dispose(); $algorithm.Dispose() }
         $files[$resolved] = @{ Entry=$entry; Hash=$hash }
     }
-    foreach ($required in @('NotebookAid.exe','NotebookAid.Passkey.exe','NotebookAid.Print.exe','NotebookAid.Bridge.exe','resources/app.asar')) {
+    foreach ($required in @('NotebookAid.exe','NotebookAid.Passkey.exe','NotebookAid.Print.exe','NotebookAid.Bridge.exe','NotebookAid.McpCrypt.exe','resources/app.asar','resources/mcp/server.cjs','resources/mcp/components.json','resources/mcp/THIRD-PARTY-NOTICES.txt','MCP-FINAL-TESTING.md')) {
         if (-not $files.ContainsKey([IO.Path]::GetFullPath((Join-Path $target $required)))) { throw "Missing package file: $required" }
     }
     # No folder backup: retained release ZIPs are the rollback source.

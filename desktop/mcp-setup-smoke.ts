@@ -46,6 +46,7 @@ export async function smokeMcpSetup(window: BrowserWindow, directory: string, wo
     const timer = setInterval(() => {
       if (busy || !existsSync(command)) return; const action = readFileSync(command, 'utf8'); unlinkSync(command);
       if (action === 'stop') { clearInterval(timer); resolve(); return; }
+      if (action === 'hide') { window.hide(); writeFileSync(join(directory, 'mcp-hidden'), JSON.stringify({ hidden: !window.isVisible() })); return; }
       if (action === 'revoke') {
         busy = true;
         void click('[data-testid=mcp-revoke]').then(async () => { await until('!document.querySelector("[data-testid=mcp-revoke]")'); writeFileSync(join(directory, 'mcp-revoked'), 'revoked'); }).catch(error => { clearInterval(timer); reject(error); }).finally(() => { busy = false; });

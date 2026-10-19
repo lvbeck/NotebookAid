@@ -30,6 +30,7 @@ jobs:
           $policy = Get-Content config/github-updates.json -Raw | ConvertFrom-Json
           if ($policy.windows.mode -ne 'prepare-only' -or $policy.windows.publisherName -or $policy.windows.requireSignature -ne $true -or $policy.macOS.mode -ne 'manual') { throw 'This workflow only prepares inactive Windows candidates.' }
       - run: npm ci
+      - run: npm ci --prefix mcp --ignore-scripts
       - run: npm run build
       - run: npm run test:platform
       - run: npm run package

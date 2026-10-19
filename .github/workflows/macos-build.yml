@@ -15,6 +15,7 @@ on:
       - 'native/macos/**'
       - 'desktop/**'
       - 'core/**'
+      - 'mcp/**'
       - 'shared/**'
       - 'src/**'
       - 'assets/**'
@@ -50,6 +51,7 @@ jobs:
           node-version: '24.21.0'
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix mcp --ignore-scripts
       - run: npm run build
       - run: npm run test:platform
       - run: node scripts/create-macos-icon.cjs
