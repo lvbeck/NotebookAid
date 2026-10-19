@@ -460,3 +460,10 @@ User authorization: save notebook settings inside each notebook directory in pre
 - Open bug: the user reports dark-mode editor display overflow at both the left and right boundaries, illustrated by an annotated screenshot. Confirm the affected geometry before choosing a correction; no root cause or fix is claimed yet.
 - Requested feature: add an outline view within the existing View layouts controls. Support a syntax outline based on Markdown hash headings and an indented outline based on TXT hyphen lists.
 - The user accepted the existing T20 layouts and Aurora violet naming while explicitly prohibiting the next task. These follow-ups are recorded requirements only; do not implement them as part of the acceptance commit. T15-A remains shelved. No formal release or push.
+
+### T20 outline and boundary follow-up (2026-10-19; authorized)
+
+- Later direct authorization supersedes the deferred status above: implement both Fold in place and Outline and body, repair dark-mode overflow on both sides, support Markdown hash-heading and indented TXT hyphen-list outlines, and preserve note bodies.
+- Keep the original editing and persistence routes. Fold in place is a read-only hierarchy with an Edit body action; Outline and body combines navigation with the existing editor. Unsupported formats retain the existing layouts. Keep controls contextual and responsive.
+- Complete all ten UI languages, tests, Windows EXE/MSI/ZIP delivery and the authorized portable test update. The user additionally requested root README updates in all ten languages covering recent features; retain previously verified remote download links unless a new remote build is separately authorized.
+- Version 0.15.21, no notebook schema migration. User acceptance and scoped local commit authorization received on 2026-10-19. T15-A remains shelved; no formal release or push.

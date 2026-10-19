@@ -1,3 +1,5 @@
+import { NoteOutlineComponent } from './note-outline.component';
+import type { EditorLayout } from '../../shared/settings';
 import { EditorPagesDirective } from './editor-pages.directive';
 import { viewText, type ViewKey } from './view-i18n';
 import { notebookSkinIndex, skinTokens } from '../../shared/notebook-skin';
@@ -70,7 +72,7 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [EditorPagesDirective, AdvancedSearchComponent, BackupProgressComponent, StartupProgressComponent,TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [NoteOutlineComponent, EditorPagesDirective, AdvancedSearchComponent, BackupProgressComponent, StartupProgressComponent,TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
@@ -185,14 +187,47 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     document.querySelector<HTMLButtonElement>('[data-testid=view-note]')?.focus({ preventScroll: true });
   }
   readonly paged = computed(() => this.prefs.state().global.editorLayout === 'pages');
+  readonly outlineSupported = computed(() => this.format() === 'markdown' || this.format() === 'text');
+  readonly editorLayout = computed<EditorLayout>(() => {
+    const layout = this.prefs.state().global.editorLayout ?? 'continuous';
+    return (layout === 'fold' || layout === 'directory') && !this.outlineSupported() ? 'continuous' : layout;
+  });
+  readonly folded = computed(() => this.editorLayout() === 'fold');
+  readonly directory = computed(() => this.editorLayout() === 'directory');
   readonly pagedSource = computed(() => this.paged() && (this.sourceMode() || this.warning() || this.workspace.session()?.note.primaryFormat === 'text'));
   viewLabel(key: ViewKey): string { return viewText(this.locale(), key); }
-  async setEditorLayout(layout: 'continuous' | 'pages'): Promise<void> {
+  async setEditorLayout(layout: EditorLayout): Promise<void> {
     if (this.composing || this.workspace.switching()) return;
+    if ((layout === 'fold' || layout === 'directory') && !this.outlineSupported()) return;
     this.closeViewMenu();
-    if ((layout === 'pages') === this.paged() && !this.prefs.busy()) return;
+    if (layout === (this.prefs.state().global.editorLayout ?? 'continuous') && !this.prefs.busy()) return;
     await this.prefs.update({ editorLayout: layout }, false);
     this.selectedImage.set(null); this.loadSource();
+  }
+  async outlineNavigate(request: { start: number; edit: boolean }): Promise<void> {
+    if (this.workspace.switching() || this.composing) return;
+    const noteId = this.workspace.session()?.note.id;
+    if (request.edit) await this.setEditorLayout('continuous');
+    if (this.workspace.session()?.note.id !== noteId) return;
+    requestAnimationFrame(() => {
+      if (this.workspace.session()?.note.id !== noteId || this.workspace.switching()) return;
+      const textarea = document.querySelector<HTMLTextAreaElement>('[data-testid=body-source]');
+      if (textarea && !textarea.hidden) {
+        textarea.focus({ preventScroll: true }); textarea.setSelectionRange(request.start, request.start);
+        const line = this.source().slice(0, request.start).split('\n').length - 1;
+        textarea.scrollTop = line * (parseFloat(getComputedStyle(textarea).lineHeight) || 24);
+        return;
+      }
+      // Count rendered headings before the source offset, including supported raw HTML.
+      const prefix = previewHtml(this.source().slice(0, request.start), this.format());
+      const index = new DOMParser().parseFromString(prefix, 'text/html').querySelectorAll('h1,h2,h3,h4,h5,h6').length;
+      const nodes = [...this.host.nativeElement.querySelectorAll<HTMLElement>('.ql-editor > h1,.ql-editor > h2,.ql-editor > h3,.ql-editor > h4,.ql-editor > h5,.ql-editor > h6')];
+      const target = nodes[index];
+      if (target) {
+        const pane = target.closest<HTMLElement>('.editor-pane'), heading = pane?.querySelector<HTMLElement>('.editor-heading');
+        if (pane) pane.scrollTop += target.getBoundingClientRect().top - pane.getBoundingClientRect().top - (heading?.offsetHeight ?? 0) - 12;
+      } else this.host.nativeElement.querySelector<HTMLElement>('.ql-editor')?.focus({ preventScroll: true });
+    });
   }
   readonly exportMenuOpen = signal(false);
   toggleSidebar(): void { this.folderTrigger?.close(); this.newNoteMenuOpen.set(false); void this.prefs.update({ sidebarCollapsed: !this.sidebarCollapsed() }); }

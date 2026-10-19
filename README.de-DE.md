@@ -17,9 +17,20 @@ NotebookAid ist eine quelloffene Desktop-Anwendung für Notizbücher mit einer o
 - Thunderbird-Anbindung über lokales Native Messaging und Import von Aufgaben aus ICS-Dateien.
 - Optionale KI-Unterstützung mit ChatGPT-Abonnementanmeldung, Gemini-API-Schlüssel oder Claude-API-Schlüssel. Zugang und Berechtigung richten sich nach dem Konto und den Bedingungen des Anbieters. Anbieter und Abrechnungsweg werden nicht automatisch gewechselt.
 
+## Neueste lokale Änderungen
+
+- Ansicht bietet fortlaufendes Layout, A4-Seiten, direktes Einklappen sowie Gliederung und Text. Markdown-Überschriften mit # und eingerückte TXT-Listen mit - bilden die Gliederung, ohne den Notiztext umzuschreiben. Direktes Einklappen ist schreibgeschützt und bietet Text bearbeiten; Gliederung und Text behält den bisherigen Editor bei.
+- Die fixierte Editorleiste deckt im dunklen Modus beide Seitenränder ab. Zehn Notizbuchdesigns folgen dem aktiven Notizbuch und dem hellen/dunklen Erscheinungsbild; die violette Vorgabe heißt Auroraviolett.
+- Neue Notizen verwenden standardmäßig TXT. Exportmenü, PDF-Export und nativer Windows-Druck bündeln verwandte Aktionen. Die erweiterte Suche unterstützt AND/OR, Ordner samt optionalen Unterordnern, Tags und angeheftete Notizen.
+- Notizbucheinstellungen werden im Notizbuch gespeichert. Vollständiger .nabook-Import/-Export erhält Inhalte, Verlauf und Sicherheitseinstellungen.
+- Der optionale Autostart für den aktuellen Benutzer ist standardmäßig aus und bietet Fenster- oder Hintergrundmodus. Echte Anmeldungen und physische macOS-Tests stehen weiterhin aus.
+- Das lokale Codex-MCP-Plugin erstellt ausdrücklich autorisierte TXT-/Markdown-Notizen in einem Ordner, mit Eigentümerbestätigung, begrenzten Berechtigungen und verschlüsselten lokalen Client-Zugangsdaten. Die App-Sperre kann eine interaktive Passkey-Prüfung verlangen. Inhalte werden dadurch nicht automatisch an KI gesendet.
+
+[Gliederung testen und zurücksetzen](docs/outline-testing.md). Diese lokalen Änderungen wurden vom Benutzer abgenommen; T15-A bleibt zurückgestellt. Kein Push und keine offizielle Veröffentlichung.
+
 ## Testversionen herunterladen
 
-Das Projekt befindet sich in der Testphase. Es wurde kein offizielles GitHub Release veröffentlicht. Windows und macOS verwenden dieselbe rein numerische Quellversion **0.15.11** nach dem Schema Hauptversion.Nebenversion.Korrekturversion.
+Die lokale Quellversion ist 0.15.21. Die folgenden CI-Downloads verweisen weiterhin auf die zuvor geprüften Builds 0.15.11; ein neuer Remote-Build oder eine offizielle Veröffentlichung wird nicht behauptet.
 
 | Plattform / Paket | Download | Inhalt |
 | --- | --- | --- |

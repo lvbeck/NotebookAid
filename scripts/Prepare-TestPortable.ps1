@@ -5,6 +5,33 @@ if ($version -notmatch '^[0-9A-Za-z.-]+$') { throw 'Invalid package version' }
 $bundle = Join-Path $workspace "release/NotebookAid-$version-win-x64.zip"
 $target = [IO.Path]::GetFullPath('C:\Softwares\NotebookAid-win32-x64')
 if ($target -ne 'C:\Softwares\NotebookAid-win32-x64') { throw 'Unexpected target' }
+$ignoredExternalMcpProcesses = 0
+
+function Test-ExternalMcpBrokerProcess($Process, [hashtable]$Processes, [string]$Target) {
+    try {
+        if (-not $Process -or $Process.Name -ne 'NotebookAid.exe' -or -not $Process.ExecutablePath) { return $false }
+        $executable = [IO.Path]::GetFullPath($Process.ExecutablePath)
+        if ($executable.StartsWith($Target + '\', [StringComparison]::OrdinalIgnoreCase)) { return $false }
+        # An alias must not hide an executable actually inside the portable tree.
+        $item = Get-Item -LiteralPath $executable -Force -ErrorAction Stop
+        while ($item) {
+            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { return $false }
+            if ($item -is [IO.FileInfo]) { $item = $item.Directory } else { $item = $item.Parent }
+        }
+        $current = $Process
+        $seen = [Collections.Generic.HashSet[int]]::new()
+        while ($current) {
+            if (-not $seen.Add([int]$current.ProcessId) -or $seen.Count -gt 64) { return $false }
+            if ($current.Name -ne 'NotebookAid.exe' -or -not [string]::Equals($current.ExecutablePath, $executable, [StringComparison]::OrdinalIgnoreCase)) { return $false }
+            $parent = $Processes[[int]$current.ParentProcessId]
+            if (-not $parent) { break }
+            if ($parent.CreationDate -and $current.CreationDate -and $parent.CreationDate -gt $current.CreationDate) { return $false }
+            $current = $parent
+        }
+        # The installed stdio broker does not initialize the editor, writer or app lock.
+        return [bool]($current.CommandLine -match '(?:^|\s)--mcp-stdio(?:\s|$)')
+    } catch { return $false }
+}
 
 function Assert-PlainTree([string]$Root) {
     $item = Get-Item -LiteralPath $Root -Force
@@ -17,7 +44,16 @@ function Assert-TargetReady {
     foreach ($ancestor in @('C:\Softwares', $target)) {
         if ((Test-Path -LiteralPath $ancestor) -and ((Get-Item -LiteralPath $ancestor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Linked target rejected' }
     }
-    if (Get-Process -Name NotebookAid,NotebookAid.Bridge,NotebookAid.Passkey,NotebookAid.Print,NotebookAid.McpCrypt -ErrorAction SilentlyContinue) { throw 'Exit NotebookAid and its native helpers before preparing the portable folder.' }
+    $running = @(Get-Process -Name NotebookAid,NotebookAid.Bridge,NotebookAid.Passkey,NotebookAid.Print,NotebookAid.McpCrypt -ErrorAction SilentlyContinue)
+    $script:ignoredExternalMcpProcesses = 0
+    if ($running.Count) {
+        $metadata = @{}
+        foreach ($entry in Get-CimInstance Win32_Process -Filter "Name = 'NotebookAid.exe' OR Name = 'NotebookAid.Bridge.exe' OR Name = 'NotebookAid.Passkey.exe' OR Name = 'NotebookAid.Print.exe' OR Name = 'NotebookAid.McpCrypt.exe'" -ErrorAction Stop) { $metadata[[int]$entry.ProcessId] = $entry }
+        foreach ($process in $running) {
+            if (-not (Test-ExternalMcpBrokerProcess $metadata[[int]$process.Id] $metadata $target)) { throw 'Exit NotebookAid and its native helpers before preparing the portable folder.' }
+            $script:ignoredExternalMcpProcesses++
+        }
+    }
     if (Test-Path -LiteralPath $target) {
         Assert-PlainTree $target
         $data = Get-ChildItem -LiteralPath $target -Recurse -Force | Where-Object {
@@ -82,6 +118,6 @@ foreach ($hostEntry in $registeredHosts) {
 if (Test-Path -LiteralPath (Join-Path $target 'NotebookAid-win32-x64')) { throw 'Nested package directory detected' }
 $job = Join-Path $workspace ('output/portable-preparation/' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 New-Item -ItemType Directory -Path $job -Force | Out-Null
-$report = [ordered]@{ version=$version; target=$target; bundle=$bundle; sha256=(Get-FileHash -LiteralPath $bundle).Hash; backupCreated=$false; verified=$true; bridgeManifestsRestored=$registeredHosts.Count }
+$report = [ordered]@{ version=$version; target=$target; bundle=$bundle; sha256=(Get-FileHash -LiteralPath $bundle).Hash; backupCreated=$false; verified=$true; bridgeManifestsRestored=$registeredHosts.Count; ignoredExternalMcpProcesses=$ignoredExternalMcpProcesses }
 $report | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $job 'deployment.json') -Encoding utf8
 $report | ConvertTo-Json

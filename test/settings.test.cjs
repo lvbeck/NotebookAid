@@ -16,6 +16,11 @@ test('editor view defaults to continuous and validates persisted page layout', (
   assert.equal(new SettingsStore(directory, empty).get().global.editorLayout, 'pages');
   for (const value of ['invalid', true, null, {}, 0]) assert.throws(() => store.update({ editorLayout: value }), code('INVALID_INPUT'));
   assert.equal(store.get().global.editorLayout, 'pages');
+  for (const layout of ['fold', 'directory']) {
+    store.update({ editorLayout: layout });
+    assert.equal(new SettingsStore(directory, empty).get().global.editorLayout, layout);
+  }
+  store.update({ editorLayout: 'pages' });
   store.update({ editorLayout: 'continuous' });
   assert.equal(store.get().global.editorLayout ?? 'continuous', 'continuous');
   assert.equal(Object.hasOwn(JSON.parse(fs.readFileSync(path.join(directory, 'settings.json'), 'utf8')).global, 'editorLayout'), false);

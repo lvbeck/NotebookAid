@@ -17,11 +17,22 @@ NotebookAid is an open-source desktop notebook application with an optional Thun
 - Thunderbird integration through local Native Messaging, and Tasks import from ICS files.
 - Optional AI assistance using ChatGPT subscription sign-in, Gemini API keys or Claude API keys. Access depends on the provider's account eligibility and terms; the application does not switch providers or billing channels automatically.
 
+## Recent local changes
+
+- View offers Continuous, A4-style Pages, Fold in place, and Outline and body. Markdown hash headings and indented TXT hyphen lists form outlines without rewriting note bodies. Fold in place is read-only with an Edit body action; Outline and body keeps the original editor available.
+- The editor’s sticky header covers both side gutters in dark mode. Ten notebook color skins follow the active notebook and light/dark appearance; the violet preset is named Aurora violet.
+- New notes default to TXT. A unified Export menu, PDF export and native Windows printing keep related actions together. Advanced Search supports AND/OR keyword groups, folder/descendant scope, tags and pinned filters.
+- Notebook-local preferences travel with the notebook. Complete .nabook import/export preserves notebook content, history and security settings.
+- Optional current-user login startup defaults off, with Window or Background mode. Real logout/login and physical macOS behavior still require manual verification.
+- The local Codex MCP plugin supports explicitly authorized TXT/Markdown note creation in one folder, with owner confirmation, scoped authorization and encrypted local client credentials. App locking can require interactive Passkey verification. It does not enable automatic AI submission.
+
+[Outline testing and rollback](docs/outline-testing.md). This local follow-up has passed user acceptance; T15-A remains shelved. No push or formal release.
+
 ## Test downloads
 
 This project is in testing. No formal GitHub Release has been published.
 
-Windows and macOS share the numeric source version 0.15.11. Application and addon versions use major.minor.patch without platform suffixes.
+The local source version is 0.15.21. The CI download links below still refer to the previously verified 0.15.11 builds; no new remote build or formal release is claimed.
 
 | Platform | Packages | Latest verified test build | Workflow |
 | --- | --- | --- | --- |

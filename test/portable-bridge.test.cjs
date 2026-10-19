@@ -1,4 +1,9 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');
+test('portable process guard ignores only verified external MCP broker trees',()=>{
+ fs.mkdirSync('output/portable-process-tests',{recursive:true});const root=fs.mkdtempSync(path.resolve('output/portable-process-tests/case-'));
+ try{const result=cp.spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',path.resolve('test/portable-process-guard.ps1'),'-Root',root],{encoding:'utf8',windowsHide:true});assert.equal(result.status,0,result.stderr);const report=JSON.parse(result.stdout);assert.equal(report.checks,11);assert(report.targetAndGuiBlocked);assert(report.unknownFailsClosed);}
+ finally{fs.rmSync(root,{recursive:true,force:true})}
+});
 test('portable updates restore only owned host manifests, including missing files',()=>{
  for(const mode of ['both','current','foreign','none']){
   fs.mkdirSync('output/portable-bridge-tests',{recursive:true});const root=fs.mkdtempSync(path.resolve('output/portable-bridge-tests/case-'));

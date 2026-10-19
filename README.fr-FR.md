@@ -17,6 +17,19 @@ NotebookAid est une application de notes de bureau libre, avec un module Thunder
 - Intégration Thunderbird par Native Messaging local et importation de tâches ICS.
 - IA facultative via abonnement ChatGPT ou clés API Gemini/Claude. Les conditions et l’éligibilité du fournisseur s’appliquent. Aucun changement automatique de fournisseur ou de facturation.
 
+## Dernières modifications locales
+
+La version locale des sources est 0.15.21. Les téléchargements CI ci-dessous restent ceux des versions 0.15.11 précédemment vérifiées ; aucune nouvelle compilation distante ni publication officielle n’est annoncée.
+
+- Affichage propose la disposition continue, les pages A4, Replier sur place et Plan et texte. Les titres Markdown # et les listes TXT - indentées forment le plan sans réécrire le texte. Replier sur place est en lecture seule avec Modifier le texte ; Plan et texte conserve l’éditeur existant.
+- La barre fixe de l’éditeur couvre les deux marges latérales en mode sombre. Dix thèmes suivent le carnet actif et l’apparence claire/sombre ; le violet est renommé Violet aurore.
+- Les nouvelles notes utilisent TXT par défaut. Un menu d’exportation commun, l’export PDF et l’impression native Windows regroupent les actions. La recherche avancée prend en charge AND/OR, les dossiers et sous-dossiers facultatifs, les étiquettes et les notes épinglées.
+- Les préférences propres au carnet sont conservées avec lui. L’importation/exportation complète .nabook préserve le contenu, l’historique et les paramètres de sécurité.
+- Le démarrage à la connexion de l’utilisateur courant est facultatif, désactivé par défaut, en fenêtre ou en arrière-plan. Une vraie reconnexion et des essais sur Mac physique restent nécessaires.
+- Le plugin Codex MCP local crée des notes TXT/Markdown dans un dossier explicitement autorisé, avec confirmation du propriétaire, autorisations limitées et identifiants clients locaux chiffrés. Le verrouillage peut demander une vérification Passkey interactive. Aucune soumission automatique à l’IA n’est activée.
+
+[Tests du plan et retour arrière](docs/outline-testing.md). Ces modifications locales ont été validées par l’utilisateur ; T15-A reste suspendu. Aucun push ni publication officielle.
+
 ## Téléchargements de test
 
 Ces fichiers sont des artefacts de test, sans publication officielle. Windows et macOS partagent une version numérique. Connectez-vous à GitHub, ouvrez une exécution réussie et téléchargez ses Artifacts.

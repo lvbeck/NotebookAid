@@ -139,7 +139,7 @@
             </ng-template>
           </div>
         }
-        <div class="editor-actions">
+        <div class="editor-actions" [class.outline-view]="folded()">
           @if (format() !== 'text') {
             <div class="segmented-radio" role="radiogroup" [attr.aria-label]="t('editor')">
               <label><input type="radio" name="editor-mode" data-testid="rich-mode" [checked]="!sourceMode() && !warning()" (change)="selectEditorMode(false, $event)" [disabled]="!workspace.session() || workspace.switching()"><span><app-icon name="NotebookPen" />{{ t('richText') }}</span></label>
@@ -169,14 +169,18 @@
         <app-attachments [locale]="locale()" (insertImage)="insertAttachmentImage($event)" (unlinked)="loadSource()" />
         @if (prefs.state().global.aiEnabled !== false) { <button class="secondary" data-testid="ai-writing" (mousedown)="$event.preventDefault()" (click)="openWriting()" [disabled]="workspace.switching() || ((sourceMode() || warning()) && format() === 'delta')"><app-icon name="Sparkles" />{{ writingLabel() }}</button> }
         <div class="export-actions">
-          <button class="secondary" data-testid="view-note" cdkOverlayOrigin #viewOrigin="cdkOverlayOrigin" [attr.aria-expanded]="viewMenuOpen()" aria-controls="editor-view-options" (click)="viewMenuOpen.set(!viewMenuOpen())" [disabled]="workspace.switching() || contextBusy()" [attr.aria-label]="viewLabel('view') + ' · ' + viewLabel(paged() ? 'pages' : 'continuous')"><app-icon [name]="paged() ? 'Files' : 'LayoutList'" />{{viewLabel('view')}}</button>
+          <button class="secondary" data-testid="view-note" cdkOverlayOrigin #viewOrigin="cdkOverlayOrigin" [attr.aria-expanded]="viewMenuOpen()" aria-controls="editor-view-options" (click)="viewMenuOpen.set(!viewMenuOpen())" [disabled]="workspace.switching() || contextBusy()" [attr.aria-label]="viewLabel('view') + ' · ' + viewLabel(editorLayout())"><app-icon [name]="folded() ? 'GitFork' : directory() ? 'PanelLeftOpen' : paged() ? 'Files' : 'LayoutList'" />{{viewLabel('view')}}</button>
           <button class="secondary" data-testid="prepare-export" [cdkMenuTriggerFor]="exportOptions" [disabled]="workspace.switching() || fileBusy()"><app-icon name="FileOutput" />{{t('exportCopy')}}</button>
           <button class="secondary" data-testid="print-note" [cdkMenuTriggerFor]="printOptions" [disabled]="workspace.switching() || fileBusy()"><app-icon name="Printer" />{{printLabel('print')}}</button>
         </div>
         <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="viewOrigin" [cdkConnectedOverlayOpen]="viewMenuOpen()" [cdkConnectedOverlayOffsetY]="8" [cdkConnectedOverlayPush]="true" (overlayOutsideClick)="viewMenuOpen.set(false)" (overlayKeydown)="closeViewMenu($event)" (detach)="viewMenuOpen.set(false)"><div cdkTrapFocus [cdkTrapFocusAutoCapture]="true" id="editor-view-options" role="group" class="editor-view-menu editor-table-menu" [attr.aria-label]="viewLabel('layout')">
           <h3>{{viewLabel('layout')}}</h3><div class="segmented-radio" role="radiogroup" [attr.aria-label]="viewLabel('layout')">
-            <label><input type="radio" name="note-view" data-testid="view-continuous" [checked]="!paged()" (change)="setEditorLayout('continuous')"><span><app-icon name="LayoutList" /><span>{{viewLabel('continuous')}}<small>{{viewLabel('continuousHint')}}</small></span></span></label>
-            <label><input type="radio" name="note-view" data-testid="view-pages" [checked]="paged()" (change)="setEditorLayout('pages')"><span><app-icon name="Files" /><span>{{viewLabel('pages')}}<small>{{viewLabel('pagesHint')}}</small></span></span></label>
+            <label><input type="radio" name="note-view" data-testid="view-continuous" [checked]="editorLayout() === 'continuous'" (click)="setEditorLayout('continuous')"><span><app-icon name="LayoutList" /><span>{{viewLabel('continuous')}}<small>{{viewLabel('continuousHint')}}</small></span></span></label>
+            <label><input type="radio" name="note-view" data-testid="view-pages" [checked]="editorLayout() === 'pages'" (click)="setEditorLayout('pages')"><span><app-icon name="Files" /><span>{{viewLabel('pages')}}<small>{{viewLabel('pagesHint')}}</small></span></span></label>
+          @if (outlineSupported()) {
+            <label><input type="radio" name="note-view" data-testid="view-fold" [checked]="folded()" (click)="setEditorLayout('fold')"><span><app-icon name="GitFork" /><span>{{viewLabel('fold')}}<small>{{viewLabel('foldHint')}}</small></span></span></label>
+            <label><input type="radio" name="note-view" data-testid="view-directory" [checked]="directory()" (click)="setEditorLayout('directory')"><span><app-icon name="PanelLeftOpen" /><span>{{viewLabel('directory')}}<small>{{viewLabel('directoryHint')}}</small></span></span></label>
+          } @else { <p class="muted">{{viewLabel('outlineUnsupported')}}</p> }
           </div>
         </div></ng-template>
         <ng-template #exportOptions><div cdkMenu class="editor-table-menu" [attr.aria-label]="t('exportFormat')">
@@ -229,12 +233,16 @@
           </section>
         }
         @if (sourcePending() && !sourceMode() && !warning() && format() !== 'text') { <p class="warning">{{ t('sourceRefresh') }} <button class="secondary" (click)="loadSource()"><app-icon name="RefreshCw" />{{ t('load') }}</button></p> }
+<div class="editor-document" [class.has-directory]="directory()">
+        @if (folded() || directory()) { <app-note-outline [body]="source()" [format]="format()" [noteKey]="workspace.session()?.note?.id || ''" [mode]="directory() ? 'directory' : 'fold'" [locale]="locale()" (navigate)="outlineNavigate($event)" /> }
+        <div class="editor-body" [hidden]="folded()">
         @if (!paged() && (sourceMode() || format() === 'text' || warning())) {
           <textarea class="body-source" [cdkContextMenuTriggerFor]="editContextMenu" [cdkContextMenuDisabled]="!workspace.session() || contextBusy()" data-testid="body-source" [attr.aria-label]="t('sourceMode')" [ngModel]="source()" (ngModelChange)="editSource($event)" [disabled]="!workspace.session() || workspace.switching()" (compositionstart)="compositionStart()" (compositionend)="compositionEnd()" spellcheck="false"></textarea>
         }
         @if (format() === 'html' && warning()) { <details class="html-preview"><summary>{{ t('htmlPreview') }}</summary><iframe sandbox="" [srcdoc]="htmlPreview()" [title]="t('htmlPreview')" referrerpolicy="no-referrer"></iframe></details> }
         @if (sourceFormatError()) { <p role="alert" class="source-format-error">{{ t('sourceFormatFailed') }}</p> }
         <div class="editor-area" [appEditorPages]="paged() && tab() === 'editor' && !!workspace.session()" [pageLabel]="viewLabel('page')" [class.paged-source]="pagedSource()" [cdkContextMenuTriggerFor]="editContextMenu" [cdkContextMenuDisabled]="!workspace.session() || contextBusy()" [hidden]="!paged() && (sourceMode() || format() === 'text' || warning())" [attr.inert]="workspace.switching() ? '' : null"><div #editorHost></div></div>
+        </div></div>
         <app-task-source [value]="workspace.session()?.note?.taskSource" [locale]="locale()" />
         @if (exportPreview(); as preview) {
           <section class="export-preview panel"><h3>{{ t('exportPreviewTitle') }}</h3><p class="muted">{{ t(format() === 'delta' ? 'deltaExportHint' : 'exportHint') }}</p>

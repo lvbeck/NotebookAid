@@ -17,6 +17,19 @@ NotebookAid è un’applicazione desktop open source per note, con un componente
 - Integrazione Thunderbird tramite Native Messaging locale e importazione Tasks da ICS.
 - IA facoltativa con abbonamento ChatGPT o chiavi API Gemini/Claude. Si applicano requisiti e condizioni del fornitore; nessun cambio automatico di fornitore o fatturazione.
 
+## Ultime modifiche locali
+
+La versione locale del codice è 0.15.21. I download CI seguenti restano quelli delle build 0.15.11 già verificate; non viene dichiarata alcuna nuova build remota o pubblicazione ufficiale.
+
+- Visualizza offre layout continuo, pagine A4, Comprimi sul posto e Struttura e testo. I titoli Markdown # e gli elenchi TXT - rientrati formano la struttura senza riscrivere il testo. Comprimi sul posto è di sola lettura con Modifica testo; Struttura e testo mantiene l’editor originale.
+- La barra fissa dell’editor copre entrambi i margini laterali in modalità scura. Dieci temi seguono il taccuino attivo e l’aspetto chiaro/scuro; il colore viola è rinominato Viola aurora.
+- Le nuove note usano TXT per impostazione predefinita. Menu di esportazione, PDF e stampa nativa Windows raggruppano le azioni. La ricerca avanzata supporta AND/OR, cartelle con sottocartelle facoltative, tag e note fissate.
+- Le preferenze del taccuino vengono salvate al suo interno. Importazione/esportazione completa .nabook preserva contenuti, cronologia e impostazioni di sicurezza.
+- L’avvio all’accesso dell’utente corrente è facoltativo, disattivato per impostazione predefinita, in finestra o in background. Restano da verificare un accesso reale e un Mac fisico.
+- Il plugin locale Codex MCP crea note TXT/Markdown in una cartella esplicitamente autorizzata, con conferma del proprietario, permessi limitati e credenziali client locali cifrate. Il blocco può richiedere una verifica Passkey interattiva. Non viene attivato l’invio automatico all’IA.
+
+[Test della struttura e ripristino](docs/outline-testing.md). Le modifiche locali sono state accettate dall’utente; T15-A resta sospeso. Nessun push o rilascio ufficiale.
+
 ## Download di prova
 
 Sono artefatti di prova, senza pubblicazione ufficiale. Windows e macOS condividono una versione numerica. Accedi a GitHub, apri un’esecuzione riuscita e scarica gli Artifacts.

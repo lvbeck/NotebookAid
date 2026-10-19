@@ -17,6 +17,19 @@ O NotebookAid é uma aplicação de notas de código aberto com um extra Thunder
 - Integração Thunderbird por Native Messaging local e importação de tarefas ICS.
 - IA opcional por subscrição ChatGPT ou chaves API Gemini/Claude. Aplicam-se as condições e elegibilidade do fornecedor; não há troca automática de fornecedor ou faturação.
 
+## Alterações locais recentes
+
+A versão local do código é 0.15.21. As transferências CI abaixo continuam a corresponder às compilações 0.15.11 anteriormente verificadas; não é anunciada uma nova compilação remota nem uma publicação oficial.
+
+- Ver inclui disposição contínua, páginas A4, Recolher no local e Estrutura e texto. Os títulos Markdown # e as listas TXT - com avanço formam a estrutura sem reescrever o texto. Recolher no local é só de leitura com Editar texto; Estrutura e texto mantém o editor original.
+- A barra fixa do editor cobre ambas as margens laterais no modo escuro. Dez temas acompanham o bloco de notas ativo e o aspeto claro/escuro; a cor violeta passa a chamar-se Violeta aurora.
+- As novas notas usam TXT por predefinição. O menu de exportação, PDF e a impressão nativa do Windows agrupam as ações. A pesquisa avançada suporta AND/OR, pastas e subpastas opcionais, etiquetas e notas afixadas.
+- As preferências do bloco de notas são guardadas com ele. A importação/exportação completa .nabook preserva conteúdo, histórico e segurança.
+- O arranque ao iniciar sessão do utilizador atual é opcional, desligado por predefinição, em janela ou em segundo plano. Faltam verificar uma sessão real e um Mac físico.
+- O plugin Codex MCP local cria notas TXT/Markdown numa pasta expressamente autorizada, com confirmação do proprietário, permissões limitadas e credenciais locais cifradas. O bloqueio pode exigir uma verificação Passkey interativa. Não ativa o envio automático para IA.
+
+[Testar a estrutura e reverter](docs/outline-testing.md). As alterações locais foram aceites pelo utilizador; T15-A permanece adiado. Sem push nem publicação oficial.
+
 ## Transferências de teste
 
 São artefactos de teste, sem lançamento oficial. Windows e macOS partilham uma versão numérica. Inicie sessão no GitHub, abra uma execução bem-sucedida e transfira os Artifacts.

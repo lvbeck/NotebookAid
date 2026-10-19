@@ -627,3 +627,32 @@ input[type=checkbox], input[type=radio], input[type=range] { accent-color:var(--
 @media(max-width:650px) { .editor-area.editor-paginated { margin-inline:-8px; padding-inline:8px; }.screen-page-layer { left:8px; right:8px; } }
 
 .login-startup-modes { margin-top:16px; }
+
+/* Cover both pane gutters while sticky actions overlap scrolling content. */
+.editor-pane { --editor-gutter:40px; padding-inline:var(--editor-gutter); overflow-x:hidden; }
+.editor-heading { margin-inline:calc(-1 * var(--editor-gutter)); padding-inline:var(--editor-gutter); }
+.editor-area.editor-paginated { margin-inline:0; }
+.editor-document,.editor-body { min-width:0; width:100%; }
+.editor-actions { flex-wrap:wrap; }
+.editor-actions > * { max-width:100%; }
+.editor-actions .export-actions { flex-wrap:wrap; min-width:0; max-width:100%; }
+.editor-document { flex:1; }
+.editor-body { display:flex; flex-direction:column; min-height:250px; }
+.editor-document.has-directory { display:grid; grid-template-columns:minmax(150px,26%) minmax(0,1fr); gap:20px; align-items:start; }
+.note-outline { min-width:0; padding:8px 0 18px; overflow-wrap:anywhere; }
+.outline-directory { border-right:1px solid var(--line); padding-right:14px; }
+.outline-controls { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:12px; color:var(--muted); font-size:12px; }
+.outline-controls > span { flex:1 0 100%; }
+.outline-controls .secondary { margin:0; padding:5px 8px; min-height:30px; }
+.outline-row { padding-left:min(calc(var(--outline-depth) * 16px),35%); }
+.outline-title { display:flex; align-items:center; gap:4px; min-width:0; }
+.outline-link,.outline-disclosure { font:inherit; background:transparent; color:var(--text); border:0; border-radius:5px; padding:8px 6px; text-align:left; }
+.outline-link { min-width:0; flex:1; overflow-wrap:anywhere; }
+.outline-link:hover,.outline-disclosure:hover,.outline-selected { background:var(--accent-soft); color:var(--accent); }
+.outline-disclosure { flex-shrink:0; }
+.outline-level { color:var(--muted); margin-right:8px; font-size:11px; }
+.outline-body { white-space:pre-wrap; overflow-wrap:anywhere; font:inherit; color:var(--muted); margin:0 0 10px; padding:0 6px; }
+.outline-view .compact-editor-toolbar,.outline-view > .segmented-radio { display:none !important; }
+.editor-view-menu { max-height:calc(100vh - 48px); overflow:auto; }
+@media(max-width:1050px) { .editor-pane { --editor-gutter:25px; } }
+@container(max-width:650px) { .editor-document.has-directory { grid-template-columns:1fr; gap:12px; }.outline-directory { border-right:0; border-bottom:1px solid var(--line); padding-right:0; }.outline-directory nav { max-height:200px; overflow:auto; } }
