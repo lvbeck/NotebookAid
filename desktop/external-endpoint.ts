@@ -6,9 +6,10 @@ import { bridgeEndpoint, prepareBridgeEndpoint } from './bridge-endpoint';
 import { encodeExternalFrame, ExternalFrameDecoder } from './external-framing';
 import { plainPath } from '../core/library-import';
 import { renameWithRetry } from '../core/file-rename';
-import type { ExternalCreateResult } from '../shared/external-notes';
+import { externalAuthenticationTimeoutMs, type ExternalAccessResult } from '../shared/external-access';
+import type { ExternalRequestLifetime } from '../core/external-background';
 
-export async function startExternalEndpoint(directory: string, request: (value: unknown) => ExternalCreateResult) {
+export async function startExternalEndpoint(directory: string, request: (value: unknown, lifetime: ExternalRequestLifetime) => ExternalAccessResult | Promise<ExternalAccessResult>) {
   const endpoint = bridgeEndpoint(join(directory, 'external-notes'));
   const file = join(directory, 'external-runtime.json');
   const instance = randomUUID(), temporary = join(directory, '.pending-external-runtime-' + instance);
@@ -20,8 +21,9 @@ export async function startExternalEndpoint(directory: string, request: (value: 
   const server = createServer(socket => {
     if (sockets.size >= 4) { socket.destroy(); return; }
     sockets.add(socket); let handled = false;
-    const timer = setTimeout(() => socket.destroy(), 15000);
-    socket.on('close', () => { clearTimeout(timer); sockets.delete(socket); });
+    const controller = new AbortController();
+    let timer = setTimeout(() => socket.destroy(), 15000);
+    socket.on('close', () => { clearTimeout(timer); controller.abort(); sockets.delete(socket); });
     socket.on('error', () => socket.destroy());
     const decoder = new ExternalFrameDecoder();
     socket.on('data', chunk => {
@@ -29,7 +31,10 @@ export async function startExternalEndpoint(directory: string, request: (value: 
       try {
         const value = decoder.push(chunk);
         if (value === undefined) return;
-        handled = true; socket.end(encodeExternalFrame(request(value)));
+        handled = true;
+        void Promise.resolve(request(value, { signal: controller.signal, authenticationWaiting: () => { clearTimeout(timer); timer = setTimeout(() => { controller.abort(); socket.destroy(); }, externalAuthenticationTimeoutMs); } }))
+          .then(result => { if (!controller.signal.aborted) socket.end(encodeExternalFrame(result)); })
+          .catch(() => { if (!controller.signal.aborted) socket.end(encodeExternalFrame({ ok: false, code: 'ACCESS_DENIED' })); });
       } catch {
         handled = true; socket.end(encodeExternalFrame({ ok: false, code: 'ACCESS_DENIED' }));
       }

@@ -30,5 +30,5 @@ export interface ExternalCreateReceipt {
   indexed: boolean;
 }
 
-export type ExternalCreateErrorCode = LibraryErrorCode | 'APP_LOCKED' | 'BACKGROUND_UNAVAILABLE' | 'LIBRARY_CHANGED';
+export type ExternalCreateErrorCode = LibraryErrorCode | 'APP_LOCKED' | 'BACKGROUND_UNAVAILABLE' | 'LIBRARY_CHANGED' | 'PASSKEY_CANCELLED' | 'PASSKEY_TIMEOUT' | 'PASSKEY_UNAVAILABLE' | 'PASSKEY_BUSY';
 export type ExternalCreateResult = { ok: true; value: ExternalCreateReceipt } | { ok: false; code: ExternalCreateErrorCode };

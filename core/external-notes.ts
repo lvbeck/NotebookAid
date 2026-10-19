@@ -4,7 +4,7 @@ import { maxExternalNoteBodyBytes, maxExternalNoteTitleLength, type ExternalCrea
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fields = new Set(['libraryId', 'requestId', 'title', 'body', 'format', 'folderId']);
 
-function parseRequest(value: unknown): ExternalCreateRequest {
+export function parseExternalCreateRequest(value: unknown): ExternalCreateRequest {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new LibraryError('INVALID_INPUT');
   const input = value as Record<string, unknown>;
   if (['libraryId', 'requestId', 'title', 'body'].some(key => !Object.hasOwn(input, key)) ||
@@ -38,7 +38,7 @@ export class ExternalNoteService {
       if (state.appUnlocked !== true) return { ok: false, code: 'APP_LOCKED' };
       if (state.busy !== false) return { ok: false, code: 'LIBRARY_IN_USE' };
       if (!state.library) return { ok: false, code: 'BACKGROUND_UNAVAILABLE' };
-      const input = parseRequest(value), library = state.library;
+      const input = parseExternalCreateRequest(value), library = state.library;
       if (input.libraryId !== binding.libraryId || library.libraryId !== binding.libraryId) return { ok: false, code: 'LIBRARY_CHANGED' };
       const folderId = input.folderId === undefined ? binding.folderId : input.folderId;
       if (folderId !== binding.folderId) return { ok: false, code: 'ACCESS_DENIED' };

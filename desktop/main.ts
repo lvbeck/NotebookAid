@@ -203,6 +203,10 @@ async function start(): Promise<void> {
   ai = registerAi(dataPath, protectedCaller, selfTest && process.env['NOTEBOOKAID_AI_TEST'] === '1', () => passkeys.gate.unlocked);
   writing = registerWriting(storage, ai, protectedCaller);
   await startBridge();
+  if (!app.isPackaged && selfTest && process.env['NOTEBOOKAID_EXTERNAL_BACKGROUND_TEST'] === '1' && process.env['NOTEBOOKAID_TEST_HOME']) {
+    await (await import('./external-background-smoke.js')).startExternalBackgroundSmoke(app.getAppPath(), dataPath, () => storage.externalContext(passkeys.gate.unlocked), passkeys.gate, () => { storage.close(); app.exit(0); });
+    return;
+  }
   if (!app.isPackaged && selfTest && process.env['NOTEBOOKAID_EXTERNAL_ACCESS_TEST'] === '1' && process.env['NOTEBOOKAID_TEST_HOME']) {
     await (await import('./external-access-smoke.js')).startExternalAccessSmoke(app.getAppPath(), dataPath, () => storage.externalContext(passkeys.gate.unlocked), () => { storage.close(); app.exit(0); });
     return;
@@ -212,7 +216,7 @@ async function start(): Promise<void> {
     return;
   }
   const loginStartup = storage.loginStartup();
-  try { externalAccess = await externalAccessHost(dataPath, () => storage.externalContext(passkeys.gate.unlocked)); }
+  try { externalAccess = await externalAccessHost(dataPath, () => storage.externalContext(passkeys.gate.unlocked), signal => passkeys.unlockBackground(signal)); }
   catch { console.error('EXTERNAL_ACCESS_UNAVAILABLE'); }
   const hiddenLogin = loginLaunchHidden(process.platform, process.argv, loginStartup, process.platform === 'darwin' && !selfTest && app.getLoginItemSettings().wasOpenedAtLogin);
   if (!hiddenLogin || selfTest) {

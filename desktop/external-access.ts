@@ -1,12 +1,12 @@
 import { ExternalClients } from '../core/external-clients';
-import { ExternalAccessService } from '../core/external-access';
+import { ExternalBackground } from '../core/external-background';
 import type { ExternalNoteContext } from '../core/external-notes';
 import { startExternalEndpoint } from './external-endpoint';
 
 /** Setup UI/credential delivery is added in MCP-06; the network cannot issue grants. */
-export async function externalAccessHost(directory: string, context: () => ExternalNoteContext) {
+export async function externalAccessHost(directory: string, context: () => ExternalNoteContext, unlock?: (signal: AbortSignal) => Promise<void>) {
   const clients = new ExternalClients(directory);
-  const service = new ExternalAccessService(clients, context);
+  const service = new ExternalBackground(clients, context, unlock);
   let endpoint: Awaited<ReturnType<typeof startExternalEndpoint>> | undefined;
   let starting: Promise<void> | undefined, closed = false;
   const owner = () => { if (closed) throw Error('BACKGROUND_UNAVAILABLE'); const state = context(); if (state.appUnlocked !== true) throw Error('APP_LOCKED'); return state; };
@@ -24,10 +24,10 @@ export async function externalAccessHost(directory: string, context: () => Exter
     async start() {
       if (closed) throw Error('BACKGROUND_UNAVAILABLE');
       if (endpoint || !clients.list().length) return;
-      if (!starting) starting = startExternalEndpoint(directory, value => service.request(value)).then(value => { if (closed) value.close(); else endpoint = value; }).finally(() => { starting = undefined; });
+      if (!starting) starting = startExternalEndpoint(directory, (value, lifetime) => service.request(value, lifetime)).then(value => { if (closed) value.close(); else endpoint = value; }).finally(() => { starting = undefined; });
       await starting;
     },
-    close() { closed = true; endpoint?.close(); endpoint = undefined; }
+    close() { closed = true; service.close(); endpoint?.close(); endpoint = undefined; }
   };
   await host.start(); return host;
 }
