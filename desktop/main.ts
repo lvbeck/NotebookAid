@@ -1,4 +1,5 @@
 import { loginLaunchHidden } from './login-startup';
+import { externalAccessHost } from './external-access';
 import { smokeLoginStartup } from './login-startup-smoke';
 import { smokeSkin } from './skin-smoke';
 import { smokeEaster } from './easter-smoke';
@@ -60,6 +61,7 @@ let server: Server | null = null;
 let quitting = false;
 let exitPending = false;
 let addon: AddonService;
+let externalAccess: Awaited<ReturnType<typeof externalAccessHost>> | undefined;
 let ai: ReturnType<typeof registerAi>;
 let writing: ReturnType<typeof registerWriting>;
 let updates: ReturnType<typeof registerUpdates>;
@@ -201,11 +203,17 @@ async function start(): Promise<void> {
   ai = registerAi(dataPath, protectedCaller, selfTest && process.env['NOTEBOOKAID_AI_TEST'] === '1', () => passkeys.gate.unlocked);
   writing = registerWriting(storage, ai, protectedCaller);
   await startBridge();
+  if (!app.isPackaged && selfTest && process.env['NOTEBOOKAID_EXTERNAL_ACCESS_TEST'] === '1' && process.env['NOTEBOOKAID_TEST_HOME']) {
+    await (await import('./external-access-smoke.js')).startExternalAccessSmoke(app.getAppPath(), dataPath, () => storage.externalContext(passkeys.gate.unlocked), () => { storage.close(); app.exit(0); });
+    return;
+  }
   if (!app.isPackaged && selfTest && process.env['NOTEBOOKAID_MCP_PROBE'] === '1' && process.env['NOTEBOOKAID_TEST_HOME']) {
     await (await import('./mcp-probe.js')).startMcpProbe({ workspace: app.getAppPath(), dataPath, context: () => ({ ...storage.addonContext(), unlocked: passkeys.gate.unlocked }), windowCount: () => BrowserWindow.getAllWindows().length, stop: () => { storage.close(); app.exit(0); } });
     return;
   }
   const loginStartup = storage.loginStartup();
+  try { externalAccess = await externalAccessHost(dataPath, () => storage.externalContext(passkeys.gate.unlocked)); }
+  catch { console.error('EXTERNAL_ACCESS_UNAVAILABLE'); }
   const hiddenLogin = loginLaunchHidden(process.platform, process.argv, loginStartup, process.platform === 'darwin' && !selfTest && app.getLoginItemSettings().wasOpenedAtLogin);
   if (!hiddenLogin || selfTest) {
     const window = await createWindow(!selfTest);
@@ -283,6 +291,7 @@ app.on('before-quit', event => {
   if (!quitting && storage) { event.preventDefault(); void quitByUser(); return; }
   quitting = true;
   addon?.close();
+  externalAccess?.close();
   ai?.close();
   writing?.close();
   updates?.close();

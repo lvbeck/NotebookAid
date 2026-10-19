@@ -48,6 +48,9 @@ security-transaction.json
 app-passkeys.json
 ai-connections.bin
 bridge-runtime.json
+external-clients.json
+external-runtime.json
+.pending-external-*
 native-host.json
 native-host-legacy.json
 

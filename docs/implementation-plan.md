@@ -1459,3 +1459,19 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - Actual user instruction: "MCP-02 验收通过，继续 MCP-03，仍按项目规则逐项交付、等待验收。"
 - MCP-02 is accepted. Commit only its core service, shared contract, narrow connection-probe change, tests and documents locally. Preserve unrelated pending work and all user data; no remote Git operation or release.
 - Only MCP-03 client identity and persistent scoped authorization may start. Passkey authentication UI remains scheduled for MCP-04; plugin distribution remains scheduled for MCP-06. Do not mark later tasks accepted or start them automatically.
+
+- Accepted MCP-02 source committed locally as a35ef2a (Add scoped external note creation core). Only its seven scoped source/test/document files were staged; pending editor View and package work remain uncommitted. No remote operation occurred.
+
+### MCP-03 persistent client authorization (2026-10-19; awaiting acceptance)
+
+- Added independent per-client bearer credentials, atomic hash-only persistent grants and exact notebook/folder bindings. No grant means no endpoint. Authenticated requests expose create only and recheck current grant, application lock, active notebook and core constraints on every call. External callers cannot grant, list or revoke permissions.
+- Added an independently framed local pipe/socket endpoint and validating client. Public runtime metadata contains no credential; the existing Thunderbird endpoint stays separate. Incoming connections, total frame length and absolute lifetime are bounded. A request with an incomplete frame is denied if its grant is revoked before dispatch. Uncertain post-send outcomes remain COMMIT_STATUS_UNKNOWN.
+- Trusted in-process setup/revoke APIs are implemented; no management API is exposed through preload, renderer or MCP. User setup, protected client-side credential delivery and product plugin packaging remain MCP-06. Test credentials only travel over private child stdout and process environment, never configuration/argv/reports. Real Passkey interaction remains MCP-04.
+- Desktop compilation passed. First 10 authorization tests plus existing core/library/addon/security/probe regressions passed 52/52. After two additional linked-path/invalid-receipt cases, final targeted authorization tests passed 12/12. Real Electron/Codex integration passed 15 checks, created seven synthetic notes, verified exact bodies after reopen and validated grant/revocation persistence across restart. No BrowserWindow, model request, global Codex configuration change or plugin installation occurred. Evidence: output/mcp03/latest-success.json and [MCP authorization testing](mcp-authorization-testing.md).
+- An initial Windows Electron fixture failed because inherited stdin ended and closed the test host. The guarded synthetic controller now uses credential-free control files; final integration passed after correction. The lock overlay does not establish real Windows Hello/Passkey behavior. Formal plugin installation, natural-language invocation, installation packages and macOS remain unverified.
+- Version remains 0.15.19. Module handoff only: no new application package/ZIP verification or portable replacement. Existing portable stays untouched. No MCP-03 source commit, remote Git operation, formal release or MCP-04 implementation. Awaiting user acceptance; reproduction and scoped rollback are in the linked guide. Preserve a35ef2a, 4e70443, unrelated pending changes and user data.
+
+### MCP-03 acceptance (2026-10-19; approved)
+
+- Actual user instruction: "MCP-03 验收通过，继续 MCP-04，加入之前确认的 Passkey 解锁流程，仍按项目规则逐项交付、等待验收。"
+- MCP-03 is accepted. Commit its scoped authorization source, tests and documents locally, excluding unrelated pending changes. Only MCP-04 background states and the previously confirmed user-interactive Passkey unlock flow may start. No push, formal release or automatic continuation to MCP-05.
