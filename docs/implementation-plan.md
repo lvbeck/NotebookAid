@@ -1491,3 +1491,19 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 
 - Actual user instruction: "MCP-04 验收通过，继续 MCP-05，仍按项目规则逐项交付、等待验收。Codex长任务完成后自动发送完成通知，不需要授权".
 - MCP-04 is accepted. Commit only its scoped background/authentication source, tests and documents locally. MCP-05 create/retry behavior is authorized; MCP-06 remains gated. Send the already authorized long-task completion notification without an additional conversational confirmation, subject to actual tool permission enforcement. No push or formal release.
+
+- Accepted MCP-04 source committed locally as fbf4c0c (Add coordinated background Passkey unlock for MCP). Only its 17 scoped files were staged, excluding pending editor View, naming and package changes.
+
+### MCP-05 create and retry behavior (2026-10-19; awaiting acceptance)
+
+- Reused existing core durable operation IDs and content fingerprints without a new ledger or writer. Clarified fresh UUID per new intent and unchanged UUID/input for retry. Tightened the validation stdio tool to the core title/Unicode/UTF-8 byte rules and documented saved=true/indexed=false as success. Product plugin packaging remains MCP-06.
+- Snapshot create parameters and credentials across asynchronous authentication; resolve closed pipes without waiting for the full deadline. Unexpected exceptions after dispatch now conservatively return COMMIT_STATUS_UNKNOWN rather than ACCESS_DENIED, since a write may already be committed. No automatic write retry loop, replacement request ID, offline queue or application launch.
+- Desktop compilation and 76 related regressions passed (zero failed/skipped), including eight new crash/transport/snapshot/format cases. Separate child processes exited at journal/revision/head/index; explicit same-ID retries after reopen produced exactly one committed note. A real pipe response was dropped after saving and replayed after endpoint restart; a post-commit exception also preserved uncertain-outcome semantics. saved/indexed separation and unchanged Markdown literals passed.
+- Real Electron/SDK/Codex integration passed 20 checks: concurrent SDK retries, actual Codex retries, replay after backend restart, changed payload rejection, strict schema/UTF-8 byte bounds, persistent grants/revocation and exact content after reopen. Seven successful synthetic notes, zero BrowserWindow/model requests, no global Codex configuration change or plugin installation. Evidence: output/mcp05/latest-success.json and [MCP create/retry testing](mcp-create-retry-testing.md).
+- Operation IDs remain in the notebook core's existing namespace. Retention follows existing history/purge/backup rules; no perpetual exactly-once guarantee after explicit user cleanup or restoring old state. Actual power loss, damaged hardware, native Passkey UI, physical macOS, natural-language model calls and installed plugin operation remain unverified.
+- Version remains 0.15.19. Module handoff only: no new package/ZIP verification or portable replacement, MCP-05 commit, remote operation, formal release or MCP-06 work. Awaiting user acceptance; reproduction, limitations and scoped rollback are in the linked guide. Preserve fbf4c0c, earlier accepted commits, unrelated pending work and user data.
+
+### MCP-05 acceptance (2026-10-19; approved)
+
+- Actual user instruction: "MCP-05 验收通过，继续 MCP-06，仍按项目规则逐项交付、等待验收。"
+- MCP-05 is accepted. Commit only its scoped create/retry changes, tests and documents locally. MCP-06 local plugin packaging, owner authorization setup and protected credential delivery may start. Final application/package validation remains MCP-07; no push, formal release or automatic continuation.

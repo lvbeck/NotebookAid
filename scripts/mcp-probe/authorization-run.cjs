@@ -15,10 +15,11 @@ const originalConfig = configHash();
 const root = path.join(workspace, 'output/mcp01'); fs.mkdirSync(root, { recursive: true });
 const home = fs.mkdtempSync(path.join(root, 'authorization-'));
 fs.writeFileSync(path.join(home, 'mcp-probe-fixture.json'), JSON.stringify({ purpose: 'NotebookAid MCP-01 synthetic data only' }));
-const reportRoot = path.join(workspace, 'output/mcp03'); fs.mkdirSync(reportRoot, { recursive: true });
+const createRetry = process.argv.includes('--create-retry');
+const reportRoot = path.join(workspace, createRetry ? 'output/mcp05' : 'output/mcp03'); fs.mkdirSync(reportRoot, { recursive: true });
 const reportHome = fs.mkdtempSync(path.join(reportRoot, 'authorization-'));
 const entry = path.join(__dirname, 'authorized-server.cjs');
-const report = { task: 'MCP-03', fixture: home, productVersion: require('../../package.json').version, sdkVersion: '2.3.1', checks: {}, modelRequests: 0, globalConfigChanged: false, pluginInstalled: false, realPasskeyTested: false };
+const report = { task: createRetry ? 'MCP-05' : 'MCP-03', fixture: home, productVersion: require('../../package.json').version, sdkVersion: '2.3.1', checks: {}, modelRequests: 0, globalConfigChanged: false, pluginInstalled: false, realPasskeyTested: false };
 const bounded = (promise, ms, label) => {
   let timer; return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(label)), ms); })]).finally(() => clearTimeout(timer));
 };
@@ -100,6 +101,18 @@ async function main() {
   const sdkResult = await client.callTool({ name: 'notebookaid_create_note', arguments: sdkInput });
   const sdkReceipt = sdkResult.structuredContent ?? JSON.parse(sdkResult.content[0].text);
   assert.equal(sdkReceipt.ok, true); expected.set(sdkReceipt.value.noteId, sdkInput.body);
+  if (createRetry) {
+    const repeat = await Promise.all(Array.from({ length: 3 }, () => client.callTool({ name: 'notebookaid_create_note', arguments: { ...sdkInput, format: 'text', folderId: null } })));
+    for (const value of repeat) assert.equal(value.structuredContent.value.noteId, sdkReceipt.value.noteId);
+    report.checks.concurrentSdkRetryDeduplicated = true;
+    const conflict = await client.callTool({ name: 'notebookaid_create_note', arguments: { ...sdkInput, body: 'Changed retry body' } });
+    assert.equal(conflict.structuredContent.code, 'INVALID_INPUT'); report.checks.changedRequestRejected = true;
+    for (const override of [{ format: 'html' }, { title: '   ' }, { body: '\u0000' }, { path: 'C:\\synthetic' }, { body: '中'.repeat(Math.floor(2 * 1024 * 1024 / 3) + 1) }]) {
+      const invalid = await client.callTool({ name: 'notebookaid_create_note', arguments: { ...sdkInput, requestId: randomUUID(), ...override } });
+      assert.equal(invalid.isError, true);
+    }
+    report.checks.sdkSchemaAndUtf8BoundaryRejected = true;
+  }
   await client.close(); client = null; assert.equal(backend.exitCode, null); report.checks.sdkAuthorizedCreate = true;
 
   // Forward credential variable names, never their values in command-line configuration.
@@ -119,10 +132,18 @@ async function main() {
   const codexResult = await channel.request('mcpServer/tool/call', { threadId, server: 'notebookaid_authorized', tool: 'notebookaid_create_note', arguments: codexInput });
   const receipt = codexResult.structuredContent ?? JSON.parse(codexResult.content[0].text);
   assert.equal(receipt.ok, true); expected.set(receipt.value.noteId, codexInput.body); report.checks.codexAuthorizedCreate = true;
+  if (createRetry) {
+    const retry = await channel.request('mcpServer/tool/call', { threadId, server: 'notebookaid_authorized', tool: 'notebookaid_create_note', arguments: codexInput });
+    assert.equal(retry.structuredContent.value.noteId, receipt.value.noteId); report.checks.codexRetryDeduplicated = true;
+  }
   const exited = once(codex, 'exit'); codex.stdin.end(); await bounded(exited, 15000, 'CODEX_STOP_TIMEOUT'); codex = null;
   assert.equal(backend.exitCode, null); report.checks.disconnectKeepsBackgroundAlive = true;
 
   await stop(); ready = await start(); assert.equal(ready.windowCount, 0); assert.equal(ready.credentials.length, 0);
+  if (createRetry) {
+    const replay = await externalCreate(home, first, { ...sdkInput, libraryId }); assert.equal(replay.ok, true); assert.equal(replay.value.noteId, sdkReceipt.value.noteId);
+    report.checks.retryAfterBackendRestart = true;
+  }
   await create(first, params()); report.checks.persistedGrantAfterRestart = true;
   await owner('revoke', { clientId: first.clientId });
   assert.equal((await externalCreate(home, first, params())).code, 'ACCESS_DENIED');

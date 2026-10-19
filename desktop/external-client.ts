@@ -47,6 +47,7 @@ async function exchange(directory: string, credential: ExternalClientCredential,
     signal?.addEventListener('abort', abort, { once: true });
     socket.on('error', () => finish(unavailable()));
     socket.on('end', () => finish(unavailable()));
+    socket.on('close', () => finish(unavailable()));
     socket.on('connect', () => { sent = true; socket.write(frame); });
     socket.on('data', chunk => {
       try {
@@ -61,12 +62,14 @@ async function exchange(directory: string, credential: ExternalClientCredential,
 }
 
 export async function externalCreate(directory: string, credential: ExternalClientCredential, params: ExternalCreateRequest): Promise<ExternalCreateResult> {
-  return await exchange(directory, credential, params, false) as ExternalCreateResult;
+  return await exchange(directory, { ...credential }, Object.freeze({ ...params }), false) as ExternalCreateResult;
 }
 export async function externalCreateWithUnlock(directory: string, credential: ExternalClientCredential, params: ExternalCreateRequest, signal?: AbortSignal): Promise<ExternalCreateResult> {
-  const result = await exchange(directory, credential, params, false, signal) as ExternalCreateResult;
+  // Keep the original request stable across authentication and uncertain-outcome retries.
+  const request = Object.freeze({ ...params }), identity = Object.freeze({ ...credential });
+  const result = await exchange(directory, identity, request, false, signal) as ExternalCreateResult;
   if (result.ok || result.code !== 'APP_LOCKED') return result;
-  const authentication = await exchange(directory, credential, params, true, signal);
+  const authentication = await exchange(directory, identity, request, true, signal);
   if (!authentication.ok) return authentication;
-  return await exchange(directory, credential, params, false, signal) as ExternalCreateResult;
+  return await exchange(directory, identity, request, false, signal) as ExternalCreateResult;
 }

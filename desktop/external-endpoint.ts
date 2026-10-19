@@ -32,9 +32,9 @@ export async function startExternalEndpoint(directory: string, request: (value: 
         const value = decoder.push(chunk);
         if (value === undefined) return;
         handled = true;
-        void Promise.resolve(request(value, { signal: controller.signal, authenticationWaiting: () => { clearTimeout(timer); timer = setTimeout(() => { controller.abort(); socket.destroy(); }, externalAuthenticationTimeoutMs); } }))
+        void Promise.resolve().then(() => request(value, { signal: controller.signal, authenticationWaiting: () => { clearTimeout(timer); timer = setTimeout(() => { controller.abort(); socket.destroy(); }, externalAuthenticationTimeoutMs); } }))
           .then(result => { if (!controller.signal.aborted) socket.end(encodeExternalFrame(result)); })
-          .catch(() => { if (!controller.signal.aborted) socket.end(encodeExternalFrame({ ok: false, code: 'ACCESS_DENIED' })); });
+          .catch(() => { if (!controller.signal.aborted) socket.end(encodeExternalFrame({ ok: false, code: 'COMMIT_STATUS_UNKNOWN' })); });
       } catch {
         handled = true; socket.end(encodeExternalFrame({ ok: false, code: 'ACCESS_DENIED' }));
       }
