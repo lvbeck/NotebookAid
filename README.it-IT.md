@@ -10,6 +10,7 @@ NotebookAid è un’applicazione desktop open source per note, con un componente
 
 ## Funzionalità
 
+- **Supporto MCP per agenti IA**: agenti IA come Codex possono usare MCP (Model Context Protocol) locale per aggiungere note TXT/Markdown a una cartella del taccuino autorizzata dall’utente, mentre NotebookAid è in esecuzione in background. [Configurazione e autorizzazioni](docs/mcp-final-testing.md).
 - Modifica avanzata Markdown e HTML in un sottoinsieme sicuro, testo semplice e Quill Delta nativo. I contenuti non supportati sono protetti in modalità sorgente.
 - Più taccuini, sottocartelle, ricerca, etichette, note fissate e recenti, allegati, salvataggio automatico, cronologia e cestino.
 - Cifratura facoltativa, password principale e chiave di recupero per taccuino, backup e ripristino, blocco Windows Passkey.

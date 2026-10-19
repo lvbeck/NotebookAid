@@ -10,6 +10,7 @@ NotebookAid는 선택적 Thunderbird 부가 기능을 제공하는 오픈 소스
 
 ## 기능
 
+- **AI 에이전트를 위한 MCP 지원**: Codex 등의 AI 에이전트는 로컬 MCP(Model Context Protocol)를 통해 백그라운드에서 실행 중인 NotebookAid의 사용자가 명시적으로 허용한 노트북 폴더에 TXT/Markdown 노트를 추가할 수 있습니다. [설정 및 권한 범위](docs/mcp-final-testing.md).
 - 지원되는 안전한 범위의 Markdown 및 HTML 서식 편집, TXT, 기본 Quill Delta를 지원합니다. 지원하지 않는 내용은 소스 모드로 보호됩니다.
 - 여러 노트북, 하위 폴더, 검색, 태그, 고정 및 최근 노트, 첨부 파일, 자동 저장, 버전 기록, 휴지통.
 - 선택적 노트 암호화, 노트북별 마스터 비밀번호와 복구 키, 백업 및 복원, Windows Passkey 앱 잠금.

@@ -10,6 +10,7 @@ O NotebookAid é uma aplicação de notas de código aberto com um extra Thunder
 
 ## Funcionalidades
 
+- **Suporte MCP para agentes de IA**: agentes de IA como o Codex podem usar MCP (Model Context Protocol) local para adicionar notas TXT/Markdown a uma pasta do bloco de notas autorizada pelo utilizador, enquanto o NotebookAid funciona em segundo plano. [Configuração e permissões](docs/mcp-final-testing.md).
 - Edição formatada Markdown e HTML num subconjunto seguro, texto simples e Quill Delta nativo. Conteúdo não suportado fica protegido no modo de código-fonte.
 - Vários cadernos, subpastas, pesquisa, etiquetas, notas fixadas e recentes, anexos, gravação automática, histórico de versões e lixo.
 - Encriptação opcional, palavra-passe principal e chave de recuperação por caderno, cópia de segurança e restauro, bloqueio Windows Passkey.

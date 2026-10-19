@@ -10,6 +10,7 @@ NotebookAid is an open-source desktop notebook application with an optional Thun
 
 ## Features
 
+- **MCP support for AI agents**: AI agents such as Codex can use local MCP (Model Context Protocol) to add TXT/Markdown notes to a user-authorized notebook folder while NotebookAid runs in the background. [Setup and scope](docs/mcp-final-testing.md).
 - Markdown and HTML rich-text editing within a supported safe subset, plain text, and native Quill Delta notes; unsupported content is protected in source mode.
 - Multiple notebooks, nested folders, search, tags, pinned and recent notes, attachments, autosave, version history and a recycle bin.
 - Optional note encryption, notebook master passwords and recovery keys, backup and restore, and Windows Passkey application locking.

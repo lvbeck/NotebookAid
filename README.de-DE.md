@@ -10,6 +10,7 @@ NotebookAid ist eine quelloffene Desktop-Anwendung für Notizbücher mit einer o
 
 ## Funktionen
 
+- **MCP-Unterstützung für KI-Agenten**: KI-Agenten wie Codex können über lokales MCP (Model Context Protocol) TXT-/Markdown-Notizen in einem vom Benutzer autorisierten Notizbuchordner anlegen, während NotebookAid im Hintergrund läuft. [Einrichtung und Berechtigungsumfang](docs/mcp-final-testing.md).
 - Markdown und HTML als Rich Text innerhalb eines sicheren unterstützten Teilumfangs, TXT und natives Quill Delta; nicht unterstützte Inhalte bleiben im Quelltextmodus geschützt.
 - Mehrere Notizbücher, Unterordner, Suche, Schlagwörter, angeheftete und zuletzt verwendete Notizen, Anhänge, automatisches Speichern, Versionsverlauf und Papierkorb.
 - Optionale Verschlüsselung, Hauptpasswort je Notizbuch, Wiederherstellungsschlüssel, Sicherung und Wiederherstellung sowie eine Windows-Anwendungssperre mit Passkey.

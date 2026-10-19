@@ -10,6 +10,7 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 
 ## 功能
 
+- **支持 MCP，可通过 AI Agent 添加笔记**：Codex 等 AI Agent 可通过本地 MCP（Model Context Protocol）连接后台运行的 NotebookAid，在用户明确授权的笔记本文件夹中添加 TXT／Markdown 笔记。[配置与授权范围](docs/mcp-final-testing.md)。
 - Markdown、HTML 安全子集富文本编辑，TXT 纯文本及 Quill Delta 原生笔记；不支持的内容保留在源码模式中，避免丢失。
 - 多笔记本、嵌套文件夹、搜索、标签、置顶、最近使用、附件、自动保存、历史版本和回收站。
 - 可选笔记加密、笔记本主密码和恢复密钥、备份恢复，以及 Windows Passkey 应用锁。
