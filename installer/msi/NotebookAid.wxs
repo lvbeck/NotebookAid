@@ -68,6 +68,12 @@
       @TEST_SEQUENCE@
     </InstallExecuteSequence>
     <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="NotebookArchiveAssociation" Guid="8DE9A1E3-865B-5E59-80F5-F5A586775CC5" Win64="yes">
+        <RegistryValue Root="HKMU" Key="Software\Classes\.nabook" Type="string" Value="NotebookAid.NotebookArchive" KeyPath="yes"/>
+        <RegistryValue Root="HKMU" Key="Software\Classes\NotebookAid.NotebookArchive" Type="string" Value="NotebookAid Notebook Archive"/>
+        <RegistryValue Root="HKMU" Key="Software\Classes\NotebookAid.NotebookArchive\DefaultIcon" Type="string" Value="&quot;[INSTALLFOLDER]resources\notebookaid-notebook.ico&quot;"/>
+        <RegistryValue Root="HKMU" Key="Software\Classes\NotebookAid.NotebookArchive\shell\open\command" Type="string" Value="&quot;[INSTALLFOLDER]NotebookAid.exe&quot; &quot;%1&quot;"/>
+      </Component>
       <Component Id="MsiIdentity" Guid="74567168-7E9A-4F76-A078-A892E81DCC20" Win64="yes">
         <RegistryValue Root="HKMU" Key="Software\NotebookAid\MSI" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes"/>
       </Component>
@@ -88,7 +94,7 @@
     </DirectoryRef>
     <DirectoryRef Id="MACHINEDESKTOP"><Component Id="MachineDesktopLink" Guid="7C95C00D-78AA-4023-B1EC-5AB3A16893AD" Win64="yes"><Condition>INSTALLDESKTOPSHORTCUT=1 AND ALLUSERS</Condition><Shortcut Id="MachineDesktopShortcut" Name="NotebookAid" Target="[INSTALLFOLDER]NotebookAid.exe" WorkingDirectory="INSTALLFOLDER" Icon="NotebookAidIcon"/><RegistryValue Root="HKLM" Key="Software\NotebookAid\MSIShortcuts" Name="Desktop" Type="integer" Value="1" KeyPath="yes"/></Component></DirectoryRef>
     <DirectoryRef Id="MACHINEMENU"><Component Id="MachineMenuLink" Guid="730D3D09-3B5F-46DF-9C38-472C7CF4E261" Win64="yes"><Condition>INSTALLSTARTMENUSHORTCUT=1 AND ALLUSERS</Condition><Shortcut Id="MachineMenuShortcut" Name="NotebookAid" Target="[INSTALLFOLDER]NotebookAid.exe" WorkingDirectory="INSTALLFOLDER" Icon="NotebookAidIcon"/><RegistryValue Root="HKLM" Key="Software\NotebookAid\MSIShortcuts" Name="StartMenu" Type="integer" Value="1" KeyPath="yes"/></Component></DirectoryRef>
-    <Feature Id="Application" Title="NotebookAid" Level="1" Absent="disallow">@COMPONENTS@<ComponentRef Id="MsiIdentity"/><ComponentRef Id="DesktopLink"/><ComponentRef Id="MenuLink"/><ComponentRef Id="MachineDesktopLink"/><ComponentRef Id="MachineMenuLink"/></Feature>
+    <Feature Id="Application" Title="NotebookAid" Level="1" Absent="disallow">@COMPONENTS@<ComponentRef Id="MsiIdentity"/><ComponentRef Id="NotebookArchiveAssociation"/><ComponentRef Id="DesktopLink"/><ComponentRef Id="MenuLink"/><ComponentRef Id="MachineDesktopLink"/><ComponentRef Id="MachineMenuLink"/></Feature>
     @UI@
   </Product>
 </Wix>

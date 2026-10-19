@@ -7,6 +7,9 @@ export interface RegistryApi {
   setNotebookAppearance(id: string, value: import('./notebook-appearance').NotebookAppearance): Promise<Result<RegistryState>>;
   registry(): Promise<Result<RegistryState>>;
   register(mode: 'existing' | 'create'): Promise<Result<RegistryState | null>>;
+  notebookArchive(action: 'import' | 'export', id?: string): Promise<Result<RegistryState | null>>;
+  archiveOpenPending(): Promise<Result<boolean>>;
+  onArchiveOpen(callback: () => void): () => void;
   activate(id: string): Promise<Result<LibraryStatus>>;
   rename(id: string, name: string): Promise<Result<RegistryState>>;
   relocate(id: string): Promise<Result<RegistryState | null>>;

@@ -2,6 +2,7 @@ module.exports = {
   appId: 'de.zub-systems.notebookaid', productName: 'NotebookAid',
   directories: { output: 'release/installer', buildResources: 'dist/installer-resources' },
   publish: null,
+  fileAssociations: [{ ext: 'nabook', name: 'NotebookAid.NotebookArchive', description: 'NotebookAid Notebook Archive', role: 'Editor', icon: 'assets/notebookaid-notebook.ico' }],
   win: { target: [{ target: 'nsis', arch: ['x64'] }], icon: 'assets/notebookaid.ico', signAndEditExecutable: false },
   nsis: {
     uninstallDisplayName: 'NotebookAid',

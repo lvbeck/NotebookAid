@@ -45,16 +45,19 @@ const { execFileSync } = require('node:child_process');
   copyDependency('marked');
   copyDependency('ical.js');
   copyDependency('electron-updater');
-  writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'], jose: project.dependencies['jose'], parse5: project.dependencies['parse5'], marked: project.dependencies['marked'], 'ical.js': project.dependencies['ical.js'], 'electron-updater': project.dependencies['electron-updater'] } }));
+  copyDependency('yauzl');
+  copyDependency('yazl');
+  writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'], jose: project.dependencies['jose'], parse5: project.dependencies['parse5'], marked: project.dependencies['marked'], 'ical.js': project.dependencies['ical.js'], 'electron-updater': project.dependencies['electron-updater'], yauzl: project.dependencies.yauzl, yazl: project.dependencies.yazl } }));
   const electronNotices = resolve('dist/electron-notices'); mkdirSync(electronNotices, { recursive: true });
   const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: mac ? 'darwin' : 'win32', arch, electronVersion: project.devDependencies.electron, overwrite: true, asar: true, prune: false,
     afterExtract: [({ buildPath }) => require('./license-catalog.cjs').copyElectronNotices(electronNotices, buildPath)],
-    extendInfo: mac ? { CFBundleLocalizations: ['en', 'de', 'fr', 'it', 'es', 'pt-PT', 'zh-CN', 'zh-HK', 'ja', 'ko'], CFBundleDevelopmentRegion: 'en' } : undefined,
+    extendInfo: mac ? { CFBundleLocalizations: ['en', 'de', 'fr', 'it', 'es', 'pt-PT', 'zh-CN', 'zh-HK', 'ja', 'ko'], CFBundleDevelopmentRegion: 'en', CFBundleDocumentTypes: [{CFBundleTypeName:'NotebookAid Notebook Archive',CFBundleTypeRole:'Editor',LSHandlerRank:'Owner',CFBundleTypeIconFile:'notebookaid-notebook.icns',LSItemContentTypes:['de.zub-systems.notebookaid.notebook']}],UTExportedTypeDeclarations:[{UTTypeIdentifier:'de.zub-systems.notebookaid.notebook',UTTypeDescription:'NotebookAid Notebook Archive',UTTypeConformsTo:['public.zip-archive'],UTTypeTagSpecification:{'public.filename-extension':['nabook']}}] } : undefined,
     icon: resolve(mac ? 'assets/notebookaid.icns' : 'assets/notebookaid.ico'), appBundleId: 'de.zub-systems.notebookaid', appCopyright: 'Copyright (c) 2026, Jin Lu', win32metadata: { CompanyName: 'Jin Lu', FileDescription: 'NotebookAid', ProductName: 'NotebookAid' },
     download: { cacheRoot: resolve('.cache/electron') }
   });
   const packageRoot = mac ? join(packages[0], 'NotebookAid.app/Contents/Resources') : packages[0];
   if (mac) {
+    cpSync('assets/notebookaid-notebook.icns', join(packageRoot, 'notebookaid-notebook.icns'));
     const bridge = join(packageRoot, 'bridge'); mkdirSync(bridge, { recursive: true });
     cpSync('native/macos/bridge.cjs', join(bridge, 'bridge.cjs'));
     cpSync('native/macos/NotebookAid.Bridge', join(bridge, 'NotebookAid.Bridge'));
@@ -65,6 +68,7 @@ const { execFileSync } = require('node:child_process');
     cpSync('docs/macos-testing.md', join(packageRoot, 'MACOS-TESTING.md'));
     cpSync('node_modules/@electron/osx-sign/LICENSE', join(packageRoot, 'OSX-SIGN-LICENSE.txt'));
   } else {
+  cpSync('assets/notebookaid-notebook.ico', join(packageRoot, 'resources/notebookaid-notebook.ico'));
   cpSync(require('./build-print-helper.cjs').buildPrintHelper(), join(packageRoot, 'NotebookAid.Print.exe'));
   cpSync('dist/NotebookAid.Passkey.exe', join(packageRoot, 'NotebookAid.Passkey.exe'));
   const compiler = join(process.env.WINDIR || 'C:/Windows', 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');

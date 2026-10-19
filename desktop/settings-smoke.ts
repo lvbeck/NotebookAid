@@ -36,7 +36,12 @@ export async function smokeSettings(window: BrowserWindow, directory: string): P
   const timerId = await run('[...window.__settingsTimers.keys()][0]');
   await click('[data-testid=library-inherit]'); await idle(); await click('[data-testid=library-autosave-enabled]'); await idle();
   if ((await get()).libraries[b.id].enabled !== false || !await run(`window.__settingsTimers.has(${timerId})`)) throw Error('Inactive override affected active timer');
+  const notebookFile = join(b.path, 'notebook-settings.json');
+  const notebookBefore = readFileSync(notebookFile, 'utf8');
+  if (JSON.parse(notebookBefore).autosave.enabled !== false || JSON.parse(readFileSync(join(directory, 'settings.json'), 'utf8')).libraries[b.id]) throw Error('Notebook override was not isolated from device settings');
   writeFileSync(join(directory, 'simulate-settings-failure'), 'fixture');
+  await click('[data-testid=library-autosave-enabled]'); await idle();
+  if (readFileSync(notebookFile, 'utf8') !== notebookBefore || (await get()).libraries[b.id].enabled !== false) throw Error('Notebook settings failure changed durable preferences');
   await click('[data-testid=settings-global]'); await change('[data-testid=autosave-minutes]', '7'); await idle();
   if ((await get()).global.autosave.minutes !== 2 || !await run("document.querySelector('[data-testid=autosave-minutes]').value==='2'")) throw Error('Write failure did not roll back UI');
   if (!await run(`window.__settingsTimers.has(${timerId})`)) throw Error('Failed write changed timer');
@@ -52,7 +57,7 @@ export async function smokeSettings(window: BrowserWindow, directory: string): P
   await open(a.id); await until("document.querySelector('[data-testid=note-title]').value==='设置计时测试'");
   await click('[data-testid=settings-library]'); await change('[data-testid=settings-library-select]', b.id);
   await click('[data-testid=library-inherit-reset]'); await idle();
-  if ((await get()).libraries[b.id] || !await run("document.querySelector('[data-testid=settings-effective]').textContent.includes('全局设置')")) throw Error('Inheritance restore failed');
+  if ((await get()).libraries[b.id] || !await run("document.querySelector('[data-testid=settings-effective]').textContent.includes('基础设置')")) throw Error('Inheritance restore failed');
   await click('[data-testid=library-inherit]'); await idle(); await click('[data-testid=library-autosave-enabled]'); await idle();
   const offline = b.path + '-offline'; renameSync(b.path, offline);
   try {

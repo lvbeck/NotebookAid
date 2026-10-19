@@ -14,6 +14,7 @@ import { type BrowserWindow } from 'electron';
 import { writeFileSync, unlinkSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { smokeSettings } from './settings-smoke';
+import { smokeNotebookSettings } from './notebook-settings-smoke';
 import { smokeRegistry } from './registry-smoke';
 import { smokeLibraryImport } from './library-import-smoke';
 import { smokeNotifications } from './notification-smoke';
@@ -28,6 +29,7 @@ export async function smokeLibrary(window: BrowserWindow, directory: string, err
     throw new Error('UI condition timed out: ' + expression);
   };
   await until("document.querySelector('app-root')?.dataset.ready === 'true'");
+  if (process.env['NOTEBOOKAID_NOTEBOOK_SETTINGS_TEST'] === '1') { await smokeNotebookSettings(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_APPEARANCE_TEST'] === '1') { await smokeAppearance(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_BACKUP_TEST'] === '1') { await smokeBackups(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }
   if (process.env['NOTEBOOKAID_SECURITY_TEST'] === '1') { await smokeSecurity(window, directory); if (errors.length) throw Error(errors.join('; ')); return; }

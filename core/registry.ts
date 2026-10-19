@@ -13,6 +13,8 @@ import { defaultNotebookAppearance } from '../shared/notebook-appearance';
 import { restoreGuardPath } from './restore-guard';
 import { plainPath } from './library-import';
 import type { StartupProgress } from '../shared/startup';
+import { readNotebookSettings, type NotebookSettings, type NotebookSettingsSeed } from './notebook-settings';
+import { archiveInWorker } from './async-archive';
 
 interface Config { schemaVersion: 1; activeId: string | null; entries: LibraryEntry[]; }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,7 +44,7 @@ export class LibraryRegistry {
   private library: NoteLibrary | null = null;
   private currentId: string | null = null;
   private readonly file: string;
-  constructor(private readonly dataPath: string, defaultPath: string, private readonly fault?: (stage: CommitStage | 'registry') => void, private readonly startupObserver?: (progress: StartupProgress) => void) {
+  constructor(private readonly dataPath: string, defaultPath: string, private readonly fault?: (stage: CommitStage | 'registry') => void, private readonly startupObserver?: (progress: StartupProgress) => void, private readonly notebookSeed?: (entry: LibraryEntry) => Omit<NotebookSettingsSeed, 'name'>) {
     this.file = join(dataPath, 'libraries.json');
     if (existsSync(this.file)) {
       try {
@@ -93,7 +95,33 @@ export class LibraryRegistry {
     if (!this.library) { valid(this.config.activeId, 'NOT_FOUND_OR_UNAVAILABLE'); this.activate(this.config.activeId); }
     return this.library!;
   }
-  currentName(): string { return this.config.entries.find(entry => entry.id === this.currentId)?.name ?? 'NotebookAid'; }
+  currentName(): string { return this.library?.notebookSettings()?.name ?? this.config.entries.find(entry => entry.id === this.currentId)?.name ?? 'NotebookAid'; }
+  private ensureNotebookSettings(library: NoteLibrary, entry: LibraryEntry): NotebookSettings {
+    return library.notebookSettings() ?? library.notebookSettings({ name: entry.name.trim(), autosave: null, dailyBackup: false, ...this.notebookSeed?.(entry) })!;
+  }
+  notebookSettings(id: string): NotebookSettings {
+    const entry = this.entry(id), inspected = inspectLibrary(entry.path);
+    valid(!entry.libraryId || entry.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
+    const current = entry.id === this.currentId, library = current ? this.get() : new NoteLibrary(inspected.path, this.fault, 'existing');
+    try { return this.ensureNotebookSettings(library, entry); } finally { if (!current) library.close(); }
+  }
+  updateNotebookSettings(id: string, patch: unknown): NotebookSettings {
+    const entry = this.entry(id), inspected = inspectLibrary(entry.path);
+    valid(!entry.libraryId || entry.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
+    const current = entry.id === this.currentId, library = current ? this.get() : new NoteLibrary(inspected.path, this.fault, 'existing');
+    try { this.ensureNotebookSettings(library, entry); return library.updateNotebookSettings(patch); } finally { if (!current) library.close(); }
+  }
+  portableSettings(): Record<string, NotebookSettings> {
+    const result: Record<string, NotebookSettings> = {};
+    for (const entry of this.config.entries) {
+      try {
+        const inspected = inspectLibrary(entry.path);
+        valid(!entry.libraryId || inspected.libraryId === entry.libraryId, 'LIBRARY_ID_MISMATCH');
+        const value = readNotebookSettings(inspected.path, inspected.libraryId); if (value) result[entry.id] = value;
+      } catch { /* Unavailable notebooks retain their files and are reported by registry state. */ }
+    }
+    return result;
+  }
   upgrade(id: string, expected: number): import('../shared/library').LibraryUpgradeResult {
     const entry = this.entry(id), inspected = inspectLibrary(entry.path);
     valid(!entry.libraryId || entry.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
@@ -107,6 +135,20 @@ export class LibraryRegistry {
     const current = id === this.currentId, source = current ? this.get() : new NoteLibrary(entry.path, this.fault, 'existing');
     try { await source.verifyIntegrityAsync(progress); return await createBackupAsync(source.path, target, progress); }
     finally { if (!current) source.close(); }
+  }
+  async exportArchive(id: string, target: string, progress: (value: import('../shared/backup').BackupProgress) => void): Promise<void> {
+    const entry = this.entry(id), inspected = inspectLibrary(entry.path);
+    valid(entry.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
+    const current = id === this.currentId, library = current ? this.get() : new NoteLibrary(inspected.path, this.fault, 'existing');
+    try { this.ensureNotebookSettings(library, entry); await library.verifyIntegrityAsync(progress); await archiveInWorker('export', library.path, target, [], progress); }
+    finally { if (!current) library.close(); }
+  }
+  async importArchive(source: string, parent: string, progress: (value: import('../shared/backup').BackupProgress) => void): Promise<RegistryState> {
+    valid(this.config.entries.length < 1000);
+    const result = (await archiveInWorker('import', source, parent, this.config.entries.flatMap(entry => entry.libraryId ? [entry.libraryId] : []), progress))!;
+    // A verified extracted notebook is retained if registration fails, allowing manual recovery.
+    try { return this.add(result.path, 'existing'); }
+    catch (error) { throw new LibraryError(error instanceof LibraryError ? error.code : 'WRITE_FAILED', { targetPath: result.path }); }
   }
   maintenance(id: string, action: MaintenanceAction, target?: string, backup?: string): unknown {
     if (action === 'restore') {
@@ -222,10 +264,12 @@ export class LibraryRegistry {
       let availability: 'available' | LibraryErrorCode = 'available';
       let schemaVersion: number | null = null;
       let appearance = defaultNotebookAppearance(), appearanceIssue = false;
+      let name = entry.name;
       try {
         const inspected = inspectLibrary(entry.path);
         valid(!entry.libraryId || inspected.libraryId === entry.libraryId, 'LIBRARY_ID_MISMATCH');
         schemaVersion = inspected.schemaVersion;
+        name = readNotebookSettings(inspected.path, inspected.libraryId)?.name ?? name;
         try { appearance = readAppearance(inspected.path); } catch { appearanceIssue = true; }
         if (entry.id !== this.currentId) {
           const lockPath = join(inspected.path, '.writer.sqlite');
@@ -238,7 +282,7 @@ export class LibraryRegistry {
           }
         }
       } catch (error) { availability = error instanceof LibraryError ? error.code : 'NOT_FOUND_OR_UNAVAILABLE'; }
-      return { ...entry, appearance, appearanceIssue, schemaVersion, availability, current: entry.id === this.currentId };
+      return { ...entry, name, appearance, appearanceIssue, schemaVersion, availability, current: entry.id === this.currentId };
     }) };
   }
   activate(id: unknown) {
@@ -251,7 +295,8 @@ export class LibraryRegistry {
     const next = new NoteLibrary(inspected.path, this.fault, 'existing', undefined, this.startupObserver);
     try {
       valid(next.libraryId === inspected.libraryId, 'LIBRARY_ID_MISMATCH');
-      this.persist({ ...this.config, activeId: entry.id, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, path: inspected.path, libraryId: inspected.libraryId, lastOpenedAt: new Date().toISOString() } : item) });
+      const portable = this.ensureNotebookSettings(next, entry);
+      this.persist({ ...this.config, activeId: entry.id, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, name: portable.name, path: inspected.path, libraryId: inspected.libraryId, lastOpenedAt: new Date().toISOString() } : item) });
     } catch (error) { next.close(); throw error; }
     this.library?.close(); this.library = next; this.currentId = entry.id;
     return next.status();
@@ -272,7 +317,11 @@ export class LibraryRegistry {
   }
   rename(id: unknown, name: unknown): RegistryState {
     const entry = this.entry(id); valid(typeof name === 'string' && name.trim() && name.trim().length <= 100 && !/[\x00-\x1f]/.test(name));
-    this.persist({ ...this.config, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, name: name.trim() } : item) }); return this.state();
+    const previous = this.config; this.notebookSettings(entry.id);
+    this.persist({ ...this.config, entries: this.config.entries.map(item => item.id === entry.id ? { ...item, name: name.trim() } : item) });
+    try { this.updateNotebookSettings(entry.id, { name: name.trim() }); }
+    catch (error) { this.persist(previous); throw error; }
+    return this.state();
   }
   setAppearance(id: unknown, value: unknown): RegistryState {
     const entry = this.entry(id), inspected = inspectLibrary(entry.path);

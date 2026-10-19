@@ -80,7 +80,7 @@ export class SettingsComponent {
     await this.prefs.override(id, field === 'inherit' ? (input.checked ? null : {}) : field === 'enabled' ? { enabled: input.checked } : { minutes: input.valueAsNumber });
     if (this.selectedId() === id) { input.checked = field === 'inherit' ? this.inherited() : this.effective().enabled; if (field === 'minutes') input.value = String(this.effective().minutes); }
   }
-  select(value: string): void { this.selectedId.set(value); this.renaming.set(false); this.upgradeMessage.set(''); }
+  select(value: string): void { void this.prefs.reload(); this.selectedId.set(value); this.renaming.set(false); this.upgradeMessage.set(''); }
   async upgrade(): Promise<void> {
     const item = this.entry(); if (!item || item.schemaVersion == null || this.upgrading()) return;
     this.upgrading.set(true); this.upgradeMessage.set('');

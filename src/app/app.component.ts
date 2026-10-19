@@ -403,6 +403,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.editorToolsOpen.set(false); this.exportMenuOpen.set(false);
     }
   };
+  private readonly stopArchiveOpen = window.notebookAid.library.onArchiveOpen(() => this.showLibraries());
   private readonly stopDesktopTarget = window.notebookAid.openDesktopTarget(async target => {
     for (let n = 0; n < 150 && (!this.ready() || this.workspace.initializing() || !this.workspace.status()); n++) await new Promise(resolve => setTimeout(resolve, 100));
     if (this.workspace.initializing() || this.workspace.status()?.libraryId !== target.libraryId) return false;
@@ -410,6 +411,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     return this.workspace.session()?.note.id === target.noteId;
   });
   constructor() {
+    void window.notebookAid.library.archiveOpenPending().then(result => { if (result.ok && result.value) this.showLibraries(); });
     effect(() => {
       const enabled = this.editorFullscreen();
       this.editorToolsOpen.set(false); this.exportMenuOpen.set(false);
@@ -487,6 +489,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     window.notebookAid.runtime().then(value => this.runtime.set(value)).catch(() => this.sqliteResult.set(this.t('failed')));
   }
   ngOnDestroy(): void {
+    this.stopArchiveOpen();
     document.removeEventListener('contextmenu',this.captureEditContext,true);
     this.onboarding.stop();
     this.eggs.stop();

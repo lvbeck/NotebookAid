@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "NotebookAid migration helper",
-  "version": "0.15.13",
+  "version": "0.15.15",
   "description": "One-time local migration of NotebookAid addon preferences.",
   "browser_specific_settings": {
     "gecko": {

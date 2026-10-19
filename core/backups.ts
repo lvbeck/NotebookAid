@@ -96,6 +96,16 @@ export class BackupStore {
     if (!/^[a-f0-9-]{36}$/i.test(id) || !p || typeof p.enabled !== 'boolean' || (p.directory !== null && (typeof p.directory !== 'string' || !isAbsolute(p.directory))) || (p.enabled && !p.directory) || [p.nextAt, p.lastAt].some(value => value !== null && (!Number.isSafeInteger(value) || value! < 0))) throw new LibraryError('INVALID_INPUT');
   }
   state(now = Date.now()): BackupState { return { policies: structuredClone(this.policies), missed: Object.entries(this.policies).filter(([, p]) => p.enabled && p.nextAt !== null && p.nextAt < now).map(([id]) => id) }; }
+  notebookState(preferences: Record<string, { dailyBackup: boolean }>, now = Date.now()): BackupState {
+    for (const [id, settings] of Object.entries(preferences)) {
+      const local = this.policies[id], enabled = settings.dailyBackup && !!local?.directory;
+      if (local && local.enabled !== enabled) this.update(id, local.directory, enabled);
+    }
+    const state = this.state(now);
+    for (const [id, settings] of Object.entries(preferences)) state.policies[id] = { ...(state.policies[id] ?? { directory: null, lastAt: null, nextAt: null }), enabled: settings.dailyBackup };
+    state.missed = Object.entries(state.policies).filter(([, p]) => p.enabled && p.directory && p.nextAt !== null && p.nextAt < now).map(([id]) => id);
+    return state;
+  }
   update(id: string, directory: string | null, enabled: boolean): BackupPolicy {
     const old = this.policies[id]; const p = { directory, enabled, lastAt: old?.lastAt ?? null, nextAt: enabled ? old?.enabled && old.directory === directory ? old.nextAt : Date.now() + 86400000 : null };
     this.validate(id, p); this.save(id, p); return p;

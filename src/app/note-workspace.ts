@@ -189,7 +189,7 @@ export class NoteWorkspace {
       result = await action();
       this.clearSensitiveView();
       const status = await this.api.status(); if (status.ok) this.status.set(status.value);
-      await this.refresh(); await this.refreshRegistry();
+      await this.refresh(); await this.refreshRegistry(); await this.preferences.reload();
     } finally { this.switching.set(false); }
     if (reopen && session && this.notes().some(note => note.id === session.note.id)) await this.select(session.note.id);
     return result;
@@ -402,7 +402,7 @@ export class NoteWorkspace {
     try {
       const result = action === 'existing' || action === 'create' ? await this.api.register(action) : action === 'rename' ? await this.api.rename(id, name) : action === 'remove' ? await this.api.remove(id) : await this.api.relocate(id);
       if (!result.ok) { this.registryError.set(result.code); void this.notifications.publish('operationFailed', 'open', null, this.noticeError(result.code)); return; }
-      if (result.value) { this.registry.set(result.value); this.notify('settingsSaved'); }
+      if (result.value) { this.registry.set(result.value); await this.preferences.reload(); this.notify('settingsSaved'); }
     } catch { this.registryError.set('WRITE_FAILED'); }
     finally { this.switching.set(false); }
   }
@@ -416,7 +416,7 @@ export class NoteWorkspace {
       const result = await this.api.activate(id);
       if (epoch !== this.viewEpoch) return;
       if (!result.ok) { this.registryError.set(result.code); void this.notifications.publish('operationFailed', 'open', this.registry().entries.find(item => item.id === id)?.libraryId ?? null, this.noticeError(result.code)); await this.refreshRegistry(); return; }
-      this.status.set(result.value); this.notify('libraryOpened', 'open'); this.session.set(null); this.title.set(''); this.body.set('');
+      this.status.set(result.value); await this.preferences.reload(); this.notify('libraryOpened', 'open'); this.session.set(null); this.title.set(''); this.body.set('');
       clearTimeout(this.searchTimer); this.queryEpoch++; this.query.set({ view: 'all', offset: 0, limit: this.pageSize() }); this.results.set([]); this.total.set(0); this.organizationError.set('');
       this.pending = null; this.createId = null; this.error.set(''); this.dirty.set(false); this.libraryUnavailable.set(false); this.opened.update(value => value + 1);
       await this.refreshRegistry();

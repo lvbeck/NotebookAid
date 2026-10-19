@@ -3,6 +3,7 @@ import { validateTaskSource, type TaskSource } from '../shared/task-source';
 import { NotebookSecurity } from './security';
 import { validateSummary, validateTranslation, type GeneratedTranslation, type GeneratedSummary } from '../shared/writing';
 import { validateAppearance } from './notebook-appearance';
+import { notebookSettingsFile, readNotebookSettings, validateNotebookSettings, type NotebookSettings, type NotebookSettingsSeed } from './notebook-settings';
 import { restoreAllowed } from './restore-guard';
 import { renameWithRetry } from './file-rename';
 import type { SecurityState, SecurityRequest } from '../shared/security';
@@ -31,9 +32,25 @@ type Metadata = Omit<NoteDocument, 'body'> & { schemaVersion: 1; parentRevisionI
 type CatalogNote = Omit<NoteDocument, 'body'> & { body?: string };
 type Journal = { schemaVersion: 1; operationId: string; requestHash?: string; head: Head };
 type Session = { noteId: string; owner: string; token: string; generation: string };
-export type CommitStage = 'restore-prepared' | 'restore-original-moved' | 'restore-replacement-moved' | 'restore-verified' | 'restore-rollback' | 'appearance' | 'schema' | 'journal' | 'revision' | 'head' | 'index' | 'organization' | 'purge-journal' | 'purge-moved' | 'history-floor' | 'history-pruned' | 'security-prepared' | 'security-moved';
+export type CommitStage = 'restore-prepared' | 'restore-original-moved' | 'restore-replacement-moved' | 'restore-verified' | 'restore-rollback' | 'notebook-settings' | 'appearance' | 'schema' | 'journal' | 'revision' | 'head' | 'index' | 'organization' | 'purge-journal' | 'purge-moved' | 'history-floor' | 'history-pruned' | 'security-prepared' | 'security-moved';
 
 export class NoteLibrary {
+  notebookSettings(seed?: NotebookSettingsSeed): NotebookSettings | null {
+    const current = readNotebookSettings(this.path, this.libraryId);
+    if (current || !seed) return current;
+    const next = validateNotebookSettings({ ...seed, format: 'NotebookAidNotebookSettings', schemaVersion: 1, libraryId: this.libraryId, revision: 1 }, this.libraryId);
+    this.writeNotebookSettings(next); return next;
+  }
+  updateNotebookSettings(patch: unknown): NotebookSettings {
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch) || !Object.keys(patch).length || Object.keys(patch).some(key => !['name','autosave','dailyBackup'].includes(key))) throw new LibraryError('INVALID_INPUT');
+    const current = this.notebookSettings(); if (!current) throw new LibraryError('INTEGRITY_CHECK_FAILED');
+    const next = validateNotebookSettings({ ...current, ...patch, revision: current.revision + 1 }, this.libraryId);
+    this.writeNotebookSettings(next); return next;
+  }
+  private writeNotebookSettings(value: NotebookSettings): void {
+    try { this.fault?.('notebook-settings'); this.atomic(this.safe(notebookSettingsFile), JSON.stringify(value)); }
+    catch (error) { if (error instanceof LibraryError) throw error; throw new LibraryError('WRITE_FAILED'); }
+  }
   setAppearance(value: unknown): void {
     const appearance = validateAppearance(value);
     try { this.fault?.('appearance'); this.atomic(this.safe('appearance.json'), JSON.stringify(appearance)); }
@@ -80,6 +97,8 @@ export class NoteLibrary {
       if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(manifest.schemaVersion) || !uuid.test(manifest.libraryId)) throw new LibraryError('INTEGRITY_CHECK_FAILED');
       this.libraryId = manifest.libraryId;
       this.manifest = manifest;
+      readNotebookSettings(this.path, this.libraryId);
+      if (mode === 'create') this.notebookSettings({ name: basename(this.path).slice(0, 100) || 'NotebookAid', autosave: null, dailyBackup: false });
       this.security = new NotebookSecurity(this.path, this.libraryId, stage => this.fault?.(stage as CommitStage));
       if (this.security.configured && this.manifest.schemaVersion < 7) { this.atomic(manifestPath, JSON.stringify({ ...this.manifest, schemaVersion: Math.max(this.manifest.schemaVersion, 7) })); this.manifest.schemaVersion = Math.max(this.manifest.schemaVersion, 7); }
       const organizationPath = this.safe('organization.json');
@@ -131,6 +150,7 @@ export class NoteLibrary {
     return next.value;
   }
   private *integritySteps(): Generator<import('../shared/backup').BackupProgress, import('../shared/backup').IntegrityResult> {
+    readNotebookSettings(this.path, this.libraryId);
     if (this.pendingRecovery || this.issues.size) throw new LibraryError('INTEGRITY_CHECK_FAILED');
     this.security.verifyStructure();
     let notes = 0, revisions = 0, attachments = 0, encryptedSkipped = 0;

@@ -8,6 +8,7 @@ import { IconComponent } from './icon.component';
 import { regionalLocale, translate, type Locale, type MessageKey } from './i18n';
 import type { LibraryImportPreview, LibraryImportResult } from '../../shared/library-import';
 import { NotificationService } from './notification-service';
+import { archiveText, type ArchiveKey } from './archive-i18n';
 
 @Component({ selector: 'app-libraries', standalone: true, imports: [FormsModule, IconComponent], templateUrl: './libraries.component.html' })
 export class LibrariesComponent {
@@ -24,6 +25,21 @@ export class LibrariesComponent {
   readonly importPreview = signal<LibraryImportPreview | null>(null);
   readonly importResult = signal<LibraryImportResult | null>(null);
   readonly importError = signal('');
+  readonly archiveMessage = signal('');
+  readonly archiveError = signal('');
+  readonly archiveRetainedPath = signal('');
+  a(key: ArchiveKey): string { return archiveText(this.locale, key); }
+  async archive(action: 'import' | 'export', id?: string): Promise<void> {
+    if (this.workspace.switching() || this.importing()) return;
+    this.workspace.switching.set(true); this.importError.set(''); this.archiveError.set(''); this.archiveMessage.set(''); this.archiveRetainedPath.set('');
+    try {
+      if (!await this.workspace.flush()) return;
+      const result = await window.notebookAid.library.notebookArchive(action, id);
+      if (!result.ok) { this.archiveError.set(result.code); this.archiveRetainedPath.set(result.details?.targetPath ?? ''); return; }
+      if (result.value) { this.workspace.registry.set(result.value); await this.workspace.preferences.reload(); this.archiveMessage.set(this.a('complete')); }
+    } catch { this.archiveError.set('WRITE_FAILED'); }
+    finally { this.workspace.switching.set(false); }
+  }
   async previewImport(id: string): Promise<void> {
     if (this.importing() || this.workspace.switching()) return;
     this.importing.set(true); this.importError.set(''); this.importPreview.set(null); this.importResult.set(null);
@@ -51,7 +67,7 @@ export class LibrariesComponent {
   }
   private showImport(): void { afterNextRender(() => document.querySelector('[data-testid=library-import-preview], [data-testid=library-import-result]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), { injector: this.injector }); }
   t(key: MessageKey): string { return translate(this.locale, key); }
-  error(code: string): string { if (code === 'NOTEBOOK_LOCKED') return securityText(this.locale, 'master') + ' · ' + securityText(this.locale, 'setup') + ' / ' + securityText(this.locale, 'unlock'); return this.t(({ DUPLICATE_LIBRARY: 'libDuplicate', LIBRARY_ID_MISMATCH: 'libMismatch', REGISTRY_INVALID: 'libConfigInvalid', UNSUPPORTED_LIBRARY: 'libUnsupported', CURRENT_LIBRARY: 'libCurrentProtected', LIBRARY_IN_USE: 'libInUse', NOT_FOUND_OR_UNAVAILABLE: 'libUnavailable', INVALID_INPUT: 'libInvalid', INTEGRITY_CHECK_FAILED: 'libInvalid', WRITE_FAILED: 'libWriteFailed' } as Record<string, MessageKey>)[code] ?? 'operationFailed'); }
+  error(code: string): string { if (code === 'DUPLICATE_LIBRARY') return this.a('duplicate'); if (code === 'NOTEBOOK_LOCKED') return securityText(this.locale, 'master') + ' · ' + securityText(this.locale, 'setup') + ' / ' + securityText(this.locale, 'unlock'); return this.t(({ DUPLICATE_LIBRARY: 'libDuplicate', LIBRARY_ID_MISMATCH: 'libMismatch', REGISTRY_INVALID: 'libConfigInvalid', UNSUPPORTED_LIBRARY: 'libUnsupported', CURRENT_LIBRARY: 'libCurrentProtected', LIBRARY_IN_USE: 'libInUse', NOT_FOUND_OR_UNAVAILABLE: 'libUnavailable', INVALID_INPUT: 'libInvalid', INTEGRITY_CHECK_FAILED: 'libInvalid', WRITE_FAILED: 'libWriteFailed' } as Record<string, MessageKey>)[code] ?? 'operationFailed'); }
   time(value: string | null): string { return value ? new Date(value).toLocaleString(regionalLocale(this.locale), { dateStyle: 'short', timeStyle: 'short' }) : this.t('libNeverOpened'); }
   edit(id: string, name: string): void { this.editing.set(id); this.name = name; }
   async rename(id: string): Promise<void> { await this.workspace.manage('rename', id, this.name); if (!this.workspace.registryError()) this.editing.set(''); }

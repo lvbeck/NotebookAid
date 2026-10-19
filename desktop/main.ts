@@ -1,4 +1,5 @@
 import { smokeEaster } from './easter-smoke';
+import { smokeArchive } from './archive-smoke';
 import { registerUpdates, updateSourceReady } from './updates';
 import { bridgeEndpoint, prepareBridgeEndpoint } from './bridge-endpoint';
 import { migrateAppData } from '../core/app-data';
@@ -21,7 +22,7 @@ import { smokeHtmlImport } from './html-import-smoke';
 import { smokeLibrary } from './smoke';
 import { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, shell } from 'electron';
 import { chmodSync, mkdirSync, writeFileSync, existsSync, unlinkSync, readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createServer, Server } from 'node:net';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -63,6 +64,12 @@ let updateInstalling = false;
 let addonWaiters = 0;
 let editorWindowBounds: Electron.Rectangle | null = null;
 let storage: ReturnType<typeof registerLibrary>;
+let requestedArchive = selfTest ? undefined : process.argv.find(value => isAbsolute(value) && value.toLowerCase().endsWith('.nabook'));
+function requestArchive(path: string): void {
+  if (!isAbsolute(path) || !path.toLowerCase().endsWith('.nabook')) return;
+  requestedArchive = path; if (storage) { storage.requestArchive(path); requestedArchive = undefined; }
+}
+app.on('open-file', (event, path) => { if (path.toLowerCase().endsWith('.nabook')) { event.preventDefault(); requestArchive(path); if (app.isReady() && storage) void createWindow(); } });
 let notifications: ReturnType<typeof registerNotifications>;
 let passkeys: ReturnType<typeof passkeyClient>;
 const rendererErrors: string[] = [];
@@ -132,6 +139,7 @@ async function start(): Promise<void> {
   passkeys = passkeyClient(dataPath);
   const protectedCaller = (event: Electron.IpcMainInvokeEvent) => { authorize(event); if (!passkeys.gate.unlocked) throw Error('APP_LOCKED'); };
   storage = registerLibrary(dataPath, () => mainWindow, protectedCaller, selfTest, updateTray, { enabled: () => passkeys.gate.enabled && passkeys.gate.unlocked, lock: () => { passkeys.gate.lock(); mainWindow?.webContents.reload(); } }, authorize);
+  if (requestedArchive) { storage.requestArchive(requestedArchive); requestedArchive = undefined; }
   updates = registerUpdates({ root: dirname(process.execPath), resources: process.resourcesPath, configured: app.isPackaged && !selfTest && updateSourceReady(dirname(process.execPath), process.resourcesPath), enabled: () => !selfTest && storage.autoUpdatesEnabled(), publish: state => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('updates:state', state); }, confirm: () => storage.confirmUpdate(), flush: () => storage.flush(), beforeInstall: () => { updateInstalling = true; quitting = true; }, installFailed: () => { if (updateInstalling) { updateInstalling = false; quitting = false; } } });
   ipcMain.handle('updates:state', event => { protectedCaller(event); return updates.state(); });
   ipcMain.handle('updates:check', event => { protectedCaller(event); return updates.check(); });
@@ -260,7 +268,7 @@ async function quitByUser(testShutdown = false, allowTray = false): Promise<void
   app.quit();
   } finally { exitPending = false; }
 }
-app.on('second-instance', (_event, argv) => { if (!argv.includes('--background')) void createWindow(); });
+app.on('second-instance', (_event, argv) => { const path = argv.find(value => isAbsolute(value) && value.toLowerCase().endsWith('.nabook')); if (path) requestArchive(path); if (!argv.includes('--background')) void createWindow(); });
 app.on('window-all-closed', () => { /* The explicit Exit command owns background shutdown. */ });
 app.on('before-quit', event => {
   if (!quitting && storage) { event.preventDefault(); void quitByUser(); return; }
@@ -286,6 +294,7 @@ async function runSmoke(window: BrowserWindow): Promise<void> {
     if(process.env['NOTEBOOKAID_CONTEXT_TEST']==='1'){await smokeContext(window,dataPath);await quitByUser(true);return;}
     if (process.env['NOTEBOOKAID_ONBOARDING_TEST'] === '1') { await smokeOnboarding(window,dataPath);await quitByUser(true);return; }
     if (process.env['NOTEBOOKAID_UI_TEST'] === '1') { await smokeUi(window, dataPath); await quitByUser(true); return; }
+    if (process.env['NOTEBOOKAID_ARCHIVE_TEST'] === '1') { await smokeArchive(window, dataPath, storage.requestArchive); await quitByUser(true); return; }
     if (process.env['NOTEBOOKAID_TASKS_TEST'] === '1') { await smokeTasks(window,dataPath);await quitByUser(true);return; }
 
     if (process.env['NOTEBOOKAID_WRITING_TEST'] === '1') { await smokeWriting(window, dataPath); await quitByUser(true); return; }

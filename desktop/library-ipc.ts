@@ -9,6 +9,7 @@ import { printRecovery } from './recovery-print';
 import { renderNotePrint } from './note-print';
 import { BackupStore, pathsOverlap, verifyBackup } from '../core/backups';
 import { backupText } from '../src/app/backup-i18n';
+import { archiveText } from '../src/app/archive-i18n';
 import type { ExitCommand, ExitState } from '../shared/dialog';
 import { registerDialogs } from './app-dialog';
 import { securityText } from '../src/app/security-i18n';
@@ -84,6 +85,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   const backups = () => backupStore ??= new BackupStore(dataPath);
   const startedAt = Date.now(), backupRetries = new Map<string, number>();
   let backupJob: import('../shared/backup').BackupJob | null = null;
+  let archivePending: string | null = null;
   const runBackup = async (id: string, directory: string) => {
     let sent = 0, phase = ''; batchBusy = true;
     const publish = (progress: import('../shared/backup').BackupProgress) => {
@@ -100,11 +102,24 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   let sourceSecurity: NotebookSecurity | null = null;
   let selectedImport: { owner: string; path: string } | null = null;
   const clearImport = () => { sourceSecurity?.lock(); sourceSecurity = null; pendingImport = null; selectedImport = null; };
+  const legacyNotebookSeed = (entry: import('../shared/registry').LibraryEntry) => {
+    const local = settings ?? (existsSync(join(dataPath, 'settings.json')) ? new SettingsStore(dataPath, { locale: null, theme: null, autosave: null }) : null);
+    return { autosave: local?.get().libraries[entry.id] ?? null, dailyBackup: backups().state().policies[entry.id]?.enabled ?? false };
+  };
   const manager = () => registry ??= new LibraryRegistry(dataPath, process.env['NOTEBOOKAID_TEST_HOME'] ? join(dataPath, 'library') : join(app.getPath('appData'), 'NotebookAid', 'library'), selfTest ? stage => {
     if (stage.startsWith('restore-') && existsSync(join(dataPath, 'simulate-restore-failure')) && readFileSync(join(dataPath, 'simulate-restore-failure'), 'utf8').trim() === stage) throw new Error('Simulated restore failure');
-    if ((stage === 'journal' && existsSync(join(dataPath, 'simulate-write-failure'))) || (stage === 'appearance' && existsSync(join(dataPath, 'simulate-appearance-failure'))) || (stage === 'registry' && existsSync(join(dataPath, 'simulate-registry-failure')))) throw new Error('Simulated write failure');
-  } : undefined, progress => { const target = window(); if (target && !target.webContents.isDestroyed()) target.webContents.send('library:startup-progress', progress); });
+    if ((stage === 'journal' && existsSync(join(dataPath, 'simulate-write-failure'))) || (stage === 'notebook-settings' && existsSync(join(dataPath, 'simulate-settings-failure'))) || (stage === 'appearance' && existsSync(join(dataPath, 'simulate-appearance-failure'))) || (stage === 'registry' && existsSync(join(dataPath, 'simulate-registry-failure')))) throw new Error('Simulated write failure');
+  } : undefined, progress => { const target = window(); if (target && !target.webContents.isDestroyed()) target.webContents.send('library:startup-progress', progress); }, legacyNotebookSeed);
   const get = () => manager().get();
+  const settingsSnapshot = () => {
+    if (!settings) throw new LibraryError('REGISTRY_INVALID');
+    const state = settings.get();
+    for (const [id, portable] of Object.entries(manager().portableSettings())) {
+      if (portable.autosave === null) delete state.libraries[id]; else state.libraries[id] = portable.autosave;
+    }
+    return state;
+  };
+  const backupState = () => backups().notebookState(manager().portableSettings());
   const choosePath = async (): Promise<string | null> => {
     const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
     if (selfTest && existsSync(join(dataPath, 'registry-dialog.json'))) {
@@ -126,7 +141,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   const handle = (name: string, callback: (owner: string, ...args: any[]) => unknown) => {
     ipcMain.handle(`library:${name}`, async (event, ...args): Promise<Result<unknown>> => {
       authorize(event);
-      try { if(batchBusy&&!['status','list','query','organization','registry','end','backups','backupProgress'].includes(name)&&!(backupJob&&['settings','updateSettings','librarySettings'].includes(name)))throw new LibraryError('LIBRARY_IN_USE');return { ok: true, value: await callback(String(event.sender.id), ...args) }; }
+      try { if(batchBusy&&!['status','list','query','organization','registry','end','backups','backupProgress'].includes(name)&&!(backupJob&&['settings','updateSettings'].includes(name)))throw new LibraryError('LIBRARY_IN_USE');return { ok: true, value: await callback(String(event.sender.id), ...args) }; }
       catch (error) { return { ok: false, code: (error instanceof LibraryError || error instanceof DeltaError) ? error.code : (error as NodeJS.ErrnoException).code === 'ENOSPC' ? 'DISK_FULL' : ['EACCES','EPERM'].includes((error as NodeJS.ErrnoException).code ?? '') ? 'ACCESS_DENIED' : 'WRITE_FAILED', ...(error instanceof LibraryError && error.details ? { details: error.details } : {}) }; }
     });
   };
@@ -154,8 +169,41 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     const entries = manager().state().entries, same = entries.some(entry => entry.id === allowNotebookId && resolve(entry.path).toLowerCase() === resolve(path).toLowerCase());
     if ((!selfTest && (pathsOverlap(path, app.getAppPath()) || (!same && pathsOverlap(path, dataPath)))) || entries.some(entry => !(same && entry.id === allowNotebookId) && pathsOverlap(path, entry.path))) throw new LibraryError('PATH_OVERLAP');
   };
-  handle('backups', () => backups().state());
+  handle('backups', () => backupState());
   handle('backupProgress', () => backupJob);
+  handle('archiveOpenPending', () => archivePending !== null);
+  handle('notebookArchive', async (_owner, action: 'import' | 'export', id?: string) => {
+    if (!['import', 'export'].includes(action) || action === 'export' && (!id || !manager().has(id))) throw new LibraryError('INVALID_INPUT');
+    if (choosing) throw new LibraryError('LIBRARY_IN_USE'); choosing = true;
+    const ownerWindow = window(); if (!ownerWindow) { choosing = false; throw new LibraryError('INVALID_INPUT'); }
+    const fixtures = selfTest && existsSync(join(dataPath, 'archive-dialog.json')) ? JSON.parse(readFileSync(join(dataPath, 'archive-dialog.json'), 'utf8')) : null;
+    try {
+      let source: string, destination: string;
+      if (action === 'export') {
+        const entry = manager().state().entries.find(item => item.id === id)!;
+        const name = entry.name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 80) || 'NotebookAid';
+        if (fixtures) destination = fixtures.target;
+        else { const chosen = await dialog.showSaveDialog(ownerWindow, { title: archiveText(currentLocale(), 'export'), defaultPath: name + '.nabook', filters: [{ name: 'NotebookAid', extensions: ['nabook'] }] }); if (chosen.canceled || !chosen.filePath) return null; destination = chosen.filePath; }
+        source = entry.path; safeDestination(destination);
+      } else {
+        const pending = archivePending; archivePending = null;
+        if (pending) source = pending;
+        else if (fixtures) source = fixtures.source;
+        else { const chosen = await dialog.showOpenDialog(ownerWindow, { title: archiveText(currentLocale(), 'source'), properties: ['openFile'], filters: [{ name: 'NotebookAid', extensions: ['nabook'] }] }); if (chosen.canceled || !chosen.filePaths[0]) return null; source = chosen.filePaths[0]; }
+        if (fixtures) destination = fixtures.target;
+        else { const chosen = await dialog.showOpenDialog(ownerWindow, { title: archiveText(currentLocale(), 'location'), properties: ['openDirectory', 'createDirectory'] }); if (chosen.canceled || !chosen.filePaths[0]) return null; destination = chosen.filePaths[0]; }
+        // The selected parent may contain other notebooks; the new child must not overlap one.
+        safeDestination(join(destination, '.notebookaid-import-' + randomUUID()));
+        if (!await dialogs.ask(ownerWindow, { kind: 'info', title: archiveText(currentLocale(), 'import'), message: archiveText(currentLocale(), 'hint'), detail: destination, cancelLabel: translate(currentLocale(), 'cancelOperation'), confirmLabel: archiveText(currentLocale(), 'import') })) return null;
+      }
+      if (typeof source !== 'string' || typeof destination !== 'string') throw new LibraryError('INVALID_INPUT');
+      batchBusy = true; let last = 0;
+      const progress = (value: import('../shared/backup').BackupProgress) => { backupJob = { id: id ?? 'archive-import', operation: action === 'export' ? 'archive-export' : 'archive-import', progress: value }; if (Date.now() - last > 100 || ['complete', 'failed'].includes(value.phase)) { last = Date.now(); if (!ownerWindow.isDestroyed()) ownerWindow.webContents.send('library:backup-progress', backupJob); } };
+      progress({ phase: 'validating', completed: 0, total: null });
+      if (action === 'export') { await manager().exportArchive(id!, destination, progress); return manager().state(); }
+      return await manager().importArchive(source, destination, progress);
+    } finally { choosing = false; batchBusy = false; backupJob = null; if (!ownerWindow.isDestroyed()) ownerWindow.webContents.send('library:backup-progress', null); }
+  });
   handle('configureBackup', async (_owner, id, enabled, chooseDirectory) => {
     if (!manager().has(id) || typeof enabled !== 'boolean' || typeof chooseDirectory !== 'boolean') throw new LibraryError('INVALID_INPUT');
     if (choosing) throw new LibraryError('LIBRARY_IN_USE'); choosing = true;
@@ -163,7 +211,12 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
       const directory = chooseDirectory ? await maintenancePath('directory') : backups().state().policies[id]?.directory ?? null;
       if (chooseDirectory && !directory) return null;
       if (directory) safeDestination(directory);
-      backups().update(id, directory, enabled); return backups().state();
+      if (enabled && !directory) throw new LibraryError('INVALID_INPUT');
+      const previous = manager().notebookSettings(id).dailyBackup;
+      manager().updateNotebookSettings(id, { dailyBackup: enabled });
+      try { backups().update(id, directory, enabled); }
+      catch (error) { manager().updateNotebookSettings(id, { dailyBackup: previous }); throw error; }
+      return backupState();
     } finally { choosing = false; }
   });
   handle('maintenance', async (_owner, id, action) => {
@@ -290,10 +343,10 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   handle('settings', (_owner, legacy: unknown) => {
     settings ??= new SettingsStore(dataPath, legacy, selfTest ? () => { if (existsSync(join(dataPath, 'simulate-settings-failure'))) throw new Error('Simulated settings failure'); } : undefined, installedLocale ?? defaultSettings.global.locale);
     localeChanged(settings.get().global.locale);
-    return settings.get();
+    return settingsSnapshot();
   });
-  handle('updateSettings', (_owner, patch: unknown) => { if (!settings) throw new LibraryError('REGISTRY_INVALID'); const state = settings.update(patch); localeChanged(state.global.locale); return state; });
-  handle('librarySettings', (_owner, id: string, value: unknown) => { if (!settings || !manager().has(id)) throw new LibraryError('INVALID_INPUT'); return settings.override(id, value); });
+  handle('updateSettings', (_owner, patch: unknown) => { if (!settings) throw new LibraryError('REGISTRY_INVALID'); const state = settings.update(patch); localeChanged(state.global.locale); return settingsSnapshot(); });
+  handle('librarySettings', (_owner, id: string, value: unknown) => { if (!settings || !manager().has(id)) throw new LibraryError('INVALID_INPUT'); manager().updateNotebookSettings(id, { autosave: value }); return settingsSnapshot(); });
   handle('organization', () => get().organization());
   handle('editOrganization', (_owner, input) => get().editOrganization(input));
   handle('place', (owner, request) => {
@@ -548,7 +601,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   const backupTimer = setInterval(() => {
     if (!registry || choosing || locking) return;
     let due: import('../shared/backup').BackupState['policies'];
-    try { due = backups().state().policies; } catch { return; }
+    try { due = backupState().policies; } catch { return; }
     const dueNow = selfTest && process.env['NOTEBOOKAID_BACKUP_TEST'] === '1' && existsSync(join(dataPath, 'simulate-backup-due')) ? Date.now() + 86400001 : Date.now();
     const item = Object.entries(due).find(([id, p]) => p.enabled && p.directory && p.nextAt !== null && p.nextAt >= startedAt && p.nextAt <= dueNow && (backupRetries.get(id) ?? 0) < Date.now() && manager().has(id));
     const target = window(); if (!item || !target) return;
@@ -556,7 +609,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     void (async () => {
       try {
         const state = await exitState(target, 'save'); if (!state?.saved || state.dirty || state.busy) return;
-        const latest = backups().state().policies[id]; if (!latest?.enabled || latest.directory !== policy.directory) return;
+        const latest = backupState().policies[id]; if (!latest?.enabled || latest.directory !== policy.directory) return;
         choosing = true; safeDestination(policy.directory!); await runBackup(id, policy.directory!);
         if (!target.isDestroyed()) target.webContents.send('library:backup-status', { ok: true, libraryId: manager().state().entries.find(entry => entry.id === id)?.libraryId ?? null });
       } catch { backupRetries.set(id, Date.now() + 300000); if (!target.isDestroyed()) target.webContents.send('library:backup-status', { ok: false, libraryId: null }); }
@@ -564,6 +617,7 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     })();
   }, selfTest && process.env['NOTEBOOKAID_BACKUP_TEST'] === '1' ? 1000 : 60000); backupTimer.unref();
   return {
+    requestArchive: (path: string) => { archivePending = path; const target = window(); if (target && !target.isDestroyed()) target.webContents.send('library:archive-open'); },
     writingContext: () => {if(batchBusy)throw new LibraryError('LIBRARY_IN_USE');return {library:get(),locale:currentLocale()};},
     writingEnabled: () => !!settings && settings.get().global.aiEnabled !== false,
     autoUpdatesEnabled: () => settings?.get().global.autoUpdates !== false,

@@ -3,6 +3,7 @@ import { Preferences } from './preferences';
 import { IconComponent } from './icon.component';
 import type { BackupJob, BackupProgress } from '../../shared/backup';
 import type { Locale } from './i18n';
+import { archiveText } from './archive-i18n';
 
 const text: Record<Locale, string[]> = {ja: ["ノートブックをバックアップ中", "ノートを検証中", "ファイルを走査中", "チェックサムを計算中", "ファイルをコピー中", "バックアップを検証中", "バックアップ完了", "バックアップに失敗しました", "バックアップの一貫性を保つため、ノートブックへの書き込みを一時停止しています。"], ko: ["노트북 백업 중", "노트 검증 중", "파일 검색 중", "체크섬 계산 중", "파일 복사 중", "백업 검증 중", "백업 완료", "백업 실패", "백업의 일관성을 유지하기 위해 노트북 쓰기가 일시 중지됩니다."],
   en: ['Backing up notebook', 'Validating notes', 'Scanning files', 'Calculating checksums', 'Copying files', 'Verifying backup', 'Backup complete', 'Backup failed', 'Notebook writes are paused to keep the backup consistent.'],
@@ -30,6 +31,6 @@ export class BackupProgressService implements OnDestroy {
 ` })
 export class BackupProgressComponent {
   readonly progress = inject(BackupProgressService); readonly prefs = inject(Preferences); readonly phases = phases;
-  label(index: number): string { return text[this.prefs.locale()][index]!; }
+  label(index: number): string { const operation = this.progress.job()?.operation; if (operation && index === 0) return archiveText(this.prefs.locale(), operation === 'archive-import' ? 'import' : 'export'); if (operation && index === 8) return archiveText(this.prefs.locale(), 'hint'); return text[this.prefs.locale()][index]!; }
   percent(): number | null { const value = this.progress.job()?.progress; return value?.total == null ? null : value.total === 0 ? 100 : Math.max(0, Math.min(100, Math.floor(value.completed / value.total * 100))); }
 }
