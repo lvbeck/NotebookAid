@@ -1,5 +1,7 @@
+import { formulaSource } from '../../shared/math-source';
 import { sourceIssues, richTags, richAttributes } from './source-issues';
 import { marked } from 'marked';
+import { mathMarkdown } from './math-markdown';
 import TurndownService from 'turndown';
 import DOMPurify from 'dompurify';
 import type { NoteFormat } from '../../shared/library';
@@ -46,6 +48,8 @@ export function cleanHtml(html: string): string {
 }
 export function markdownFromHtml(html: string): string {
   const converter = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+  const escape = converter.escape.bind(converter);
+  converter.escape = text => escape(text).replace(/\$/g, () => '\\$');
   converter.addRule('inlinePresentation',{filter:node=>{
     if (!(['U','S','DEL'].includes(node.nodeName)||node.nodeName==='SPAN'&&node.hasAttribute('style'))) return false;
     // Raw HTML already contains its edge whitespace. Suppress Turndown's extra edges.
@@ -53,6 +57,12 @@ export function markdownFromHtml(html: string): string {
     if (whitespace) { whitespace.leading = ''; whitespace.trailing = ''; }
     return true;
   },replacement:(_content,node)=>node.outerHTML});
+  converter.addRule('noteMath', { filter: node => node.nodeName === 'SPAN' && node.hasAttribute('data-note-math'), replacement: (_content, node) => {
+    const source = node.getAttribute('data-note-math') ?? '';
+    const value = formulaSource(source);
+    if (!value) return converter.escape(node.textContent ?? source);
+    return value.display ? '\n\n' + source + '\n\n' : source;
+  } });
   converter.addRule('sizedImage', { filter: node => node.nodeName === 'IMG' && (node.hasAttribute('width') || node.hasAttribute('height')), replacement: (_content, node) => '\n\n' + node.outerHTML + '\n\n' });
   converter.addRule('taskItem', { filter: node => node.nodeName === 'LI' && ['checked', 'unchecked'].includes(node.getAttribute('data-list') ?? ''), replacement: (content, node) => {
     const marker = node.getAttribute('data-list') === 'checked' ? '[x]' : '[ ]';
@@ -73,7 +83,7 @@ export function markdownFromHtml(html: string): string {
     return '\n\n' + [line(rows[0]!), separator, ...rows.slice(1).map(line)].join('\n') + '\n\n';
   } });
   converter.addRule('sizedImageBlock', {
-    filter: node => ['P','H1','H2','H3','OL','UL','BLOCKQUOTE','TABLE'].includes(node.nodeName) && !!node.querySelector('img[width],img[height]'),
+    filter: node => ['P','H1','H2','H3','H4','H5','H6','OL','UL','BLOCKQUOTE','TABLE'].includes(node.nodeName) && !!node.querySelector('img[width],img[height]'),
     replacement: (_content, node) => '\n\n' + node.outerHTML + '\n\n'
   });
   return converter.turndown(cleanHtml(html));
@@ -86,7 +96,7 @@ export function previewHtml(body: string, format: NoteFormat): string {
     const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return `<pre data-language="${language}"><code>${escaped}\n</code></pre>`;
   };
-  const parsed = new DOMParser().parseFromString(format === 'html' ? body : marked.parse(body, { async: false, renderer }), 'text/html');
+  const parsed = new DOMParser().parseFromString(format === 'html' ? body : mathMarkdown.parse(body, { async: false, renderer }), 'text/html');
   parsed.querySelectorAll('pre').forEach(pre => {
     const code = pre.querySelector('code');
     const language = pre.getAttribute('data-language') ?? code?.className.match(/^language-([\w+-]+)$/)?.[1] ?? 'plain';
@@ -129,6 +139,6 @@ export function convertBody(body: string, from: NoteFormat, to: NoteFormat): str
   if (to === 'markdown') return markdownFromHtml(html);
   const document = new DOMParser().parseFromString(html, 'text/html');
   document.querySelectorAll('br').forEach(node => node.replaceWith('\n'));
-  document.querySelectorAll('p,h1,h2,h3,li,blockquote,pre').forEach(node => node.append('\n'));
+  document.querySelectorAll('p,h1,h2,h3,h4,h5,h6,li,blockquote,pre').forEach(node => node.append('\n'));
   return document.body.textContent?.replace(/\n{3,}/g, '\n\n').trimEnd() ?? '';
 }

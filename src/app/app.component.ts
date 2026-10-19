@@ -1,3 +1,6 @@
+import { MathDialog } from './math-dialog';
+import { mathText, type MathKey } from './math-i18n';
+import { formulaSource } from '../../shared/math-source';
 import { NoteOutlineComponent } from './note-outline.component';
 import type { EditorLayout } from '../../shared/settings';
 import { EditorPagesDirective } from './editor-pages.directive';
@@ -134,7 +137,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     ref.closed.subscribe(()=>requestAnimationFrame(()=>{if(!this.writingDialogs.openDialogs.length&&!this.onboarding.active())document.querySelector<HTMLElement>('[data-testid=application-menu]')?.focus({preventScroll:true});}));
   }
   writingLabel(): string { return writingText(this.locale(), 'title'); }
-  formatLabel(key:'underline'|'strike'|'color'|'background'):string{return writingText(this.locale(),key);}
+  formatLabel(key:'underline'|'strike'|'color'|'background'|'horizontalRule'):string{return writingText(this.locale(),key);}
   async openWriting(): Promise<void> {
     const session = this.workspace.session(), libraryId = this.workspace.status()?.libraryId;
     if (!session || !libraryId || this.composing || this.workspace.switching() || this.prefs.state().global.aiEnabled===false) return;
@@ -530,8 +533,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     registerNoteFormats();
     this.editor = new Quill(this.host.nativeElement, {
       theme: 'snow',
-      formats: ['header', 'bold', 'italic', 'underline', 'strike', 'color', 'background', 'blockquote', 'code', 'code-block', 'code-token', 'list', 'indent', 'link', 'image', 'table', 'cell-header', 'cell-align'],
-      modules: { table: true, syntax: { hljs, languages: codeLanguages.map(key => ({ key, label: key })) }, toolbar: { container: this.toolbar.nativeElement, handlers: { image: () => void this.attachmentsPanel?.chooseImage() } } }
+      formats: ['header', 'bold', 'italic', 'underline', 'strike', 'color', 'background', 'blockquote', 'code', 'code-block', 'code-token', 'list', 'indent', 'link', 'image', 'divider', 'note-math', 'note-math-block', 'table', 'cell-header', 'cell-align'],
+      modules: { table: true, syntax: { hljs, languages: codeLanguages.map(key => ({ key, label: key })) }, toolbar: { container: this.toolbar.nativeElement, handlers: { image: () => void this.attachmentsPanel?.chooseImage(), header: (value: string | false) => { if (this.format() !== 'delta' || !value || Number(value) <= 3) this.editor.format('header', value ? Number(value) : false, 'user'); } } } }
     });
     const plainPages = this.pagedSource;
     // Preserve literal list/checklist prefixes in TXT and source views.
@@ -542,6 +545,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
         return plainPages() ? true : handler.call(this, range, context, current);
       };
     }
+    this.editor.clipboard.addMatcher('SPAN[data-note-math]', (input: Node) => {
+      const node = input as HTMLElement, source = node.getAttribute('data-note-math') ?? '', value = formulaSource(source);
+      return this.format() === 'markdown' && value ? new Delta().insert({ [value.display ? 'note-math-block' : 'note-math']: source }) : new Delta().insert(node.textContent ?? source);
+    });
+    this.editor.clipboard.addMatcher('HR', () => new Delta().insert({ divider: true }));
     this.editor.clipboard.addMatcher('PRE', (input: Node) => {
       const node = input as HTMLElement;
       const language = node.getAttribute('data-language') ?? node.querySelector('code')?.className.replace(/^language-/, '') ?? 'plain';
@@ -560,6 +568,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.host.nativeElement.addEventListener('keydown', this.plainPageKeys, true);
     this.host.nativeElement.addEventListener('click', this.preventNavigation);
     this.host.nativeElement.addEventListener('click', this.selectImage);
+    this.host.nativeElement.addEventListener('click', this.selectMath);
+    this.host.nativeElement.addEventListener('keydown', this.mathKeys, true);
     this.host.nativeElement.addEventListener('compositionstart', this.compositionStart);
     this.host.nativeElement.addEventListener('compositionend', this.compositionEnd);
     window.addEventListener('keydown', this.keyboard, true);
@@ -589,6 +599,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.host.nativeElement.removeEventListener('keydown', this.plainPageKeys, true);
     this.host.nativeElement.removeEventListener('click', this.preventNavigation);
     this.host.nativeElement.removeEventListener('click', this.selectImage);
+    this.host.nativeElement.removeEventListener('click', this.selectMath);
+    this.host.nativeElement.removeEventListener('keydown', this.mathKeys, true);
     this.host.nativeElement.removeEventListener('compositionstart', this.compositionStart);
     this.host.nativeElement.removeEventListener('compositionend', this.compositionEnd);
     window.removeEventListener('keydown', this.keyboard, true);
@@ -644,7 +656,41 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     (this.editor.getModule('history') as { clear(): void }).clear();
     this.roundtripResult.set('');
     this.roundtripStatus.set('');
+    this.localizeEditor();
     void this.hydrateImages();
+  }
+  mathLabel(key: MathKey): string { return mathText(this.locale(), key); }
+  private readonly selectMath = (event: Event) => {
+    const node = (event.target as Element)?.closest<HTMLElement>('.ql-note-math,.ql-note-math-block');
+    if (node) { event.preventDefault(); void this.editMath(node); }
+  };
+  private readonly mathKeys = (event: KeyboardEvent) => { if (event.key === 'Enter' && (event.target as Element)?.matches('.ql-note-math,.ql-note-math-block')) { event.stopPropagation(); this.selectMath(event); } };
+  async editMath(node?: HTMLElement): Promise<void> {
+    if (this.format() !== 'markdown' || this.folded() || this.warning() || this.sourceMode() || this.sourcePending() || this.composing || this.workspace.switching() || !this.workspace.session() || this.writingDialogs.openDialogs.length) return;
+    const blot = node ? Quill.find(node) : null;
+    if (node && (!blot || !('offset' in blot))) return;
+    const range = this.editor.getSelection(true) ?? {index: this.editor.getLength() - 1, length: 0};
+    const index = blot && 'offset' in blot ? blot.offset(this.editor.scroll) : range.index;
+    const source = node?.getAttribute('data-note-math') ?? '', originalBlock = !!formulaSource(source)?.display;
+    if (!node && (this.inTable() || this.inCodeBlock())) return;
+    const session = this.workspace.session()!, generation = session.generation;
+    const ref = this.writingDialogs.open<string | undefined>(MathDialog, {data:{source,locale:this.locale()},panelClass:'app-dialog-panel',backdropClass:'app-dialog-backdrop',width:'600px',maxWidth:'calc(100vw - 32px)',ariaLabelledBy:'math-dialog-title',autoFocus:'[data-testid=math-source]',restoreFocus:false});
+    const value = await firstValueFrom(ref.closed);
+    if (value === undefined || value === source || this.workspace.session()?.generation !== generation || this.workspace.switching()) return;
+    if (node && (!node.isConnected || node.getAttribute('data-note-math') !== source || !this.host.nativeElement.contains(node))) return;
+    const parsed = value ? formulaSource(value) : undefined;
+    if (value && !parsed) return;
+    let delta = new Delta().retain(index).delete(node ? 1 : range.length);
+    if (value) { if (parsed!.display && !originalBlock) delta = delta.insert('\n'); delta = delta.insert({[parsed!.display ? 'note-math-block' : 'note-math']:value}); if (originalBlock && !parsed!.display) delta = delta.insert('\n'); }
+    this.editor.updateContents(delta, 'user'); this.editor.setSelection(Math.min(index + (value ? 1 : 0), this.editor.getLength() - 1), 0, 'silent');
+    this.localizeEditor();
+  }
+  insertDivider(): void {
+    if (this.format() !== 'markdown' || this.warning() || this.sourceMode() || this.sourcePending() || this.composing || this.workspace.switching() || !this.workspace.session() || this.inTable() || this.inCodeBlock()) return;
+    const range = this.editor.getSelection(true);
+    if (!range) return;
+    this.editor.updateContents(new Delta().retain(range.index).delete(range.length).insert('\n').insert({ divider: true }), 'user');
+    this.editor.setSelection(range.index + 2, 0, 'silent');
   }
   insertAttachmentImage(id: string): void {
     if (this.workspace.switching() || !this.workspace.session()?.note.attachments?.some(item => item.id === id)) return;
@@ -775,6 +821,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   quit(): void { void window.notebookAid.quit(); }
   private localizeEditor(): void {
     if (!this.editor) return;
+    this.host.nativeElement.querySelectorAll<HTMLElement>('.ql-note-math,.ql-note-math-block').forEach(node => node.setAttribute('aria-label', this.mathLabel('edit')));
     const label = (value: string | null) => value ? this.t('heading') + ' ' + value : this.t('normalText');
     this.toolbar.nativeElement.querySelectorAll<HTMLOptionElement>('select.ql-header option').forEach(option => { option.textContent = label(option.value); });
     this.toolbar.nativeElement.querySelectorAll<HTMLElement>('.ql-header .ql-picker-item, .ql-header .ql-picker-label').forEach(item => { item.dataset['label'] = label(item.getAttribute('data-value')); });

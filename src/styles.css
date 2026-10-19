@@ -656,3 +656,18 @@ input[type=checkbox], input[type=radio], input[type=range] { accent-color:var(--
 .editor-view-menu { max-height:calc(100vh - 48px); overflow:auto; }
 @media(max-width:1050px) { .editor-pane { --editor-gutter:25px; } }
 @container(max-width:650px) { .editor-document.has-directory { grid-template-columns:1fr; gap:12px; }.outline-directory { border-right:0; border-bottom:1px solid var(--line); padding-right:0; }.outline-directory nav { max-height:200px; overflow:auto; } }
+
+/* Delta v1 retains its existing supported heading levels. */
+.delta-toolbar .ql-header .ql-picker-item[data-value="4"],.delta-toolbar .ql-header .ql-picker-item[data-value="5"],.delta-toolbar .ql-header .ql-picker-item[data-value="6"] { display:none; }
+.ql-editor hr { border:0; border-top:1px solid var(--line); margin:1em 0; }
+
+.ql-note-math,.ql-note-math-block { cursor:pointer; max-width:100%; }
+.ql-note-math-block { overflow-x:auto; padding:4px 0; }
+.ql-note-math .katex { white-space:normal; }
+.math-invalid { color:var(--warning); white-space:pre-wrap; overflow-wrap:anywhere; }
+.math-dialog textarea { display:block; width:100%; margin:12px 0; min-height:120px; font-family:Consolas,monospace; background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:12px; }
+.math-dialog .segmented-radio { margin:12px 0; }
+
+.math-preview { max-width:100%; overflow-x:auto; min-height:60px; padding:8px 0; }
+
+.ql-note-math { display:inline-block; vertical-align:middle; overflow-x:auto; }

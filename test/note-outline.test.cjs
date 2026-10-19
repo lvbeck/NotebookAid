@@ -34,3 +34,8 @@ test('Every source byte belongs to the preamble, a marker, or an own-content spa
     assert.equal(rebuilt,body);
   }
 });
+
+test('display math cannot introduce headings into the source outline',()=>{
+ const body='# Real\n\n$$\n# Formula argument\n$$\n\n\\[\n## Not a section\n\\]\n\n## End';
+ assert.deepEqual(noteOutline(body,'markdown').nodes.map(n=>n.title),['Real','End']);
+});

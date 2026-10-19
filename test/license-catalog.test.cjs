@@ -63,3 +63,19 @@ test('Electron notices come from the extracted target distribution without an in
     assert.throws(()=>copyElectronNotices(target),/Extracted Electron distribution/);
   } finally { fs.rmSync(root,{recursive:true,force:true}); }
 });
+
+test('math code and bundled fonts require original notices in the displayed catalog',()=>{
+ const root=fs.mkdtempSync(path.resolve('output/license-math-'));
+ try{
+  fs.writeFileSync(path.join(root,'distribution-dependencies.json'),JSON.stringify({runtime:[{name:'katex',version:'0.19.0',license:'MIT'}]}));
+  fs.writeFileSync(path.join(root,'renderer-THIRD-PARTY-LICENSES.txt'),'Package: katex\n');
+  for(const file of ['runtime-THIRD-PARTY-LICENSES.txt','LICENSE','LICENSES.chromium.html'])fs.writeFileSync(path.join(root,file),'fixture');
+  assert.throws(()=>updateCatalog(root),/Missing distribution notice/);
+  fs.copyFileSync('node_modules/katex/LICENSE',path.join(root,'KATEX-LICENSE.txt'));
+  fs.copyFileSync('docs/third-party/KaTeX-fonts-MIT.txt',path.join(root,'KATEX-FONTS-LICENSE.txt'));
+  const catalog=updateCatalog(root);
+  assert(catalog.components.some(c=>c.name==='KaTeX bundled fonts'&&c.license==='MIT'));
+  assert(catalog.components.find(c=>c.name==='katex').notices.includes('KATEX-LICENSE.txt'));
+  fs.unlinkSync(path.join(root,'KATEX-FONTS-LICENSE.txt'));assert.throws(()=>updateCatalog(root),/Missing distribution notice/);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});

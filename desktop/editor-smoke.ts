@@ -85,6 +85,33 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   }
   await capture('markdown-inline-presentation.png');
   writeFileSync(join(directory, 'markdown-presentation-report.json'), JSON.stringify({ rawHtmlWhitespace: true, nestedListsBoldStrike: true, underlineColor: true, originalSourcePreserved: true, saveReopenRichEdit: true }, null, 2));
+  const blocks = '# Root\n\n#### Four\n\nBody **bold**.\n\n---\n\n##### Five\n\nTail\n\n###### Six\n\n***\n\nEnd\n\n___';
+  await source(blocks); await click('load-source');
+  if (await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Markdown blocks unexpectedly protected');
+  if (await body() !== blocks || !await run("document.querySelectorAll('.ql-editor hr').length===3 && !!document.querySelector('.ql-editor h4') && !!document.querySelector('.ql-editor h5') && !!document.querySelector('.ql-editor h6')")) throw Error('Opening Markdown blocks lost source or structure');
+  await save(); await run("document.querySelectorAll('.note-card')[0].click()"); await wait();
+  if (await body() !== blocks) throw Error('Saving untouched Markdown blocks changed source');
+  await run("{const e=document.querySelector('.ql-editor'),p=e.querySelector('h4'),r=document.createRange();r.selectNodeContents(p);r.collapse(false);e.focus();getSelection().removeAllRanges();getSelection().addRange(r);document.execCommand('insertText',false,' edited');}"); await wait(600);
+  const editedBlocks=await body();
+  if (!/#### Four\s+edited/.test(editedBlocks) || !editedBlocks.includes('##### Five') || !editedBlocks.includes('###### Six')) throw Error('Editing H4/H5/H6 lost Markdown heading levels: '+JSON.stringify({body:editedBlocks,html:await run("document.querySelector('.ql-editor').innerHTML")}));
+  await save(); await click('load-source');
+  if (await run("!!document.querySelector('[data-testid=format-warning]')") || !await run("document.querySelectorAll('.ql-editor hr').length===3")) throw Error('Edited Markdown blocks failed roundtrip');
+  await run("{const e=document.querySelector('.ql-editor'),p=e.querySelector('h5'),r=document.createRange();r.selectNodeContents(p);r.collapse(true);e.focus();getSelection().removeAllRanges();getSelection().addRange(r);}"); await wait();
+  await run("document.querySelector('.ql-header .ql-picker-label').click();document.querySelector('.ql-header .ql-picker-item[data-value=\"4\"]').click()"); await wait(400);
+  if (!(await body()).includes('#### Five') || !await run("document.querySelectorAll('.ql-editor h4').length===2")) throw Error('H4 picker did not apply heading');
+  await run("document.querySelector('.ql-header .ql-picker-label').click();document.querySelector('.ql-header .ql-picker-item[data-value=\"5\"]').click()"); await wait(400);
+  if (!(await body()).includes('##### Five')) throw Error('H5 picker did not apply heading');
+  await run("document.querySelector('.ql-header .ql-picker-label').click();document.querySelector('.ql-header .ql-picker-item[data-value=\"6\"]').click()"); await wait(400);
+  if (!(await body()).includes('###### Five')) throw Error('H6 picker did not apply heading');
+  await run("{const e=document.querySelector('.ql-editor'),p=e.querySelector('p'),r=document.createRange();r.selectNodeContents(p);r.collapse(false);e.focus();getSelection().removeAllRanges();getSelection().addRange(r);}"); await wait();
+  const beforeRule=await body();await click('insert-divider');
+  if (!await run("document.querySelectorAll('.ql-editor hr').length===4")) throw Error('Horizontal rule insertion failed');
+  await click('undo-body');if(await body()!==beforeRule)throw Error('Rule insertion was not one undo operation');
+  await click('redo-body');if(!await run("document.querySelectorAll('.ql-editor hr').length===4"))throw Error('Rule redo failed');
+  await save();await click('load-source');
+  if (await run("!!document.querySelector('[data-testid=format-warning]')") || !await run("document.querySelectorAll('.ql-editor hr').length===4")) throw Error('Inserted rule failed save roundtrip');
+  await capture('markdown-blocks.png');
+  writeFileSync(join(directory,'markdown-blocks-report.json'),JSON.stringify({h4:true,h5:true,h6:true,threeRuleSyntaxes:true,untouchedExactSource:true,richEdit:true,headingPicker:true,ruleInsertion:true,singleUndoRedo:true,saveReopen:true}));
   for (const [kind, sample] of [
     ['image', '![Offline image](https://example.com/picture.png "Caption")'],
     ['embedded', '![Pixel](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==)'],
@@ -130,19 +157,19 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   await save(); await click('load-source');
   if (await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Created table not preserved');
   writeFileSync(join(directory, 'rich-formats-report.json'), JSON.stringify({ images: true, embeddedImage: true, externalImageOffline: true, tableHeaderAlignment: true, tableAddRow: true, tableCreation: true, codeLanguages: true, saveRoundtrip: true }, null, 2));
-  for (const sample of ['---', '```unknown\nx\n```']) {
+  for (const sample of ['[ref]: https://example.com', '```unknown\nx\n```']) {
     await source(sample); await click('load-source');
     if (!await run("!!document.querySelector('[data-testid=format-warning]')")) throw Error('Unsupported format was editable');
     if (await body() !== sample) throw Error('Unsupported source was replaced');
   }
   const markdownFixture = process.env['NOTEBOOKAID_MARKDOWN_FIXTURE'];
-  const markdownTest = markdownFixture ? readFileSync(markdownFixture, 'utf8') : '- [x] Task\n\n- parent\n  - child\n\n![image](https://example.com/i.png)\n\n| a | b |\n|---|---|\n|1|2|\n\n---\n\n```python\nx = 1\n```';
+  const markdownTest = markdownFixture ? readFileSync(markdownFixture, 'utf8') : '- [x] Task\n\n- parent\n  - child\n\n![image](https://example.com/i.png)\n\n| a | b |\n|---|---|\n|1|2|\n\n---\n\n[ref]: https://example.com\n\n```python\nx = 1\n```';
   const markdownFile = join(directory, 'diagnostic-markdown.md'); writeFileSync(markdownFile, markdownTest);
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: markdownFile }));
   await click('import-note'); await click('import-note-file'); await until("document.querySelector('[data-testid=note-title]').value === 'diagnostic-markdown'");
   const issueKinds = await run("[...document.querySelectorAll('[data-issue]')].map(e=>e.dataset.issue)");
-  for (const kind of ['issueRule']) if (!issueKinds.includes(kind)) throw Error('Missing Markdown diagnosis: ' + kind);
-  if (issueKinds.includes('issueTask') || issueKinds.includes('issueNested')) throw Error('Supported lists still diagnosed as unsupported');
+  for (const kind of ['issueReference']) if (!issueKinds.includes(kind)) throw Error('Missing Markdown diagnosis: ' + kind);
+  if (issueKinds.includes('issueTask') || issueKinds.includes('issueNested') || issueKinds.includes('issueRule')) throw Error('Supported lists still diagnosed as unsupported');
   if (!await run("document.querySelector('[data-testid=format-warning]').textContent.startsWith('Markdown')")) throw Error('Markdown mislabeled as HTML');
   await capture('markdown-diagnostics.png');
   if (await body() !== markdownTest.replace(/\r\n?/g, '\n')) throw Error('Diagnostics changed Markdown');

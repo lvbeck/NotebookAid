@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { viewText } from '../src/app/view-i18n';
 import type { Locale } from '../src/app/i18n';
+import { writingText } from '../src/app/writing-i18n';
 
 export async function smokeOutline(window: BrowserWindow, directory: string): Promise<void> {
   const run = (script: string) => window.webContents.executeJavaScript(script).catch(error => { throw new Error('Outline script failed: '+script.slice(0,500), {cause:error}); });
@@ -35,7 +36,7 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
     await click('[data-testid=create-note]');await click('[data-testid=create-'+format+']');
     if(format==='markdown')await click('[data-testid=source-mode]');
     await until('!!document.querySelector("[data-testid=body-source]")');
-    const body=format==='text'?'Preamble\n- Root\n  - Child\n    - Grandchild\n  - Sibling\n- Tail\n':'Preamble\n\n<h2>HTML intro</h2>\n\n# Root\nIntro paragraph.\n## Child\n```javascript\n# Not a heading\n```\n'+('Long content for scrolling. 中文内容。\n\n'.repeat(45))+'# Tail\nEnd.\n';
+    const body=format==='text'?'Preamble\n- Root\n  - Child\n    - Grandchild\n  - Sibling\n- Tail\n':'Preamble\n\n<h2>HTML intro</h2>\n\n# Root\nIntro paragraph.\n## Child\n```javascript\n# Not a heading\n```\n'+('Long content for scrolling. 中文内容。\n\n'.repeat(45))+'#### Four\nFourth level.\n\n$$\n# Not a heading\n$$\n\n---\n\n##### Five\nFifth level.\n\n###### Six\nSixth level.\n\n# Tail\nEnd.\n';
     await run('{const t=document.querySelector("[data-testid=body-source]");t.value='+JSON.stringify(body)+';t.dispatchEvent(new Event("input",{bubbles:true}));}');
     await click('[data-testid=save-note]');await until('document.querySelector("[data-testid=save-status]").textContent.includes("已保存")');
     const id=await run('document.querySelector(".note-card.selected").dataset.noteId'), original=await bodyAt(id);
@@ -44,7 +45,7 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
     await layout('fold');
     await until('!!document.querySelector("[data-testid=outline-collapse]")');
     const count=await run('document.querySelectorAll(".outline-row").length');
-    if(count!==(format==='text'?5:3))throw Error('Incorrect outline count: '+count);
+    if(count!==(format==='text'?5:6))throw Error('Incorrect outline count: '+count);
     if(!await run('document.querySelector(".editor-body").hidden'))throw Error('Fold view exposes duplicate editor');
     await click('[data-testid=outline-collapse]');
     if(await run('document.querySelectorAll(".outline-row").length')!==2)throw Error('Collapse does not hide descendants');
@@ -62,6 +63,10 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
       await until('!document.querySelector("[data-testid=body-source]") && !!document.querySelector(".ql-editor h2")');
       await click('.outline-row:nth-child(2) .outline-link');
       await until('(()=>{const p=document.querySelector(".editor-pane"),h=p.querySelector(".editor-heading").getBoundingClientRect(),t=[...p.querySelectorAll(".ql-editor h2")].find(n=>n.textContent==="Child").getBoundingClientRect();return t.top>=h.bottom-1 && t.top<p.getBoundingClientRect().bottom;})()');
+      for (const [row,tag] of [[3,'h4'],[4,'h5'],[5,'h6']]) {
+        await click('.outline-row:nth-child('+row+') .outline-link');
+        await until('(()=>{const p=document.querySelector(".editor-pane"),h=p.querySelector(".editor-heading").getBoundingClientRect(),t=p.querySelector(".ql-editor '+tag+'").getBoundingClientRect();return t.top>=h.bottom-1 && t.top<p.getBoundingClientRect().bottom;})()');
+      }
       await run('{const t=document.querySelector("[data-testid=theme]");t.value="dark";t.dispatchEvent(new Event("change",{bubbles:true}));}');
       await until('document.documentElement.dataset.theme==="dark"');
       await layout('fold');await snapshot('outline-markdown-dark.png');
@@ -73,6 +78,7 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
   for(const locale of ['en','de','fr','it','es','pt-PT','zh-CN','zh-TW','ja','ko'] as Locale[]){
     await run('{const input=document.querySelector("[data-testid=language]");input.value='+JSON.stringify(locale)+';input.dispatchEvent(new Event("change",{bubbles:true}));}');
     await until('document.querySelector("[data-testid=view-note]").textContent.trim()==='+JSON.stringify(viewText(locale,'view')));
+    await until('document.querySelector("[data-testid=insert-divider]").getAttribute("aria-label")==='+JSON.stringify(writingText(locale,'horizontalRule')));
     await click('[data-testid=view-note]');
     await until('document.querySelector("[data-testid=view-fold]").parentElement.textContent.includes('+JSON.stringify(viewText(locale,'fold'))+') && document.querySelector("[data-testid=view-directory]").parentElement.textContent.includes('+JSON.stringify(viewText(locale,'directory'))+')');
     await click('[data-testid=view-fold]');

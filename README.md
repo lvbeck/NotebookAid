@@ -28,11 +28,15 @@ NotebookAid is an open-source desktop notebook application with an optional Thun
 
 [Outline testing and rollback](docs/outline-testing.md). This local follow-up has passed user acceptance; T15-A remains shelved. No push or formal release.
 
+Local follow-up 0.15.23 adds Markdown horizontal rules and H4/H5/H6 rich-text editing, toolbar actions and source-preserving roundtrip checks. Accepted by the user; see [testing and rollback](docs/markdown-blocks-testing.md).
+
+Local 0.15.23 adds offline KaTeX formulas to Markdown: inline `$…$` / `\(…\)` and block `$$…$$` / `\[…\]`. Click a formula to edit its LaTeX source and preview it; existing toolbar actions insert formulas. Source remains in Markdown, with undo/redo and rendered PDF output. KaTeX, bundled fonts and dependency notices appear in the license catalog. Accepted by the user; see [formula testing and rollback](docs/math-testing.md).
+
 ## Test downloads
 
 This project is in testing. No formal GitHub Release has been published.
 
-The local source version is 0.15.21. The CI download links below still refer to the previously verified 0.15.11 builds; no new remote build or formal release is claimed.
+The local source version is 0.15.23. The CI download links below still refer to the previously verified 0.15.11 builds; no new remote build or formal release is claimed.
 
 | Platform | Packages | Latest verified test build | Workflow |
 | --- | --- | --- | --- |

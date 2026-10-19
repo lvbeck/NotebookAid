@@ -1,12 +1,12 @@
 import { parseDelta } from '../../shared/delta-document';
-import { marked } from 'marked';
+import { mathMarkdown as marked } from './math-markdown';
 import DOMPurify from 'dompurify';
 import type { NoteFormat } from '../../shared/library';
 import { codeLanguages, safeImage } from './editor-formats';
 import { safeInlineStyle } from '../../shared/inline-style';
 
-export const richTags = ['p', 'br', 'h1', 'h2', 'h3', 'strong', 'b', 'em', 'i', 'u', 's', 'del', 'span', 'blockquote', 'pre', 'code', 'ol', 'ul', 'li', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td'];
-export const richAttributes = ['href', 'target', 'rel', 'data-list', 'src', 'alt', 'title', 'width', 'height', 'align', 'style', 'data-language', 'data-cell-header', 'data-cell-align', 'data-row'];
+export const richTags = ['p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'strong', 'b', 'em', 'i', 'u', 's', 'del', 'span', 'blockquote', 'pre', 'code', 'ol', 'ul', 'li', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td'];
+export const richAttributes = ['href', 'target', 'rel', 'data-list', 'src', 'alt', 'title', 'width', 'height', 'align', 'style', 'data-language', 'data-cell-header', 'data-cell-align', 'data-row', 'data-note-math', 'data-math-kind'];
 export type SourceIssueKind = 'issueTask' | 'issueNested' | 'issueImage' | 'issueTable' | 'issueRule' | 'issueCodeLanguage' | 'issueHeading' | 'issueEmbeddedHtml' | 'issueStrike' | 'issueLink' | 'issueReference' | 'issueElement' | 'issueAttribute' | 'issueDocument' | 'issueComment' | 'issueLinkAttribute' | 'issueRoundtrip';
 export interface SourceIssue { kind: SourceIssueKind; detail: string; line?: number; element?: number; count: number; }
 
@@ -28,11 +28,15 @@ export function sourceIssues(body: string, format: NoteFormat): SourceIssue[] {
       const start = raw ? body.indexOf(raw, occurrences.get(raw) ?? 0) : -1;
       if (start >= 0) occurrences.set(raw, start + raw.length);
       const line = start < 0 ? undefined : body.slice(0, start).split('\n').length;
-      if (token.type === 'code' && start >= 0) excluded.push([start, start + raw.length]);
-      const kinds: Record<string, SourceIssueKind> = { html: 'issueEmbeddedHtml', hr: 'issueRule' };
+      if (['code', 'noteMathBlock', 'noteMathInline'].includes(token.type) && start >= 0) excluded.push([start, start + raw.length]);
+      if (token.type === 'list' || token.type === 'blockquote') {
+        let nestedMath = false;
+        marked.walkTokens([token], child => { if (child.type === 'noteMathBlock') nestedMath = true; });
+        if (nestedMath) add('issueRoundtrip', token.type + ': math-block', line);
+      }
+      const kinds: Record<string, SourceIssueKind> = { html: 'issueEmbeddedHtml' };
       const supportedHtml = token.type === 'html' && sourceIssues(raw, 'html').length === 0;
       if (kinds[token.type] && !supportedHtml) add(kinds[token.type]!, '', line);
-      if (token.type === 'heading' && token.depth > 3) add('issueHeading', `H${token.depth}`, line);
       if (token.type === 'code' && token.lang && !codeLanguages.includes(token.lang)) add('issueCodeLanguage', token.lang.slice(0, 80), line);
       if (token.type === 'image' && !safeImage(token.href)) add('issueImage', token.href.slice(0, 80), line);
       if (token.type === 'link' && !/^(https?:|mailto:)/i.test(token.href)) add('issueLink', '', line);

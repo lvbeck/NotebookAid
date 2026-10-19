@@ -1,3 +1,5 @@
+import { formulaHtml } from '../shared/math-render';
+import { mathPrintStyles } from './math-print-assets';
 import { app, BrowserWindow } from 'electron';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -39,11 +41,20 @@ export async function renderNotePrint(parent: BrowserWindow, title: string, html
   page.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   page.webContents.on('will-navigate', event => event.preventDefault());
   page.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
-  page.webContents.session.webRequest.onBeforeRequest((request, callback) => callback({ cancel: !request.url.startsWith('data:image/') }));
+  page.webContents.session.webRequest.onBeforeRequest((request, callback) => callback({ cancel: !request.url.startsWith('data:image/') && !request.url.startsWith('data:font/woff2;') }));
   try {
     await page.loadURL('about:blank');
     const content = await page.webContents.executeJavaScript(`(()=>{const p=new DOMParser().parseFromString(${JSON.stringify(clean.body)},'text/html');return Array.from(p.head.querySelectorAll('style')).map(e=>e.outerHTML).join('')+p.body.innerHTML})()`);
-    await page.webContents.executeJavaScript(`document.open();document.write(${JSON.stringify(printDocument(title, content))});document.close();Promise.race([Promise.all([document.fonts.ready,...Array.from(document.images).map(i=>i.decode().catch(()=>{}))]),new Promise(resolve=>setTimeout(resolve,5000))])`);
+    let document = printDocument(title, content);
+    const hasMath = /data-note-math=/.test(content);
+    if (hasMath) document = document.replace("font-src 'none'", 'font-src data:').replace('</head>', '<style>' + mathPrintStyles() + '</style></head>');
+    await page.webContents.executeJavaScript(`document.open();document.write(${JSON.stringify(document)});document.close();`);
+    if (hasMath) {
+      const sources: string[] = await page.webContents.executeJavaScript("Array.from(document.querySelectorAll('[data-note-math]')).map(node=>node.getAttribute('data-note-math'))");
+      const formulas = sources.map((source, index) => { try { return {source, html:index < 1000 ? formulaHtml(source) : null}; } catch { return {source, html:null}; } });
+      await page.webContents.executeJavaScript(`(()=>{const values=${JSON.stringify(formulas)};document.querySelectorAll('[data-note-math]').forEach((node,index)=>{const value=values[index];if(value.html)node.innerHTML=value.html;else node.textContent=value.source;});})()`);
+    }
+    await page.webContents.executeJavaScript('Promise.race([Promise.all([document.fonts.ready,...Array.from(document.images).map(i=>i.decode().catch(()=>{}))]),new Promise(resolve=>setTimeout(resolve,5000))])');
     if (pdf) return await page.webContents.printToPDF({ pageSize: 'A4', printBackground: true, displayHeaderFooter: false, preferCSSPageSize: true });
     if (simulatedPrint) return true;
     if (process.platform === 'win32') return await printWindows(parent, await page.webContents.printToPDF({ pageSize: 'A4', printBackground: true, displayHeaderFooter: false, preferCSSPageSize: true }));

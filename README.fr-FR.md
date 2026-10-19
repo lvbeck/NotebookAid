@@ -19,7 +19,7 @@ NotebookAid est une application de notes de bureau libre, avec un module Thunder
 
 ## Dernières modifications locales
 
-La version locale des sources est 0.15.21. Les téléchargements CI ci-dessous restent ceux des versions 0.15.11 précédemment vérifiées ; aucune nouvelle compilation distante ni publication officielle n’est annoncée.
+La version locale des sources est 0.15.23. Les téléchargements CI ci-dessous restent ceux des versions 0.15.11 précédemment vérifiées ; aucune nouvelle compilation distante ni publication officielle n’est annoncée.
 
 - Affichage propose la disposition continue, les pages A4, Replier sur place et Plan et texte. Les titres Markdown # et les listes TXT - indentées forment le plan sans réécrire le texte. Replier sur place est en lecture seule avec Modifier le texte ; Plan et texte conserve l’éditeur existant.
 - La barre fixe de l’éditeur couvre les deux marges latérales en mode sombre. Dix thèmes suivent le carnet actif et l’apparence claire/sombre ; le violet est renommé Violet aurore.
@@ -29,6 +29,10 @@ La version locale des sources est 0.15.21. Les téléchargements CI ci-dessous r
 - Le plugin Codex MCP local crée des notes TXT/Markdown dans un dossier explicitement autorisé, avec confirmation du propriétaire, autorisations limitées et identifiants clients locaux chiffrés. Le verrouillage peut demander une vérification Passkey interactive. Aucune soumission automatique à l’IA n’est activée.
 
 [Tests du plan et retour arrière](docs/outline-testing.md). Ces modifications locales ont été validées par l’utilisateur ; T15-A reste suspendu. Aucun push ni publication officielle.
+
+La version locale 0.15.23 ajoute l’édition enrichie des lignes horizontales Markdown et des titres H4/H5/H6, avec commandes de barre d’outils et vérification de conversion du code source. Validé par l’utilisateur ; voir [tests et retour arrière](docs/markdown-blocks-testing.md).
+
+La version locale 0.15.23 ajoute les formules KaTeX hors ligne dans Markdown : `$…$` / `\(…\)` en ligne et `$$…$$` / `\[…\]` en bloc. Cliquez pour modifier et prévisualiser le code LaTeX, ou insérez une formule via la barre existante. Markdown conserve la source, avec annulation/rétablissement et rendu PDF. Le catalogue de licences inclut KaTeX, ses polices et dépendances. Validé par l’utilisateur ; voir [tests et retour arrière](docs/math-testing.md).
 
 ## Téléchargements de test
 

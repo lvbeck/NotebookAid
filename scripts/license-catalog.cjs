@@ -43,6 +43,11 @@ function updateCatalog(root) {
   });
   if(!renderer.length) throw Error('Renderer component inventory is empty');
   const components=[...renderer,...catalog.runtime.map(item=>({...item,notices:['runtime-THIRD-PARTY-LICENSES.txt']}))];
+  if (components.some(item => item.name === 'katex')) {
+    const math = packageInfo('katex');
+    components.push({name:'katex',version:math.version,license:math.license,notices:['KATEX-LICENSE.txt']});
+    components.push({name:'KaTeX bundled fonts',version:math.version,license:'MIT',notices:['KATEX-FONTS-LICENSE.txt']});
+  }
   const electron=packageInfo('electron');
   components.push({name:'Electron',version:electron.version,license:'MIT',notices:['LICENSE','LICENSES.chromium.html']});
   if(fs.existsSync(path.join(root,'INSTALLER-BUILDER-LICENSE.txt'))) components.push({name:'electron-builder',version:packageInfo('electron-builder').version,license:packageInfo('electron-builder').license,notices:['INSTALLER-BUILDER-LICENSE.txt']});

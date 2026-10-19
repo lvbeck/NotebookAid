@@ -19,7 +19,7 @@ NotebookAid è un’applicazione desktop open source per note, con un componente
 
 ## Ultime modifiche locali
 
-La versione locale del codice è 0.15.21. I download CI seguenti restano quelli delle build 0.15.11 già verificate; non viene dichiarata alcuna nuova build remota o pubblicazione ufficiale.
+La versione locale del codice è 0.15.23. I download CI seguenti restano quelli delle build 0.15.11 già verificate; non viene dichiarata alcuna nuova build remota o pubblicazione ufficiale.
 
 - Visualizza offre layout continuo, pagine A4, Comprimi sul posto e Struttura e testo. I titoli Markdown # e gli elenchi TXT - rientrati formano la struttura senza riscrivere il testo. Comprimi sul posto è di sola lettura con Modifica testo; Struttura e testo mantiene l’editor originale.
 - La barra fissa dell’editor copre entrambi i margini laterali in modalità scura. Dieci temi seguono il taccuino attivo e l’aspetto chiaro/scuro; il colore viola è rinominato Viola aurora.
@@ -29,6 +29,10 @@ La versione locale del codice è 0.15.21. I download CI seguenti restano quelli 
 - Il plugin locale Codex MCP crea note TXT/Markdown in una cartella esplicitamente autorizzata, con conferma del proprietario, permessi limitati e credenziali client locali cifrate. Il blocco può richiedere una verifica Passkey interattiva. Non viene attivato l’invio automatico all’IA.
 
 [Test della struttura e ripristino](docs/outline-testing.md). Le modifiche locali sono state accettate dall’utente; T15-A resta sospeso. Nessun push o rilascio ufficiale.
+
+La versione locale 0.15.23 aggiunge la modifica rich text delle linee orizzontali Markdown e dei titoli H4/H5/H6, con comandi nella barra e controllo della conversione del sorgente. Accettato dall’utente; vedere [test e ripristino](docs/markdown-blocks-testing.md).
+
+La versione locale 0.15.23 aggiunge formule KaTeX offline in Markdown: `$…$` / `\(…\)` in linea e `$$…$$` / `\[…\]` in blocco. Fare clic per modificare e visualizzare il sorgente LaTeX, oppure inserire una formula dalla barra esistente. Markdown conserva il sorgente, con annulla/ripristina e formule nel PDF. Il catalogo delle licenze include KaTeX, caratteri e dipendenze. Accettato dall’utente; vedere [test e ripristino](docs/math-testing.md).
 
 ## Download di prova
 

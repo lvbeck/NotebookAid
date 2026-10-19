@@ -1,5 +1,9 @@
 import Quill from 'quill';
 import Image from 'quill/formats/image';
+import { BlockEmbed } from 'quill/blots/block';
+import Embed from 'quill/blots/embed';
+import { formulaHtml } from '../../shared/math-render';
+import { mathMarkup } from '../../shared/math-source';
 import { Attributor, Scope } from 'parchment';
 
 export const codeLanguages = ['plain', 'python', 'javascript', 'typescript', 'json', 'bash', 'css', 'xml', 'sql', 'java', 'cpp', 'csharp', 'markdown'];
@@ -28,7 +32,31 @@ export class NoteImage extends Image {
     return `<img${attributes}>`;
   }
 }
+export class NoteDivider extends BlockEmbed {
+  static override blotName = 'divider';
+  static override tagName = 'HR';
+  static override value(): boolean { return true; }
+  html(): string { return '<hr>'; }
+}
+function populateMath(node: HTMLElement, source: string): void {
+  node.setAttribute('data-note-math', source); node.setAttribute('contenteditable', 'false'); node.setAttribute('tabindex', '0'); node.setAttribute('role', 'button');
+  try { node.innerHTML = formulaHtml(source); } catch { node.textContent = source; node.classList.add('math-invalid'); }
+}
+export class NoteMath extends Embed {
+  static override blotName = 'note-math'; static override tagName = 'SPAN'; static override className = 'ql-note-math';
+  static override create(source: string): HTMLElement { const node = super.create() as HTMLElement; populateMath(node, source); return node; }
+  static override value(node: HTMLElement): string { return node.getAttribute('data-note-math') ?? ''; }
+  html(): string { return mathMarkup(NoteMath.value(this.domNode as HTMLElement), false); }
+}
+export class NoteMathBlock extends BlockEmbed {
+  static override blotName = 'note-math-block'; static override tagName = 'DIV'; static override className = 'ql-note-math-block';
+  static override create(source: string): HTMLElement { const node = super.create() as HTMLElement; populateMath(node, source); return node; }
+  static override value(node: HTMLElement): string { return node.getAttribute('data-note-math') ?? ''; }
+  html(): string { return '<p>' + mathMarkup(NoteMathBlock.value(this.domNode), true) + '</p>'; }
+}
 export function registerNoteFormats(): void {
+  Quill.register(NoteMath, true); Quill.register(NoteMathBlock, true);
+  Quill.register(NoteDivider, true);
   Quill.register('formats/image', NoteImage, true);
   Quill.register(new Attributor('cell-header', 'data-cell-header', { scope: Scope.BLOCK, whitelist: ['true'] }), true);
   Quill.register(new Attributor('cell-align', 'data-cell-align', { scope: Scope.BLOCK, whitelist: ['left', 'center', 'right'] }), true);

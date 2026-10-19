@@ -467,3 +467,19 @@ User authorization: save notebook settings inside each notebook directory in pre
 - Keep the original editing and persistence routes. Fold in place is a read-only hierarchy with an Edit body action; Outline and body combines navigation with the existing editor. Unsupported formats retain the existing layouts. Keep controls contextual and responsive.
 - Complete all ten UI languages, tests, Windows EXE/MSI/ZIP delivery and the authorized portable test update. The user additionally requested root README updates in all ten languages covering recent features; retain previously verified remote download links unless a new remote build is separately authorized.
 - Version 0.15.21, no notebook schema migration. User acceptance and scoped local commit authorization received on 2026-10-19. T15-A remains shelved; no formal release or push.
+
+### Markdown rich-text follow-up (2026-10-19; authorized)
+
+- This authorized follow-up supersedes the earlier T04 horizontal-rule deferral. After the accepted outline commit, the user requests rich-text editing of Markdown horizontal rules and H4/H5/H6. Support viewing, toolbar insertion/formatting and source roundtrip without changing a note merely by opening it. Retain unsupported-source protection, existing body history and outline behavior.
+- Translate new controls across ten locales. Preserve Delta v1 validation and its H1-H3 limit; no schema migration or dependency change. T15-A remains shelved; no formal release or push. Await user acceptance before committing this follow-up.
+
+### Markdown mathematics follow-up (2026-10-19; authorized)
+
+- User approved the KaTeX preview and explicitly requests inline and block mathematics, offline display, editable LaTeX source, ten languages, README updates and packaging acceptance delivery. Include KaTeX and font/dependency attribution in the existing license catalog, as explicitly requested.
+- Support dollar and bracket/parenthesis delimiters outside code, preserve original source on open/save, and allow formula insertion/editing with one-step undo/redo. Keep malformed formulas editable as source. No schema change or Delta formula extension. No network/CDN rendering.
+- This is continuation authorization, not acceptance of the preceding 0.15.22 Markdown blocks follow-up. Keep all unaccepted changes uncommitted. T15-A remains shelved; no formal release, remote push or next task.
+
+### Markdown blocks and mathematics acceptance (2026-10-19)
+
+- The user explicitly accepted KaTeX formulas, Markdown horizontal rules and H4/H5/H6 rich editing, multilingual README updates and third-party notices, and authorized their scoped local commit. This later decision supersedes the pending acceptance status above for both follow-ups.
+- Keep T15-A shelved and its prototypes excluded. No next task, formal release or push is authorized. Existing validation limitations and retained ZIP rollback instructions remain applicable.
