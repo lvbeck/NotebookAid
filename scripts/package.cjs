@@ -79,7 +79,7 @@ const { execFileSync } = require('node:child_process');
   cpSync('scripts/Register-Bridge.ps1', join(packageRoot, 'Register-Bridge.ps1'));
   cpSync('scripts/Recover-Installation.ps1', join(packageRoot, 'Recover-Installation.ps1'));
   }
-  cpSync('dist/mcp', join(packageRoot, mac ? 'NotebookAid.app/Contents/Resources/mcp' : 'resources/mcp'), { recursive: true });
+  cpSync('dist/mcp', join(packageRoot, mac ? 'mcp' : 'resources/mcp'), { recursive: true });
   cpSync('docs/t15-testing.md', join(packageRoot, 'T15-TESTING.md'));
   cpSync('docs/release-support.md', join(packageRoot, 'RELEASE-SUPPORT.md'));
   cpSync('docs/mcp-final-testing.md', join(packageRoot, 'MCP-FINAL-TESTING.md'));

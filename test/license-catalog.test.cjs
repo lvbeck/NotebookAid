@@ -34,6 +34,15 @@ test('catalog merges actual renderer/runtime inventory and rejects missing distr
     assert.equal(catalog.components.find(item=>item.name==='marked').notices.length,2);
     assert.ok(catalog.components.some(item=>item.name==='Electron'));
     assert.ok(!catalog.noticeFiles.includes('NotebookAid-LICENSE.txt'));
+    for (const folder of ['resources/mcp', 'mcp']) {
+      const directory=path.join(root,folder);fs.mkdirSync(directory,{recursive:true});
+      fs.writeFileSync(path.join(directory,'components.json'),JSON.stringify([{name:'mcp-fixture',version:'1.0.0',license:'MIT'}]));
+      assert.throws(()=>updateCatalog(root),/Missing distribution notice/);
+      fs.writeFileSync(path.join(directory,'THIRD-PARTY-NOTICES.txt'),'MCP fixture license');
+      const component=updateCatalog(root).components.find(item=>item.name==='mcp-fixture');
+      assert.deepEqual(component.notices,[folder+'/THIRD-PARTY-NOTICES.txt']);
+      fs.rmSync(path.join(root,folder.split('/')[0]),{recursive:true,force:true});
+    }
     fs.unlinkSync(path.join(root,'runtime-THIRD-PARTY-LICENSES.txt'));
     assert.throws(()=>updateCatalog(root),/Missing distribution notice/);
   } finally { fs.rmSync(root,{recursive:true,force:true}); }

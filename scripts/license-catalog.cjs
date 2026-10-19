@@ -58,7 +58,7 @@ function updateCatalog(root) {
     components.push({name:'NSIS distribution / StdUtils',version,license:'zlib/libpng / bzip2 / CPL-1.0 / LGPL-2.1-or-later',notices:['NSIS-COPYING.txt','STDUTILS-NOTICE.nsh','INSTALLER-LGPL-2.1.txt']});
   }
   if(fs.existsSync(path.join(root,'OSX-SIGN-LICENSE.txt'))) components.push({name:'@electron/osx-sign',version:packageInfo('@electron/osx-sign').version,license:packageInfo('@electron/osx-sign').license,notices:['OSX-SIGN-LICENSE.txt']});
-  for (const folder of ['resources/mcp', 'NotebookAid.app/Contents/Resources/mcp']) {
+  for (const folder of ['resources/mcp', 'mcp']) {
     const file = path.join(root, folder, 'components.json');
     if (fs.existsSync(file)) for (const item of JSON.parse(fs.readFileSync(file, 'utf8'))) components.push({ ...item, notices: [folder + '/THIRD-PARTY-NOTICES.txt'] });
   }

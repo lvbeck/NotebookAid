@@ -15,6 +15,11 @@ async function run(args, environment = env) {
   finally { clearTimeout(timer); }
 }
 (async () => {
+  const resources = path.join(app, 'Contents/Resources');
+  if (fs.existsSync(path.join(resources, 'NotebookAid.app')) || !fs.existsSync(path.join(resources, 'mcp/server.cjs'))) throw Error('Invalid macOS MCP resource layout');
+  const components = JSON.parse(fs.readFileSync(path.join(resources, 'mcp/components.json'), 'utf8'));
+  const catalog = JSON.parse(fs.readFileSync(path.join(resources, 'distribution-dependencies.json'), 'utf8'));
+  if (components.length !== 3 || components.some(item => !catalog.components.some(component => component.name === item.name && component.version === item.version && component.notices.includes('mcp/THIRD-PARTY-NOTICES.txt')))) throw Error('Missing macOS MCP attribution');
   cp.execFileSync('codesign', ['--verify','--deep','--strict',app]);
   const binary = cp.execFileSync('lipo', ['-archs',executable], { encoding:'utf8' }).trim();
   if (binary !== (arch === 'x64' ? 'x86_64' : arch)) throw Error('Package architecture mismatch: ' + binary);
