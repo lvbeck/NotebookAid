@@ -1,5 +1,9 @@
 # 来源与依赖许可
 
+## MCP-01 验证依赖（2026-10-19）
+
+仅在 scripts/mcp-probe 下独立锁定官方 @modelcontextprotocol/client、@modelcontextprotocol/server 及其 core 2.3.1，以及 Zod 4.6.5；不改变应用运行依赖。SDK package.json 标注 Apache-2.0，其随包 LICENSE 说明 Apache-2.0／MIT 授权过渡，保留原始许可文本；Zod 采用 MIT。传递依赖及完整性摘要见该目录 package-lock.json，原始 LICENSE／NOTICE 随 npm 安装保留。本项不分发新的应用包；正式插件打包阶段必须收集所有实际分发依赖的许可。上游：[MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)、[Zod](https://github.com/colinhacks/zod)。
+
 状态：保留 T01 设计来源，追加 T02 实际依赖记录。资料核对日期：2026-10-09。链接用于解释设计依据，不代表完成全部许可证审计。
 
 ## 用户决定的来源

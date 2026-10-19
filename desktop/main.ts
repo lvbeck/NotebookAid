@@ -201,6 +201,10 @@ async function start(): Promise<void> {
   ai = registerAi(dataPath, protectedCaller, selfTest && process.env['NOTEBOOKAID_AI_TEST'] === '1', () => passkeys.gate.unlocked);
   writing = registerWriting(storage, ai, protectedCaller);
   await startBridge();
+  if (!app.isPackaged && selfTest && process.env['NOTEBOOKAID_MCP_PROBE'] === '1' && process.env['NOTEBOOKAID_TEST_HOME']) {
+    await (await import('./mcp-probe.js')).startMcpProbe({ workspace: app.getAppPath(), dataPath, context: () => ({ ...storage.addonContext(), unlocked: passkeys.gate.unlocked }), windowCount: () => BrowserWindow.getAllWindows().length, stop: () => { storage.close(); app.exit(0); } });
+    return;
+  }
   const loginStartup = storage.loginStartup();
   const hiddenLogin = loginLaunchHidden(process.platform, process.argv, loginStartup, process.platform === 'darwin' && !selfTest && app.getLoginItemSettings().wasOpenedAtLogin);
   if (!hiddenLogin || selfTest) {

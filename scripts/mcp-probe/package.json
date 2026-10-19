@@ -1,0 +1,12 @@
+{
+  "name": "notebookaid-mcp-connection-probe",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Isolated MCP-01 connection validation; not a production integration",
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@modelcontextprotocol/server": "2.3.1",
+    "zod": "4.6.5"
+  }
+}
