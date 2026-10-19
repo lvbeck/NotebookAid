@@ -20,6 +20,7 @@ export interface RuntimeInfo {
 export interface ThirdPartyCatalog { components: { name: string; version: string; license: string; notices: string[] }[]; noticeFiles: string[]; }
 
 export interface PrototypeApi {
+  mcp: import('./mcp-setup').McpSetupApi;
   thirdPartyCatalog(): Promise<ThirdPartyCatalog>;
   openInformationLink(target: 'github'|'support'|'contact'): Promise<void>;
   updates: import('./updates').UpdatesApi;

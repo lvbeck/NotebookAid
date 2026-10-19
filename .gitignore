@@ -50,6 +50,8 @@ ai-connections.bin
 bridge-runtime.json
 external-clients.json
 external-runtime.json
+mcp-profiles/
+mcp-plugins/
 .pending-external-*
 native-host.json
 native-host-legacy.json

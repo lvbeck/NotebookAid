@@ -1,5 +1,6 @@
 import { loginLaunchHidden } from './login-startup';
 import { externalAccessHost } from './external-access';
+import { registerMcpSetup } from './mcp-setup';
 import { smokeLoginStartup } from './login-startup-smoke';
 import { smokeSkin } from './skin-smoke';
 import { smokeEaster } from './easter-smoke';
@@ -216,7 +217,7 @@ async function start(): Promise<void> {
     return;
   }
   const loginStartup = storage.loginStartup();
-  try { externalAccess = await externalAccessHost(dataPath, () => storage.externalContext(passkeys.gate.unlocked), signal => passkeys.unlockBackground(signal)); }
+  try { externalAccess = await externalAccessHost(dataPath, () => storage.externalContext(passkeys.gate.unlocked), signal => passkeys.unlockBackground(signal)); registerMcpSetup(dataPath, externalAccess, protectedCaller, () => storage.externalContext(passkeys.gate.unlocked), message => storage.confirmExternal(message), storage.locale); }
   catch { console.error('EXTERNAL_ACCESS_UNAVAILABLE'); }
   const hiddenLogin = loginLaunchHidden(process.platform, process.argv, loginStartup, process.platform === 'darwin' && !selfTest && app.getLoginItemSettings().wasOpenedAtLogin);
   if (!hiddenLogin || selfTest) {
@@ -309,6 +310,7 @@ app.on('before-quit', event => {
 });
 
 async function runSmoke(window: BrowserWindow): Promise<void> {
+  if (process.env['NOTEBOOKAID_MCP_SETUP_TEST'] === '1' && !app.isPackaged) { try { await (await import('./mcp-setup-smoke.js')).smokeMcpSetup(window, dataPath, app.getAppPath()); await quitByUser(true); } catch (error) { writeFileSync(join(dataPath, 'smoke-error.txt'), error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : 'MCP_SETUP_SMOKE_FAILED'); app.exit(1); } return; }
   if (process.env['NOTEBOOKAID_SEARCH_TEST'] === '1') { try { await smokeSearch(window, dataPath); await quitByUser(true); } catch(error) { writeFileSync(join(dataPath, 'smoke-error.txt'), String(error)); app.exit(1); } return; }
   try {
     if(process.env['NOTEBOOKAID_LOGIN_STARTUP_TEST']==='1'){await smokeLoginStartup(window,dataPath);await quitByUser(true);return;}

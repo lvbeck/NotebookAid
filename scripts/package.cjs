@@ -7,6 +7,7 @@ const { execFileSync } = require('node:child_process');
   require('./check-version.cjs').checkVersion();
   const workspace = resolve('.');
   const mac = process.argv.includes('--mac');
+  await require('./build-mcp.cjs').buildMcp();
   const arch = mac ? process.argv.find(value => value === 'arm64' || value === 'x64') || process.arch : 'x64';
   if (mac && process.platform !== 'darwin') throw Error('macOS test packages must be built on macOS.');
   const stage = resolve('dist/package');
@@ -47,7 +48,7 @@ const { execFileSync } = require('node:child_process');
   copyDependency('electron-updater');
   copyDependency('yauzl');
   copyDependency('yazl');
-  writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/main.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'], jose: project.dependencies['jose'], parse5: project.dependencies['parse5'], marked: project.dependencies['marked'], 'ical.js': project.dependencies['ical.js'], 'electron-updater': project.dependencies['electron-updater'], yauzl: project.dependencies.yauzl, yazl: project.dependencies.yazl } }));
+  writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: project.name, productName: 'NotebookAid', version: project.version, main: 'runtime/desktop/entry.js', author: project.author, license: project.license, dependencies: { '@simplewebauthn/server': project.dependencies['@simplewebauthn/server'], jose: project.dependencies['jose'], parse5: project.dependencies['parse5'], marked: project.dependencies['marked'], 'ical.js': project.dependencies['ical.js'], 'electron-updater': project.dependencies['electron-updater'], yauzl: project.dependencies.yauzl, yazl: project.dependencies.yazl } }));
   const electronNotices = resolve('dist/electron-notices'); mkdirSync(electronNotices, { recursive: true });
   const packages = await packager({ dir: stage, out: join(releaseRoot, project.version), name: 'NotebookAid', platform: mac ? 'darwin' : 'win32', arch, electronVersion: project.devDependencies.electron, overwrite: true, asar: true, prune: false,
     afterExtract: [({ buildPath }) => require('./license-catalog.cjs').copyElectronNotices(electronNotices, buildPath)],
@@ -71,11 +72,13 @@ const { execFileSync } = require('node:child_process');
   cpSync('assets/notebookaid-notebook.ico', join(packageRoot, 'resources/notebookaid-notebook.ico'));
   cpSync(require('./build-print-helper.cjs').buildPrintHelper(), join(packageRoot, 'NotebookAid.Print.exe'));
   cpSync('dist/NotebookAid.Passkey.exe', join(packageRoot, 'NotebookAid.Passkey.exe'));
+  cpSync('dist/NotebookAid.McpCrypt.exe', join(packageRoot, 'NotebookAid.McpCrypt.exe'));
   const compiler = join(process.env.WINDIR || 'C:/Windows', 'Microsoft.NET/Framework64/v4.0.30319/csc.exe');
   execFileSync(compiler, ['/nologo', '/target:exe', '/platform:x64', '/reference:System.Web.Extensions.dll', '/out:' + join(packageRoot, 'NotebookAid.Bridge.exe'), resolve('native/Bridge.cs'), require('./native-assembly-info.cjs').writeNativeAssemblyInfo()], { stdio: 'inherit', windowsHide: true });
   cpSync('scripts/Register-Bridge.ps1', join(packageRoot, 'Register-Bridge.ps1'));
   cpSync('scripts/Recover-Installation.ps1', join(packageRoot, 'Recover-Installation.ps1'));
   }
+  cpSync('dist/mcp', join(packageRoot, mac ? 'NotebookAid.app/Contents/Resources/mcp' : 'resources/mcp'), { recursive: true });
   cpSync('docs/t15-testing.md', join(packageRoot, 'T15-TESTING.md'));
   cpSync('docs/release-support.md', join(packageRoot, 'RELEASE-SUPPORT.md'));
   cpSync('LICENSE', join(packageRoot, 'NotebookAid-LICENSE.txt'));

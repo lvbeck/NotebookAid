@@ -5,12 +5,12 @@
   "description": "Local notes and writing assistant",
   "author": "Jin Lu <it@live.cn>",
   "license": "BSD-3-Clause",
-  "main": "dist/runtime/desktop/main.js",
+  "main": "dist/runtime/desktop/entry.js",
   "engines": {
     "node": ">=24.15.0 <25"
   },
   "scripts": {
-    "build": "ng build && tsc -p tsconfig.desktop.json && node scripts/copy-html-runtime.cjs",
+    "build": "ng build && tsc -p tsconfig.desktop.json && node scripts/copy-html-runtime.cjs && node scripts/build-mcp.cjs",
     "start": "electron .",
     "test": "node --test test/*.test.cjs",
     "test:platform": "node scripts/test-platform.cjs",

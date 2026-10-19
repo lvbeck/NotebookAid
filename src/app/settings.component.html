@@ -22,6 +22,7 @@
       <label class="setting-row"><span>{{ t('autosaveInterval') }}</span><input type="number" min="1" max="60" step="1" data-testid="autosave-minutes" [ngModel]="prefs.state().global.autosave.minutes" (change)="globalAuto('minutes', $event)" [disabled]="prefs.busy() || !prefs.ready() || !prefs.state().global.autosave.enabled"></label>
       <p class="muted">{{ t('autosaveGlobalHint') }}</p>
     </article>
+    <app-mcp-settings [locale]="locale" />
     <article class="panel settings-panel" data-testid="ai-settings-region"><app-ai-settings [locale]="locale" [active]="active && section() === 'global'" /></article>
     <article class="panel settings-panel" data-testid="security-settings"><h2>{{ layout('security') }}</h2><app-passkeys [grouped]="true" /><section><h3>{{ securityText('master') }}</h3><label class="setting-row"><span>{{ securityText('global') }}</span><input type="checkbox" data-testid="global-security-default" [checked]="prefs.state().global.masterPasswordDefault ?? false" (change)="securityDefault($event)" [disabled]="prefs.busy() || !prefs.ready()"></label><p class="muted">{{ securityText('globalHint') }}</p></section></article>
     <article class="panel settings-panel" data-testid="notifications-settings"><h2>{{ t('notifications') }}</h2>

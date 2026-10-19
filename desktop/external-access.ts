@@ -3,7 +3,7 @@ import { ExternalBackground } from '../core/external-background';
 import type { ExternalNoteContext } from '../core/external-notes';
 import { startExternalEndpoint } from './external-endpoint';
 
-/** Setup UI/credential delivery is added in MCP-06; the network cannot issue grants. */
+/** Only trusted owner setup code can manage grants; no management method is exposed over MCP. */
 export async function externalAccessHost(directory: string, context: () => ExternalNoteContext, unlock?: (signal: AbortSignal) => Promise<void>) {
   const clients = new ExternalClients(directory);
   const service = new ExternalBackground(clients, context, unlock);
@@ -21,6 +21,7 @@ export async function externalAccessHost(directory: string, context: () => Exter
       return clients.issue(value);
     },
     revoke(clientId: string) { owner(); return clients.revoke(clientId); },
+    rollbackIssue(clientId: string) { return clients.revoke(clientId); },
     async start() {
       if (closed) throw Error('BACKGROUND_UNAVAILABLE');
       if (endpoint || !clients.list().length) return;

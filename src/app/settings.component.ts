@@ -1,4 +1,5 @@
 import { loginStartupText, type LoginStartupKey } from './login-startup-i18n';
+import { McpSettingsComponent } from './mcp-settings.component';
 import { AboutContent } from './about-content';
 import { informationText } from './information-i18n';
 import { settingsLayoutText, type SettingsLayoutKey } from './settings-layout-i18n';
@@ -27,7 +28,7 @@ import { languages, translate, type Locale, type MessageKey } from './i18n';
 import { effectiveAutosave, notePageSizes, type SettingsLocale, type SettingsTheme } from '../../shared/settings';
 import { pageSizeText } from './startup-i18n';
 import { latestNotebookSchemaVersion } from '../../shared/library';
-@Component({ selector: 'app-settings', standalone: true, imports: [AboutContent, UpdatesComponent, EasterSettings, AiSettingsComponent, NotebookAppearanceComponent, BackupComponent, PasskeyComponent, SecurityComponent, SelectDirective, FormsModule, IconComponent], templateUrl: './settings.component.html' })
+@Component({ selector: 'app-settings', standalone: true, imports: [McpSettingsComponent, AboutContent, UpdatesComponent, EasterSettings, AiSettingsComponent, NotebookAppearanceComponent, BackupComponent, PasskeyComponent, SecurityComponent, SelectDirective, FormsModule, IconComponent], templateUrl: './settings.component.html' })
 export class SettingsComponent {
   @Input() locale: Locale = 'zh-CN';
   @Input() active = false;

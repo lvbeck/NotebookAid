@@ -1507,3 +1507,19 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 
 - Actual user instruction: "MCP-05 验收通过，继续 MCP-06，仍按项目规则逐项交付、等待验收。"
 - MCP-05 is accepted. Commit only its scoped create/retry changes, tests and documents locally. MCP-06 local plugin packaging, owner authorization setup and protected credential delivery may start. Final application/package validation remains MCP-07; no push, formal release or automatic continuation.
+
+- Accepted MCP-05 source committed locally as 8d4edc1 (Harden MCP create input and retry outcomes). Only its nine scoped files were staged, excluding unrelated pending work.
+
+### MCP-06 local plugin and protected setup (2026-10-19; approved)
+
+- Added a collapsed ten-language MCP/Codex settings panel: explicit owner confirmation, current notebook/exact folder scope, client listing, plugin directory reveal and revocation. Protected owner IPC revalidates state around asynchronous credential provisioning and attempts rollback on failure, including relocking during encryption; no management tool or raw token reaches MCP/renderer.
+- Generate independent client-specific local marketplaces with verified .codex-plugin/plugin.json and .mcp.json, project license and installation instructions. No secret in config/argv/environment. A new entry separates the credential broker from editor/single-writer startup; the broker uses a private pipe and Electron's bundled Node runtime. Windows credentials use CurrentUser DPAPI via a small .NET framework helper; macOS has an unverified safeStorage/Keychain branch, Linux setup stays unavailable.
+- Added an independently locked MCP runtime package, bundling/license inventory and application packaging hooks for the entry/runtime/helper/notices. Final application EXE/MSI/ZIP, installed/portable checks remain MCP-07. Version stays 0.15.19; plugin version is 0.1.0. No new root runtime dependencies or unrelated upgrades.
+- Desktop/Angular/runtime/helper builds passed; 79 related regressions passed, followed by three targeted setup tests including a new relock rollback assertion. Real Windows DPAPI/Electron/Codex integration passed 14 checks: owner cancel/confirmation, encrypted profiles, ten locales, secret-free renderer/export, bundled runtime, SDK creation, actual isolated Codex installation/discovery/creation, revocation of a running client, disconnect survival, uninstall and exact content after reopen. Light/dark UI screenshots were visually inspected. Evidence: output/mcp06/latest-success.json and [MCP plugin testing](mcp-plugin-testing.md).
+- Failures corrected before delivery: offline dependency cache miss; pt-PT/zh-TW IDs; a sandbox EPERM build output; Electron safeStorage cross-process decryption; root portable manifests not exposing MCP tools in this local Codex version. The final direct Windows DPAPI and pure Codex compatibility layout passed the complete integration. No failed attempt is counted as a passing check.
+- Only a fresh output CODEX_HOME was installed/uninstalled; globalConfigChanged=false, globalPluginInstalled=false, modelRequests=0. No user note/credential/Passkey access. Native Passkey UI, physical Mac/Keychain, cross-user DPAPI denial, natural-language model use, application packaging/fuses and public plugin submission remain unverified. Awaiting acceptance; no MCP-06 commit, push, formal release, application portable replacement or MCP-07 work. Preserve accepted commits, unrelated pending UI/version changes and user data.
+
+### MCP-06 acceptance and MCP-07 authorization (2026-10-19)
+
+- Actual user instruction: "MCP-06 验收通过，继续 MCP-07，完成最终验证、打包交付和便携测试程序更新，仍按项目规则交付、等待验收。"
+- MCP-06 is accepted. Commit its scoped source, tests and documentation locally. MCP-07 may complete final validation, local Windows packages and the authorized portable replacement. Do not publish, push or commit MCP-07 before its acceptance.
