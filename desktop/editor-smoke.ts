@@ -4,14 +4,15 @@ import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 export async function smokeEditor(window: BrowserWindow, directory: string): Promise<void> {
-  const run = (script: string) => window.webContents.executeJavaScript(script);
+  const run = async (script: string) => { try { return await window.webContents.executeJavaScript(script); } catch (error) { throw new Error('Editor test script failed: ' + script.slice(0, 400), {cause:error}); } };
   const wait = (ms = 80) => new Promise(resolve => setTimeout(resolve, ms));
-  const until = async (script: string) => { for (let i = 0; i < 100; i++) { if (await run(script)) return; await wait(); } throw Error('Editor UI timeout: ' + script); };
+  const until = async (script: string) => { for (let i = 0; i < 100; i++) { if (await run(script)) return; await wait(); } throw Error('Editor UI timeout: ' + script + ' · ' + await run("JSON.stringify({message:document.querySelector('[data-testid=file-message]')?.textContent,format:document.querySelector('.format-badge')?.textContent,dialogs:Array.from(document.querySelectorAll('[role=dialog]')).map(e=>e.textContent?.slice(0,160))})")); };
   const click = async (id: string) => {
     await run(`(() => {const target=document.querySelector('[data-testid=${id}]');if(target.closest('.rich-tools') && !target.getClientRects().length)document.querySelector('[data-testid=more-editor-tools]').click();if(target.closest('.export-controls') && !target.getClientRects().length)document.querySelector('[data-testid=compact-export]').click();})()`);
     await wait(); await run(`document.querySelector('[data-testid=${id}]').click()`); await wait();
   };
   const input = async (id: string, value: string, event = 'input') => { await run(`(() => { const e=document.querySelector('[data-testid=${id}]');e.value=${JSON.stringify(value)};e.dispatchEvent(new Event(${JSON.stringify(event)},{bubbles:true})); })()`); await wait(); };
+  const chooseExport = async (format: string) => { await click('prepare-export'); await until("!!document.querySelector('[data-testid=export-"+format+"]')"); await click('export-'+format); };
   const source = (value: string) => input('markdown-source', value);
   const save = async () => { await click('save-note'); await until("document.querySelector('[data-testid=save-status]').textContent.includes('已保存')"); };
   const body = () => run("document.querySelector('[data-testid=markdown-source]').value");
@@ -150,20 +151,20 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   writeFileSync(join(directory, 'source-diagnostics-report.json'), JSON.stringify({ suppliedMarkdown: !!markdownFixture, markdownKinds: issueKinds, originalPreserved: true, codeSyntaxIgnored: true }, null, 2));
   await source(basic); await click('load-source'); await save();
   await capture('editor-markdown-dark.png');
-  await input('export-format', 'html', 'change'); await click('prepare-export');
+  await chooseExport('html');
   const htmlCopy = await run("document.querySelector('[data-testid=export-preview]').value");
   if (!htmlCopy.includes('<h1>中文标题</h1>') || !htmlCopy.includes('<strong>粗体</strong>')) throw Error('Markdown to HTML structure lost');
   await input('theme', 'light', 'change'); await capture('editor-export-light.png'); await input('theme', 'dark', 'change');
   const exportRoot = join(tmpdir(), `notebookaid-export-${basename(directory)}`); mkdirSync(exportRoot, { recursive: true });
   const exported = join(exportRoot, 'copy.html');
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: exported }));
-  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('导出成功')");
+  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]').textContent.includes('导出成功')");
   if (readFileSync(exported, 'utf8') !== '\ufeff' + htmlCopy || await body() !== basic) throw Error('Export snapshot/UTF-8 marker mismatch or note mutated');
-  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('导出失败')");
+  await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]').textContent.includes('导出失败')");
   if (readFileSync(exported, 'utf8') !== '\ufeff' + htmlCopy) throw Error('Export overwrote existing file');
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: null }));
   await click('confirm-export'); await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('取消')");
-  await input('export-format', 'text', 'change'); await click('prepare-export');
+  await chooseExport('text');
   const textCopy = await run("document.querySelector('[data-testid=export-preview]').value");
   if (!textCopy.includes('中文标题') || textCopy.includes('**粗体**')) throw Error('Markdown to TXT failed');
   await click('create-note'); await click('create-html');
@@ -241,10 +242,10 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   await click('import-note'); await click('import-note-file'); await until("document.querySelector('[data-testid=note-title]').value === 'unsafe'");
   const cleanedUnsafe = await body();
   if (/<script|<iframe|onerror|url\(/i.test(cleanedUnsafe) || !await run("!window.__unsafe && !document.querySelector('.ql-editor iframe,.ql-editor script')")) throw Error('Unsafe HTML was rendered or raw source lost');
-  await input('export-format', 'html', 'change'); await click('prepare-export');
+  await chooseExport('html');
   if (await run("document.querySelector('[data-testid=export-preview]').value") !== cleanedUnsafe) throw Error('Same-format export changed source');
   for (const format of ['markdown', 'text']) {
-    await input('export-format', format, 'change'); await click('prepare-export');
+    await chooseExport(format);
     const converted = await run("document.querySelector('[data-testid=export-preview]').value");
     if (!converted.includes('原文') || /script|iframe|onerror|window\.__unsafe/.test(converted)) throw Error('Converted HTML retained active content');
   }
@@ -265,18 +266,20 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   if (await body() !== plain) throw Error('TXT literal content did not survive reload');
   await capture('editor-text-dark.png');
   for (const format of ['text', 'html', 'markdown']) {
-    await input('export-format', format, 'change'); await click('prepare-export');
+    await chooseExport(format);
     const converted = await run("document.querySelector('[data-testid=export-preview]').value");
     if (format === 'text' && converted !== plain) throw Error('TXT copy changed source');
     if (format === 'html' && (!converted.includes('&lt;b&gt;') || converted.includes('<b>'))) throw Error('TXT to HTML interpreted tags');
     if (format === 'markdown' && !converted.includes('\\*\\*不是粗体\\*\\*')) throw Error('TXT to Markdown interpreted emphasis');
   }
+  if (await run("!!document.querySelector('[data-testid=export-format]')")) throw Error('Export format must be hidden until the menu opens');
+  if (!await run("getComputedStyle(document.querySelector('.note-card.selected')).backgroundColor!==getComputedStyle(document.querySelector('.note-card:not(.selected)')).backgroundColor")) throw Error('Selected note is not highlighted');
   await click('print-note'); await until("!!document.querySelector('[data-testid=print-direct]')"); await click('print-direct');
   await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')");
   if (await run("!!document.querySelector('[data-testid=print-preview-dialog]')")) throw Error('Unexpected application print preview');
   const pdfPath = join(exportRoot, 'note-print.pdf');
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: pdfPath }));
-  await click('print-note'); await click('print-pdf');
+  await click('prepare-export'); await until("!!document.querySelector('[data-testid=export-pdf]')"); await click('export-pdf');
   await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')");
   if (!readFileSync(pdfPath).subarray(0,5).equals(Buffer.from('%PDF-'))) throw Error('PDF export is invalid');
   await click('print-note'); await click('print-pdf');
@@ -290,11 +293,11 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
     await input('body-source', content); await input('note-title', 'PDF ' + format); await save();
     if (format === 'delta') await click('rich-mode');
     writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({path:join(exportRoot,'note-'+format+'.pdf')}));
-    await click('print-note'); await click('print-pdf');
+    await click('prepare-export'); await click('export-pdf');
     await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')");
     if (!readFileSync(join(exportRoot,'note-'+format+'.pdf')).subarray(0,5).equals(Buffer.from('%PDF-'))) throw Error('Invalid PDF: '+format);
   }
-  writeFileSync(join(directory, 'print-report.json'), JSON.stringify({ directPrint:true, nativePrintSimulated:true, pdfGenerated:true, formats:['text','markdown','html','delta'], unsafeHtmlFixture:true, overwriteRejected:true, cancelled:true }));
+  writeFileSync(join(directory, 'print-report.json'), JSON.stringify({ directPrint:true, nativePrintSimulated:true, pdfGenerated:true, formats:['text','markdown','html','delta'], unsafeHtmlFixture:true, overwriteRejected:true, cancelled:true, selectedCardHighlighted:true, exportMenu:true }));
   await click('libraries-tab'); await run(`document.querySelector('[data-library-id="${original}"] [data-testid=library-open]').click()`);
   await until("!document.querySelector('[data-testid=library-add]').disabled");
   // Remove only the temporary registry entry; retain all fixture files for inspection.

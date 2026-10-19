@@ -170,7 +170,7 @@ export const hongKong: Record<MessageKey, string> = {
   "undo": "復原",
   "redo": "取消復原",
   "exportFormat": "匯出格式",
-  "exportCopy": "匯出副本…",
+  "exportCopy": "匯出",
   "exportPreviewTitle": "匯出預覽",
   "exportConfirm": "選取位置並匯出",
   "exportSuccess": "副本已成功匯出。",

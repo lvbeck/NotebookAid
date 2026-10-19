@@ -170,7 +170,7 @@ export const spanish: Record<MessageKey, string> = {
   "undo": "Deshacer",
   "redo": "Rehacer",
   "exportFormat": "Formato de exportación",
-  "exportCopy": "Exportar copia…",
+  "exportCopy": "Exportar",
   "exportPreviewTitle": "Vista previa de exportación",
   "exportConfirm": "Elegir ubicación y exportar",
   "exportSuccess": "Copia exportada.",

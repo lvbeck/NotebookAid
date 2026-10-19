@@ -63,7 +63,7 @@ test('historical attachments restore their links and reject missing data',()=>{
 });
 test('history pagination and content validation',()=>{
  const lib=new NoteLibrary(root());try{
- let note=lib.create(randomUUID()).note;const session=lib.begin(note.id,'test');
+ let note=lib.create(randomUUID(),{title:'Markdown history',primaryFormat:'markdown',body:''}).note;const session=lib.begin(note.id,'test');
  for(let i=0;i<21;i++)note=lib.save({noteId:note.id,token:session.token,generation:session.generation,expectedVersion:note.version,operationId:randomUUID(),title:'Version '+i,body:'Text '+i},'test').note;
  assert.equal(lib.history(note.id).revisions.length,20);assert.equal(lib.history(note.id,20).revisions.length,2);assert.throws(()=>lib.history(note.id,-1),code('INVALID_INPUT'));
  const older=lib.history(note.id,20).revisions[0];fs.writeFileSync(path.join(lib.path,'notes',note.id,'revisions',older.revisionId,'content.md'),'corrupt');assert.throws(()=>lib.revision(note.id,older.revisionId),code('INTEGRITY_CHECK_FAILED'));

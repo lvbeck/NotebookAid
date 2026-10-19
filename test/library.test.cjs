@@ -19,7 +19,7 @@ test('separate metadata/body, durable reopen, stable identity and content versio
     const rename = library.save(request({ ...session, note: saved.note }, { body: saved.note.body, title: 'Renamed' }), 'owner');
     assert.equal(rename.note.contentVersion, 2); assert.equal(rename.note.version, 3);
     const revision = path.join(root, 'notes', created.id, 'revisions', rename.note.revisionId);
-    assert.equal(fs.readFileSync(path.join(revision, 'content.md'), 'utf8'), saved.note.body);
+    assert.equal(fs.readFileSync(path.join(revision, 'content.txt'), 'utf8'), saved.note.body);
     assert.equal(JSON.parse(fs.readFileSync(path.join(revision, 'metadata.json'))).title, 'Renamed');
     library.close(); library = new NoteLibrary(root);
     assert.deepEqual(library.read(created.id), rename.note);
@@ -99,7 +99,7 @@ test('missing/corrupt index rebuilds from files; corrupt content is retained and
   fs.writeFileSync(path.join(root, 'index/catalog.sqlite'), 'corrupt index');
   library = new NoteLibrary(root);
   assert.equal(library.list().length, 1); assert.equal(library.status().indexed, true); library.close();
-  const file = path.join(root, 'notes', note.id, 'revisions', note.revisionId, 'content.md');
+  const file = path.join(root, 'notes', note.id, 'revisions', note.revisionId, 'content.txt');
   fs.writeFileSync(file, 'tampered'); library = new NoteLibrary(root);
   try {
     assert.throws(() => library.read(note.id), code('INTEGRITY_CHECK_FAILED'));

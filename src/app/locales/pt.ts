@@ -170,7 +170,7 @@ export const portuguese: Record<MessageKey, string> = {
   "undo": "Anular",
   "redo": "Refazer",
   "exportFormat": "Formato de exportação",
-  "exportCopy": "Exportar cópia…",
+  "exportCopy": "Exportar",
   "exportPreviewTitle": "Pré-visualização da exportação",
   "exportConfirm": "Escolher localização e exportar",
   "exportSuccess": "Cópia exportada.",

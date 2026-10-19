@@ -94,7 +94,7 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   await updateSelect('language','zh-CN');
   await click('skip-content'); await until("document.activeElement.id==='main-content'");
   await key('n',false,true); if (await run("!!document.querySelector('#new-note-formats')")) throw Error('Composition shortcut was handled');
-  await key('n'); await until("document.activeElement?.dataset.testid==='create-markdown'");
+  await key('n'); await until("document.activeElement?.dataset.testid==='create-text'");
   await click('create-text'); await until("!!document.querySelector('[data-testid=body-source]') && !document.querySelector('[data-testid=body-source]').disabled");
   await run("{const input=document.querySelector('[data-testid=body-source]');input.value='T14 unchanged body';input.dispatchEvent(new Event('input',{bubbles:true}));}");
   await key('s'); await until("document.querySelector('[data-testid=save-status]')?.textContent.includes('已保存')");

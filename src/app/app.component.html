@@ -183,18 +183,21 @@
         </div>
         <app-attachments [locale]="locale()" (insertImage)="insertAttachmentImage($event)" (unlinked)="loadSource()" />
         @if (prefs.state().global.aiEnabled !== false) { <button class="secondary" data-testid="ai-writing" (mousedown)="$event.preventDefault()" (click)="openWriting()" [disabled]="workspace.switching() || ((sourceMode() || warning()) && format() === 'delta')"><app-icon name="Sparkles" />{{ writingLabel() }}</button> }
-        <div class="export-actions" [class.export-open]="exportMenuOpen()"><button class="secondary compact-export-toggle" data-testid="compact-export" [attr.aria-label]="t('exportCopy')" [appTooltip]="t('exportCopy')" [attr.aria-expanded]="exportMenuOpen()" (click)="exportMenuOpen.set(!exportMenuOpen())"><app-icon name="FileOutput" /></button><div class="export-controls">
-          <select appSelect data-testid="export-format" [attr.aria-label]="t('exportFormat')" [ngModel]="exportFormat()" (ngModelChange)="exportFormat.set($event); exportPreview.set(null)"><option value="markdown">Markdown</option><option value="html">HTML</option><option value="text">TXT</option>@if (format() === 'delta') { <option value="delta">Delta (.nadelta)</option> }</select>
-          <button class="secondary" data-testid="prepare-export" (click)="prepareExport()" [disabled]="!workspace.session() || workspace.switching() || fileBusy()"><app-icon name="FileOutput" />{{ t('exportCopy') }}</button>
-        </div>
-
-        </div>
+        <div class="export-actions">
+          <button class="secondary" data-testid="prepare-export" [cdkMenuTriggerFor]="exportOptions" [disabled]="workspace.switching() || fileBusy()"><app-icon name="FileOutput" />{{t('exportCopy')}}</button>
           <button class="secondary" data-testid="print-note" [cdkMenuTriggerFor]="printOptions" [disabled]="workspace.switching() || fileBusy()"><app-icon name="Printer" />{{printLabel('print')}}</button>
         </div>
+        <ng-template #exportOptions><div cdkMenu class="editor-table-menu" [attr.aria-label]="t('exportFormat')">
+          @for (target of noteFormats; track target) { @if(target !== 'delta' || format() === 'delta') {
+            <button cdkMenuItem [attr.data-testid]="'export-' + target" (cdkMenuItemTriggered)="selectExport(target)"><app-icon name="FileOutput" />{{target === 'text' ? 'TXT' : target === 'delta' ? 'Delta (.nadelta)' : target === 'html' ? 'HTML' : 'Markdown'}}</button>
+          } }
+          <button cdkMenuItem data-testid="export-pdf" (cdkMenuItemTriggered)="openPrint(true)"><app-icon name="FileOutput" />PDF</button>
+        </div></ng-template>
         <ng-template #printOptions><div cdkMenu class="editor-table-menu" [attr.aria-label]="printLabel('print')">
           <button cdkMenuItem data-testid="print-direct" (cdkMenuItemTriggered)="openPrint(false)"><app-icon name="Printer" />{{printLabel('print')}}</button>
           <button cdkMenuItem data-testid="print-pdf" (cdkMenuItemTriggered)="openPrint(true)"><app-icon name="FileOutput" />{{printLabel('pdf')}}</button>
         </div></ng-template>
+        </div>
         <ng-template #tableMenu>
           <div cdkMenu class="editor-table-menu" [attr.aria-label]="t('tableTools')">
             <button cdkMenuItem data-testid="insert-table" (cdkMenuItemTriggered)="tableAction('insertTable')" [cdkMenuItemDisabled]="inTable()"><app-icon name="Table2" />{{ t('insertTable') }}</button>

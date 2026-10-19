@@ -1,6 +1,7 @@
 const test = require('node:test'), assert = require('node:assert/strict');
-const fs = require('node:fs'), path = require('node:path');
+const fs = require('node:fs'), path = require('node:path'), { randomUUID } = require('node:crypto');
 const { exportPdf } = require('../dist/runtime/core/note-files');
+const { NoteLibrary } = require('../dist/runtime/core/library');
 const { printDocument } = require('../dist/runtime/shared/print-document');
 const { spawnSync } = require('node:child_process');
 
@@ -38,4 +39,14 @@ test('print documents escape titles and enforce an offline A4 rendering policy',
   assert.ok(html.includes("default-src 'none'"));
   assert.ok(html.includes('size:A4'));
   assert.ok(html.includes('<p>Fixture</p>'));
+});
+
+test('default note creation uses TXT while explicit formats remain available', () => {
+  const root = fs.mkdtempSync(path.resolve('output/print-default-'));
+  let library;
+  try {
+    library = new NoteLibrary(root, undefined, 'create');
+    assert.equal(library.create(randomUUID()).note.primaryFormat, 'text');
+    assert.equal(library.create(randomUUID(), { primaryFormat: 'markdown', title: 'Markdown', body: '**Fixture**' }).note.primaryFormat, 'markdown');
+  } finally { library?.close(); fs.rmSync(root, { recursive: true, force: true }); }
 });

@@ -57,6 +57,7 @@ app-icon { display:inline-flex; flex-shrink:0; align-items:center; }
 .about-copyright { font-size:12px; }
 @media(max-width:600px) { .about-metadata { grid-template-columns:minmax(0,1fr); gap:0; } }
 .note-card { margin-bottom:12px; }
+.note-card.selected { background:var(--accent-soft); border-color:var(--accent); box-shadow:inset 4px 0 0 var(--accent),0 2px 8px #0001; }
 .note-list { overflow-y:auto; }
 .tagline { color:var(--muted); font-size:11px; margin:14px 8px 27px; letter-spacing:.5px; }
 .sidebar-actions { display:flex; flex-direction:column; gap:10px; margin-bottom:24px; }

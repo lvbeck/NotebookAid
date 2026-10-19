@@ -13,7 +13,7 @@ const body = deltaSnapshot([{insert:'Searchable Delta text',attributes:{bold:tru
 test('Delta full snapshots persist, search, recover, replay and reject invalid saves',()=>{
  const dir=root(),book=path.join(dir,'book');let lib=new NoteLibrary(book);
  try {
-  const legacy=lib.create(randomUUID()).note;assert.equal(JSON.parse(fs.readFileSync(path.join(book,'library.json'))).schemaVersion,1);
+  const legacy=lib.create(randomUUID(),{title:'Legacy Markdown',primaryFormat:'markdown',body:''}).note;assert.equal(JSON.parse(fs.readFileSync(path.join(book,'library.json'))).schemaVersion,1);
   const op=randomUUID(),note=lib.create(op,{title:'Native',primaryFormat:'delta',body}).note;
   assert.equal(lib.create(op,{title:'Native',primaryFormat:'delta',body}).note.id,note.id);
   assert.equal(JSON.parse(fs.readFileSync(path.join(book,'library.json'))).schemaVersion,5);

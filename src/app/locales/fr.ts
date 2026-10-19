@@ -170,7 +170,7 @@ export const french: Record<MessageKey, string> = {
   "undo": "Annuler",
   "redo": "Rétablir",
   "exportFormat": "Format d’exportation",
-  "exportCopy": "Exporter une copie…",
+  "exportCopy": "Exporter",
   "exportPreviewTitle": "Aperçu de l’exportation",
   "exportConfirm": "Choisir l’emplacement et exporter",
   "exportSuccess": "Copie exportée.",

@@ -276,7 +276,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     return true;
   }
   toggleFolder(id: string): void { this.expandedFolders.update(value => { const next = new Set(value); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
-  readonly noteFormats: NoteFormat[] = ['markdown', 'html', 'text', 'delta'];
+  readonly noteFormats: NoteFormat[] = ['text', 'markdown', 'html', 'delta'];
   readonly exportFormat = signal<NoteFormat>('markdown');
   readonly exportPreview = signal<NoteInput | null>(null);
   readonly fileMessage = signal('');
@@ -307,6 +307,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
   toggleSource(value: boolean): void { if (this.composing) return; this.sourceMode.set(value); if (!value) this.loadSource(); }
   printLabel(key: PrintKey): string { return printText(this.locale(), key); }
+  selectExport(format: NoteFormat): void { this.exportFormat.set(format); this.prepareExport(); }
   async openPrint(pdf: boolean): Promise<void> {
     const session = this.workspace.session();
     if (!session || this.composing || this.fileBusy() || this.workspace.switching()) return;
@@ -382,7 +383,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.repeat && !overlay && !this.notifications.drawerOpen() && !this.workspace.switching()) {
       const key = event.key.toLowerCase();
       if (['+', '=', '-', '0'].includes(key)) { event.preventDefault(); void this.prefs.update({ zoomPercent: nextZoom(this.prefs.state().global.zoomPercent ?? 100, key === '0' ? 0 : key === '-' ? -1 : 1) }); return; }
-      if (!event.shiftKey && key === 'n' && this.workspace.status()) { event.preventDefault(); this.editorFullscreen.set(false); this.newNoteMenuOpen.set(true); setTimeout(() => document.querySelector<HTMLButtonElement>('[data-testid=create-markdown]')?.focus()); return; }
+      if (!event.shiftKey && key === 'n' && this.workspace.status()) { event.preventDefault(); this.editorFullscreen.set(false); this.newNoteMenuOpen.set(true); setTimeout(() => document.querySelector<HTMLButtonElement>('[data-testid=create-text]')?.focus()); return; }
       if (!event.shiftKey && key === 'f') { event.preventDefault(); this.editorFullscreen.set(false); this.tab.set('editor'); setTimeout(() => document.querySelector<HTMLInputElement>('[data-testid=note-search]')?.focus()); return; }
       if (key === ',') { event.preventDefault(); this.tab.set('settings'); return; }
     }

@@ -559,7 +559,7 @@ export class NoteLibrary {
     this.id(operationId);
     if (input !== undefined && (!input || typeof input !== 'object' || !Object.hasOwn(formatExtensions, input.primaryFormat))) throw new LibraryError('INVALID_INPUT');
     if(taskSource!==undefined){try{validateTaskSource(taskSource);}catch{throw new LibraryError('INVALID_INPUT');}if(this.manifest.schemaVersion<10)throw new LibraryError('VERSION_CONFLICT');}
-    const initial = input ?? { title: 'Untitled', body: '', primaryFormat: 'markdown' as const };
+    const initial = input ?? { title: 'Untitled', body: '', primaryFormat: 'text' as const };
     this.validateContent(initial.title, initial.body);
     if (initial.primaryFormat === 'delta') validateNative(initial.body, initial.nativeAttachments);
     else if (initial.nativeAttachments) throw new LibraryError('INVALID_INPUT');

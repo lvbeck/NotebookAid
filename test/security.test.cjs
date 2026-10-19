@@ -71,7 +71,7 @@ test('ciphertext corruption and swapping are rejected without overwrite', async 
   try {
     const a = lib.create(randomUUID()).note, b = lib.create(randomUUID()).note;
     await lib.securityCommand({ action: 'setup', password }); lib.protect(a.id, a.version, true); lib.protect(b.id, b.version, true);
-    const pa = path.join(dir, 'notes', a.id, 'revisions', a.revisionId, 'content.md'), pb = path.join(dir, 'notes', b.id, 'revisions', b.revisionId, 'content.md');
+    const pa = path.join(dir, 'notes', a.id, 'revisions', a.revisionId, 'content.txt'), pb = path.join(dir, 'notes', b.id, 'revisions', b.revisionId, 'content.txt');
     fs.copyFileSync(pa, pb); const before = fs.readFileSync(pb);
     assert.throws(() => lib.read(b.id), code('INTEGRITY_CHECK_FAILED')); assert.deepEqual(fs.readFileSync(pb), before);
     assert.throws(() => lib.protect(b.id, b.version, false)); assert.deepEqual(fs.readFileSync(pb), before);

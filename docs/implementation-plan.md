@@ -1347,3 +1347,10 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - Commit only this accepted scope locally. Prior T16 TXT defaults, selected-card emphasis and the separate note-export toolbar redesign remain outside this acceptance. Shelved T15-A probe files and original unused assets remain excluded; the approved archive icon copies are included.
 - No next task, remote push, workflow dispatch, tag or formal Release. No product changes or repackaging are needed for this acceptance record.
 - Before committing, exported the exact staged snapshot to output/notebook-acceptance-index, independently compiled desktop TypeScript and Angular templates, and ran all 11 notebook-settings/archive tests successfully. This verifies that the scoped commit builds without the excluded pending T16 changes. Earlier package/GUI evidence and platform limitations remain unchanged; no repackaging or remote action was performed.
+
+### T16 default format and export toolbar acceptance (2026-10-19; approved scope)
+
+- Actual user acceptance: "验收的 TXT 默认格式、选中卡片高亮和笔记导出工具栏调整".
+- Approved scope: TXT-first note creation, stronger active-card highlighting, and a single Export menu with format choices and PDF. Related ten-language wording and explicit-format regression fixtures are included. Existing package validation and platform limitations recorded above remain unchanged.
+- Commit the accepted remaining T16 changes locally; exclude shelved T15-A artwork and probes. No push, workflow dispatch, formal Release or repackaging is authorized by this acceptance.
+- New tag palette and Advanced Search are preview-only: the user explicitly confirmed "两项都先预览，确认后再实现". No implementation of those features is included in this acceptance commit.

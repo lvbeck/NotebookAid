@@ -170,7 +170,7 @@ export const german: Record<MessageKey, string> = {
   "undo": "Rückgängig",
   "redo": "Wiederholen",
   "exportFormat": "Exportformat",
-  "exportCopy": "Kopie exportieren…",
+  "exportCopy": "Exportieren",
   "exportPreviewTitle": "Exportvorschau",
   "exportConfirm": "Speicherort wählen und exportieren",
   "exportSuccess": "Kopie erfolgreich exportiert.",
