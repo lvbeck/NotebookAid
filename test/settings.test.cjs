@@ -9,6 +9,17 @@ const empty = { locale: null, theme: null, autosave: null };
 function fixture() { const root = path.resolve('output/settings-tests'); fs.mkdirSync(root, { recursive: true }); return fs.mkdtempSync(path.join(root, 'case-')); }
 const code = expected => error => error.code === expected;
 
+test('editor view defaults to continuous and validates persisted page layout', () => {
+  const directory = fixture(), store = new SettingsStore(directory, empty);
+  assert.equal(store.get().global.editorLayout ?? 'continuous', 'continuous');
+  store.update({ editorLayout: 'pages' });
+  assert.equal(new SettingsStore(directory, empty).get().global.editorLayout, 'pages');
+  for (const value of ['invalid', true, null, {}, 0]) assert.throws(() => store.update({ editorLayout: value }), code('INVALID_INPUT'));
+  assert.equal(store.get().global.editorLayout, 'pages');
+  store.update({ editorLayout: 'continuous' });
+  assert.equal(store.get().global.editorLayout ?? 'continuous', 'continuous');
+  assert.equal(Object.hasOwn(JSON.parse(fs.readFileSync(path.join(directory, 'settings.json'), 'utf8')).global, 'editorLayout'), false);
+});
 test('legacy settings are backed up before import and imported only once', () => {
   const root = fixture(); const legacy = { locale: 'de', theme: 'dark', autosave: JSON.stringify({ enabled: false, minutes: 10 }) };
   const store = new SettingsStore(root, legacy);

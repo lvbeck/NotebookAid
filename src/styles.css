@@ -610,5 +610,20 @@ summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 
 input[type=checkbox], input[type=radio], input[type=range] { accent-color:var(--accent); }
 ::selection { background:var(--accent-soft); color:var(--text); }
+.editor-view-menu { min-width:260px; max-width:calc(100vw - 32px); padding:14px; }
+.editor-view-menu h3 { font-size:13px; margin:0 0 12px; }
+.editor-view-menu .segmented-radio { display:flex; flex-direction:column; width:100%; }
+.editor-view-menu .segmented-radio label > span { display:flex; align-items:center; justify-content:flex-start; gap:10px; padding:10px; white-space:normal; }
+.editor-view-menu small { display:block; font-size:11px; color:var(--muted); margin-top:4px; }
+.editor-area.editor-paginated { position:relative; flex:none; margin:14px -16px 0; padding:20px 12px; background:var(--bg); --screen-page-margin:56px; }
+.editor-paginated .ql-container.ql-snow { width:min(100%,794px); margin:0 auto; position:relative; flex:none; }
+.editor-area.editor-paginated .ql-editor { position:relative; padding:var(--screen-page-margin); z-index:1; background:transparent; min-height:var(--screen-page-height,1123px); }
+.editor-paginated .ql-editor img { max-height:calc(var(--screen-content-height,1000px) - 32px); object-fit:contain; }
+.editor-paginated.paged-source .ql-editor { font:15px/1.7 Consolas,monospace; }
+.editor-paginated.paged-source .ql-editor * { font:inherit; }
+.screen-page-layer { position:absolute; inset:20px 12px; pointer-events:none; }
+.screen-page-sheet { position:absolute; width:min(100%,794px); left:50%; transform:translateX(-50%); background:var(--surface); border:1px solid var(--line); box-shadow:0 2px 8px #0000000a; }
+.screen-page-sheet > span { position:absolute; bottom:16px; left:0; right:0; text-align:center; font-size:11px; color:var(--muted); }
+@media(max-width:650px) { .editor-area.editor-paginated { margin-inline:-8px; padding-inline:8px; }.screen-page-layer { left:8px; right:8px; } }
 
 .login-startup-modes { margin-top:16px; }

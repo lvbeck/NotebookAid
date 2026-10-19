@@ -1,3 +1,5 @@
+import { EditorPagesDirective } from './editor-pages.directive';
+import { viewText, type ViewKey } from './view-i18n';
 import { notebookSkinIndex, skinTokens } from '../../shared/notebook-skin';
 import { AdvancedSearchComponent } from './advanced-search.component';
 import { searchText } from './search-i18n';
@@ -68,7 +70,7 @@ import { NotificationsComponent } from './notifications.component';
 type Theme = 'light' | 'dark' | 'system';
 
 @Component({
-  selector: 'app-root', standalone: true, imports: [AdvancedSearchComponent, BackupProgressComponent, StartupProgressComponent,TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
+  selector: 'app-root', standalone: true, imports: [EditorPagesDirective, AdvancedSearchComponent, BackupProgressComponent, StartupProgressComponent,TaskSourceComponent,PasskeyComponent, SecurityComponent, NgTemplateOutlet, LifecycleComponent, AttachmentsComponent, TooltipDirective, A11yModule, OverlayModule, CdkMenuModule, OrganizationComponent, SelectDirective, FormsModule, IconComponent, NotificationsComponent, LibrariesComponent, SettingsComponent],
   templateUrl: './app.component.html', host: { '[attr.data-ready]': 'ready()' }
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
@@ -137,7 +139,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     const raw = this.sourceMode() || this.warning() || this.format() === 'text';
     if (raw && this.format() === 'delta') return;
     const textarea = document.querySelector<HTMLTextAreaElement>('[data-testid=body-source]');
-    const range = raw ? { index: textarea?.selectionStart ?? 0, length: (textarea?.selectionEnd ?? 0) - (textarea?.selectionStart ?? 0) } : (this.editor.getSelection() ?? { index: 0, length: 0 });
+    const range = raw && !this.pagedSource() ? { index: textarea?.selectionStart ?? 0, length: (textarea?.selectionEnd ?? 0) - (textarea?.selectionStart ?? 0) } : (this.editor.getSelection() ?? { index: 0, length: 0 });
     const selection = raw ? this.source().slice(range.index, range.index + range.length) : this.editor.getText(range.index, range.length);
     if (!await this.workspace.flush()) return;
     const original = this.source(), noteId = session.note.id;
@@ -176,6 +178,22 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly sidebarCollapsed = computed(() => this.prefs.state().global.sidebarCollapsed ?? false);
   readonly editorFullscreen = signal(false);
   readonly editorToolsOpen = signal(false);
+  readonly viewMenuOpen = signal(false);
+  closeViewMenu(event?: KeyboardEvent): void {
+    if (event && event.key !== 'Escape') return;
+    event?.preventDefault(); event?.stopPropagation(); this.viewMenuOpen.set(false);
+    document.querySelector<HTMLButtonElement>('[data-testid=view-note]')?.focus({ preventScroll: true });
+  }
+  readonly paged = computed(() => this.prefs.state().global.editorLayout === 'pages');
+  readonly pagedSource = computed(() => this.paged() && (this.sourceMode() || this.warning() || this.workspace.session()?.note.primaryFormat === 'text'));
+  viewLabel(key: ViewKey): string { return viewText(this.locale(), key); }
+  async setEditorLayout(layout: 'continuous' | 'pages'): Promise<void> {
+    if (this.composing || this.workspace.switching()) return;
+    this.closeViewMenu();
+    if ((layout === 'pages') === this.paged() && !this.prefs.busy()) return;
+    await this.prefs.update({ editorLayout: layout }, false);
+    this.selectedImage.set(null); this.loadSource();
+  }
   readonly exportMenuOpen = signal(false);
   toggleSidebar(): void { this.folderTrigger?.close(); this.newNoteMenuOpen.set(false); void this.prefs.update({ sidebarCollapsed: !this.sidebarCollapsed() }); }
   toggleEditorFullscreen(): void {
@@ -310,7 +328,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       input.checked = (input.dataset['testid'] === 'source-mode') === (this.sourceMode() || this.warning());
     });
   }
-  toggleSource(value: boolean): void { if (this.composing) return; this.sourceMode.set(value); if (!value) this.loadSource(); }
+  toggleSource(value: boolean): void { if (this.composing) return; this.sourceMode.set(value); if (!value || this.paged()) this.loadSource(); }
   printLabel(key: PrintKey): string { return printText(this.locale(), key); }
   selectExport(format: NoteFormat): void { this.exportFormat.set(format); this.prepareExport(); }
   async openPrint(pdf: boolean): Promise<void> {
@@ -368,6 +386,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly sourcePending = signal(false);
   private readonly onEditorChange = (_delta: unknown, _previous: unknown, origin: string) => {
     if (origin !== 'user') return;
+    if (this.pagedSource()) {
+      this.workspace.updateBody(this.editor.getText(0, this.editor.getLength() - 1)); this.record();
+      this.sourcePending.set(true); return;
+    }
     if (this.warning() || this.sourcePending() || this.format() === 'text') return;
     this.workspace.updateBody(this.format() === 'delta' ? deltaSnapshot(this.editor.getContents().ops as DeltaOp[]) : this.format() === 'html' ? cleanHtml(semanticHtml(this.editor.getSemanticHTML())) : this.toMarkdown());
     this.record();
@@ -377,6 +399,20 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private editor!: Quill;
   private readonly media = matchMedia('(prefers-color-scheme: dark)');
   private readonly themeListener = () => this.applyTheme();
+  private readonly pastePagedSource = (event: ClipboardEvent) => {
+    if (!this.pagedSource()) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    const range = this.editor.getSelection(true) ?? { index: 0, length: 0 };
+    const text = event.clipboardData?.getData('text/plain') ?? '';
+    if (!text) return;
+    this.editor.updateContents(new Delta().retain(range.index).delete(range.length).insert(text), 'user');
+    this.editor.setSelection(range.index + text.length, 0, 'silent');
+  };
+  private readonly plainPageKeys = (event: KeyboardEvent) => {
+    if (!this.pagedSource() || this.composing || event.isComposing) return;
+    if ((event.ctrlKey || event.metaKey) && ['b', 'i', 'u'].includes(event.key.toLowerCase())) { event.preventDefault(); event.stopImmediatePropagation(); }
+    else if (event.key === 'Tab') event.stopImmediatePropagation();
+  };
   private readonly preventNavigation = (event: Event) => {
     if ((event.target as Element).closest('a')) event.preventDefault();
   };
@@ -462,6 +498,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       formats: ['header', 'bold', 'italic', 'underline', 'strike', 'color', 'background', 'blockquote', 'code', 'code-block', 'code-token', 'list', 'indent', 'link', 'image', 'table', 'cell-header', 'cell-align'],
       modules: { table: true, syntax: { hljs, languages: codeLanguages.map(key => ({ key, label: key })) }, toolbar: { container: this.toolbar.nativeElement, handlers: { image: () => void this.attachmentsPanel?.chooseImage() } } }
     });
+    const plainPages = this.pagedSource;
+    // Preserve literal list/checklist prefixes in TXT and source views.
+    for (const binding of this.editor.keyboard.bindings[' '] ?? []) {
+      const handler = binding.handler;
+      if (!binding.prefix || !handler) continue;
+      binding.handler = function (range, context, current) {
+        return plainPages() ? true : handler.call(this, range, context, current);
+      };
+    }
     this.editor.clipboard.addMatcher('PRE', (input: Node) => {
       const node = input as HTMLElement;
       const language = node.getAttribute('data-language') ?? node.querySelector('code')?.className.replace(/^language-/, '') ?? 'plain';
@@ -476,6 +521,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       if (align && ['left', 'center', 'right'].includes(align)) attributes['cell-align'] = align;
       return new Delta(delta.ops.map(op => typeof op.insert === 'string' && op.insert.includes('\n') ? { ...op, attributes: { ...op.attributes, ...attributes } } : op));
     });
+    this.host.nativeElement.addEventListener('paste', this.pastePagedSource, true);
+    this.host.nativeElement.addEventListener('keydown', this.plainPageKeys, true);
     this.host.nativeElement.addEventListener('click', this.preventNavigation);
     this.host.nativeElement.addEventListener('click', this.selectImage);
     this.host.nativeElement.addEventListener('compositionstart', this.compositionStart);
@@ -503,6 +550,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     document.removeEventListener('pointerdown', this.closeEditorMenus);
     this.editor?.off('text-change', this.onEditorChange);
     this.media.removeEventListener('change', this.themeListener);
+    this.host.nativeElement.removeEventListener('paste', this.pastePagedSource, true);
+    this.host.nativeElement.removeEventListener('keydown', this.plainPageKeys, true);
     this.host.nativeElement.removeEventListener('click', this.preventNavigation);
     this.host.nativeElement.removeEventListener('click', this.selectImage);
     this.host.nativeElement.removeEventListener('compositionstart', this.compositionStart);
@@ -531,6 +580,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.loadedSource.set(this.source());
     this.issues.set(sourceIssues(this.source(), this.format()));
     this.warning.set(this.issues().length > 0);
+    if (this.pagedSource()) {
+      this.editor.setText(this.source() + '\n', 'api');
+      this.editor.enable(!!this.workspace.session() && !this.workspace.switching());
+      this.editor.history.clear(); return;
+    }
     if (this.format() === 'delta') {
       if (!this.warning()) {
         const input = new Delta(parseDelta(this.source()).ops);
@@ -657,6 +711,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.sourceFormatError.set(false);
     this.workspace.updateBody(value); this.record(); this.sourcePending.set(true); this.editor.enable(false);
     this.roundtripResult.set(''); this.roundtripStatus.set('');
+    if (this.pagedSource()) this.loadSource();
   }
   saveLabel(): string { return this.t(this.workspace.saving() ? 'saving' : this.workspace.error() ? 'saveFailed' : this.workspace.dirty() ? 'unsaved' : 'saved'); }
   displayTime(value: string): string { return new Date(value).toLocaleString(regionalLocale(this.locale()), { dateStyle: 'short', timeStyle: 'short' }); }

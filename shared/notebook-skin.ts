@@ -1,7 +1,7 @@
 export const notebookSkinColors = ["#7460c9", "#bd9da6", "#9aa99b", "#92a8ba", "#c3b397", "#a6a4af", "#b89b88", "#a3b6b1", "#afa2bb", "#bcc1a2"] as const;
 export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
     "zh-CN": [
-        "蓝紫",
+        "极光紫",
         "藕粉",
         "鼠尾草",
         "雾蓝",
@@ -13,7 +13,7 @@ export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
         "橄榄"
     ],
     "zh-TW": [
-        "藍紫",
+        "極光紫",
         "藕粉",
         "鼠尾草",
         "霧藍",
@@ -25,7 +25,7 @@ export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
         "橄欖"
     ],
     "en": [
-        "Violet",
+        "Aurora violet",
         "Dusty rose",
         "Sage",
         "Mist blue",
@@ -37,7 +37,7 @@ export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
         "Olive"
     ],
     "de": [
-        "Violett",
+        "Auroraviolett",
         "Altrosa",
         "Salbei",
         "Nebelblau",
@@ -49,7 +49,7 @@ export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
         "Oliv"
     ],
     "fr": [
-        "Violet",
+        "Violet aurore",
         "Vieux rose",
         "Sauge",
         "Bleu brume",
@@ -61,7 +61,7 @@ export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
         "Olive"
     ],
     "it": [
-        "Viola",
+        "Viola aurora",
         "Rosa antico",
         "Salvia",
         "Blu nebbia",
@@ -73,7 +73,7 @@ export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
         "Oliva"
     ],
     "es": [
-        "Violeta",
+        "Violeta aurora",
         "Rosa palo",
         "Salvia",
         "Azul niebla",
@@ -85,7 +85,7 @@ export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
         "Oliva"
     ],
     "pt-PT": [
-        "Violeta",
+        "Violeta aurora",
         "Rosa velho",
         "Sálvia",
         "Azul névoa",
@@ -97,7 +97,7 @@ export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
         "Azeitona"
     ],
     "ja": [
-        "青紫",
+        "オーロラパープル",
         "くすみピンク",
         "セージ",
         "ミストブルー",
@@ -109,7 +109,7 @@ export const notebookSkinNames: Readonly<Record<string, readonly string[]>> = {
         "オリーブ"
     ],
     "ko": [
-        "청보라",
+        "오로라 퍼플",
         "더스티 로즈",
         "세이지",
         "미스트 블루",

@@ -442,7 +442,21 @@ User authorization: save notebook settings inside each notebook directory in pre
 - Preserve legacy and custom colors without rewriting stored notebook data. The interim Capri blue selector color maps to Mist blue; custom colors use the closest preset hue, with a neutral fallback.
 - Supply names in all ten languages, build and verify Windows EXE/MSI/portable ZIP, update the authorized test directory and await acceptance. No formal release or remote push.
 
-### Startup settings (2026-10-19)
+## T20 editor view layouts
 
+- Implement the approved preview with a View button beside Export and Print. Continuous layout is selected by default; Page layout displays A4-style paper, separators and page numbers. Change the button icon with the active layout.
+- Support existing note formats and source mode while keeping note bodies unchanged by layout switching. The local display preference may be remembered; selecting the default removes the additional settings key for old-version rollback.
+- Keep page decoration outside saved content, preserve editing/undo/context actions and follow the notebook's light/dark skin. Pagination observers run only in the selected paginated editor.
+- Complete the existing ten languages, verify Windows EXE/MSI/ZIP, update the authorized test directory and await user acceptance. Do not push or formally release.
+
+### Startup settings and color naming (2026-10-19)
+
+- Rename the first notebook preset to Aurora violet (极光紫), retaining its existing color and skin tokens.
 - Add Startup settings immediately after Basic settings. Automatic startup defaults off; its Window/Background segmented controls are disabled while off and initially select Background. Startup is local to the current device/user. Manual launch still opens the window; background login launch exposes the existing tray entry.
-- Preserve the delivered version 0.15.19; no formal release or next numbered task.
+- Keep version 0.15.19. No formal release or next numbered task.
+
+### Deferred View follow-ups (2026-10-19; not started)
+
+- Open bug: the user reports dark-mode editor display overflow at both the left and right boundaries, illustrated by an annotated screenshot. Confirm the affected geometry before choosing a correction; no root cause or fix is claimed yet.
+- Requested feature: add an outline view within the existing View layouts controls. Support a syntax outline based on Markdown hash headings and an indented outline based on TXT hyphen lists.
+- The user accepted the existing T20 layouts and Aurora violet naming while explicitly prohibiting the next task. These follow-ups are recorded requirements only; do not implement them as part of the acceptance commit. T15-A remains shelved. No formal release or push.

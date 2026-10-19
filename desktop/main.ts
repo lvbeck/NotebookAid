@@ -3,6 +3,7 @@ import { externalAccessHost } from './external-access';
 import { registerMcpSetup } from './mcp-setup';
 import { assertProbeHome } from './mcp-probe';
 import { smokeLoginStartup } from './login-startup-smoke';
+import { smokeView } from './view-smoke';
 import { smokeSkin } from './skin-smoke';
 import { smokeEaster } from './easter-smoke';
 import { smokeArchive } from './archive-smoke';
@@ -320,6 +321,7 @@ async function runSmoke(window: BrowserWindow): Promise<void> {
   if (process.env['NOTEBOOKAID_SEARCH_TEST'] === '1') { try { await smokeSearch(window, dataPath); await quitByUser(true); } catch(error) { writeFileSync(join(dataPath, 'smoke-error.txt'), String(error)); app.exit(1); } return; }
   try {
     if(process.env['NOTEBOOKAID_LOGIN_STARTUP_TEST']==='1'){await smokeLoginStartup(window,dataPath);await quitByUser(true);return;}
+    if(process.env['NOTEBOOKAID_VIEW_TEST']==='1'){await smokeView(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_SKIN_TEST']==='1'){await smokeSkin(window,dataPath);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_EASTER_TEST']==='1'){await smokeEaster(window,dataPath,easterRequests);await quitByUser(true);return;}
     if(process.env['NOTEBOOKAID_STARTUP_TEST']==='1'){await smokeStartup(window,dataPath);await quitByUser(true);return;}
