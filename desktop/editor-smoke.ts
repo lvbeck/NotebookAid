@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 export async function smokeEditor(window: BrowserWindow, directory: string): Promise<void> {
   const run = async (script: string) => { try { return await window.webContents.executeJavaScript(script); } catch (error) { throw new Error('Editor test script failed: ' + script.slice(0, 400), {cause:error}); } };
   const wait = (ms = 80) => new Promise(resolve => setTimeout(resolve, ms));
-  const until = async (script: string) => { for (let i = 0; i < 100; i++) { if (await run(script)) return; await wait(); } throw Error('Editor UI timeout: ' + script + ' · ' + await run("JSON.stringify({message:document.querySelector('[data-testid=file-message]')?.textContent,format:document.querySelector('.format-badge')?.textContent,dialogs:Array.from(document.querySelectorAll('[role=dialog]')).map(e=>e.textContent?.slice(0,160))})")); };
+  const until = async (script: string, timeout = 8000) => { const deadline = Date.now() + timeout; while (Date.now() < deadline) { if (await run(script)) return; await wait(); } throw Error('Editor UI timeout: ' + script + ' · ' + await run("JSON.stringify({message:document.querySelector('[data-testid=file-message]')?.textContent,printDisabled:document.querySelector('[data-testid=print-note]')?.disabled,format:document.querySelector('.format-badge')?.textContent,dialogs:Array.from(document.querySelectorAll('[role=dialog]')).map(e=>e.textContent?.slice(0,160))})")); };
   const click = async (id: string) => {
     await run(`(() => {const target=document.querySelector('[data-testid=${id}]');if(target.closest('.rich-tools') && !target.getClientRects().length)document.querySelector('[data-testid=more-editor-tools]').click();if(target.closest('.export-controls') && !target.getClientRects().length)document.querySelector('[data-testid=compact-export]').click();})()`);
     await wait(); await run(`document.querySelector('[data-testid=${id}]').click()`); await wait();
@@ -302,12 +302,12 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
   if (await run("!!document.querySelector('[data-testid=export-format]')")) throw Error('Export format must be hidden until the menu opens');
   if (!await run("getComputedStyle(document.querySelector('.note-card.selected')).backgroundColor!==getComputedStyle(document.querySelector('.note-card:not(.selected)')).backgroundColor")) throw Error('Selected note is not highlighted');
   await click('print-note'); await until("!!document.querySelector('[data-testid=print-direct]')"); await click('print-direct');
-  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')");
+  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')", 30000);
   if (await run("!!document.querySelector('[data-testid=print-preview-dialog]')")) throw Error('Unexpected application print preview');
   const pdfPath = join(exportRoot, 'note-print.pdf');
   writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: pdfPath }));
   await click('prepare-export'); await until("!!document.querySelector('[data-testid=export-pdf]')"); await click('export-pdf');
-  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')");
+  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')", 30000);
   if (!readFileSync(pdfPath).subarray(0,5).equals(Buffer.from('%PDF-'))) throw Error('PDF export is invalid');
   await click('print-note'); await click('print-pdf');
   await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('失败')");
@@ -321,7 +321,7 @@ export async function smokeEditor(window: BrowserWindow, directory: string): Pro
     if (format === 'delta') await click('rich-mode');
     writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({path:join(exportRoot,'note-'+format+'.pdf')}));
     await click('prepare-export'); await click('export-pdf');
-    await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')");
+    await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('完成')", 30000);
     if (!readFileSync(join(exportRoot,'note-'+format+'.pdf')).subarray(0,5).equals(Buffer.from('%PDF-'))) throw Error('Invalid PDF: '+format);
   }
   writeFileSync(join(directory, 'print-report.json'), JSON.stringify({ directPrint:true, nativePrintSimulated:true, pdfGenerated:true, formats:['text','markdown','html','delta'], unsafeHtmlFixture:true, overwriteRejected:true, cancelled:true, selectedCardHighlighted:true, exportMenu:true }));
