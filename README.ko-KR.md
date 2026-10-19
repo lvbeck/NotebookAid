@@ -35,11 +35,11 @@ NotebookAid는 선택적 Thunderbird 부가 기능을 제공하는 오픈 소스
 
 ## 다운로드
 
-[Windows 및 macOS용 NotebookAid 0.15.23 다운로드](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). 패키지와 SHA256 체크섬은 릴리스에 첨부됩니다. Windows 설치 관리자는 서명되지 않았으며 macOS는 공증 없이 ad-hoc 서명을 사용합니다. 자동 업데이트는 계속 비활성화됩니다. 아래 이전 CI 테스트 링크는 참고용입니다.
+[Windows 및 macOS용 NotebookAid 0.15.23 다운로드](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). 패키지와 SHA256 체크섬은 릴리스에 첨부됩니다. Windows 설치 관리자는 서명되지 않았으며 macOS는 공증 없이 ad-hoc 서명을 사용합니다. 자동 업데이트는 계속 비활성화됩니다. 아래 CI 링크는 검증을 통과한 최신 0.15.23 빌드를 가리킵니다.
 
-- [EXE 설치 관리자 / 포터블 ZIP 0.15.11](https://github.com/lvbeck/NotebookAid/actions/runs/38891357620/artifacts/12042182601): `NotebookAid-windows-x64-test`.
-- [네이티브 MSI 설치 관리자 0.15.11](https://github.com/lvbeck/NotebookAid/actions/runs/38891357620/artifacts/12041793159): `NotebookAid-windows-x64-msi-test`.
-- [macOS 패키지 0.15.11](https://github.com/lvbeck/NotebookAid/actions/runs/38891357616) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/38891357616/artifacts/12042456507) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/38891357616/artifacts/12041757826)): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
+- [EXE 설치 관리자 / 포터블 ZIP 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265549/artifacts/12225042339): `NotebookAid-windows-x64-test`.
+- [네이티브 MSI 설치 관리자 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265549/artifacts/12223624925): `NotebookAid-windows-x64-msi-test`.
+- [macOS 패키지 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250/artifacts/12224442881) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250/artifacts/12224908114)): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
 
 ## 설치 및 제한 사항
 
