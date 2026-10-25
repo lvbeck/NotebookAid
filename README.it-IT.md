@@ -34,6 +34,8 @@ La versione locale 0.15.23 aggiunge la modifica rich text delle linee orizzontal
 
 La versione locale 0.15.23 aggiunge formule KaTeX offline in Markdown: `$…$` / `\(…\)` in linea e `$$…$$` / `\[…\]` in blocco. Fare clic per modificare e visualizzare il sorgente LaTeX, oppure inserire una formula dalla barra esistente. Markdown conserva il sorgente, con annulla/ripristina e formule nel PDF. Il catalogo delle licenze include KaTeX, caratteri e dipendenze. Accettato dall’utente; vedere [test e ripristino](docs/math-testing.md).
 
+La versione locale 0.15.25 mantiene visibili l’intera intestazione dell’editor, il titolo, i comandi della nota e la barra rich text/sorgente durante lo scorrimento, in modalità normale e a schermo intero. Accettato dall’utente; vedere [test e ripristino](docs/sticky-editor-testing.md). L’intestazione compatta usa pulsanti uniformi da 26 px, testo da 11 px e icone da 12 px, anche per lingua, tema e menu. La riga schermo intero/salva ha 6 px sopra e sotto; si riducono gli spazi del titolo e si rimuove la linea sotto la barra di modifica.
+
 ## Download
 
 [Scarica NotebookAid 0.15.23 per Windows e macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). Pacchetti e checksum SHA256 sono allegati alla versione. Gli installer Windows non sono firmati; macOS usa una firma ad hoc senza notarizzazione. Gli aggiornamenti automatici restano disabilitati. I collegamenti CI seguenti rimandano alle ultime build 0.15.23 verificate.

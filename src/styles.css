@@ -631,6 +631,24 @@ input[type=checkbox], input[type=radio], input[type=range] { accent-color:var(--
 /* Cover both pane gutters while sticky actions overlap scrolling content. */
 .editor-pane { --editor-gutter:40px; padding-inline:var(--editor-gutter); overflow-x:hidden; }
 .editor-heading { margin-inline:calc(-1 * var(--editor-gutter)); padding-inline:var(--editor-gutter); }
+.editor-chrome { position:sticky; top:0; z-index:20; display:flow-root; margin-inline:calc(-1 * var(--editor-gutter)); padding-inline:var(--editor-gutter); background:var(--editor); }
+.editor-chrome .editor-heading { position:static; padding-block:6px; gap:5px; box-shadow:none; }
+.editor-chrome > .note-title { margin:0 0 8px; }
+.editor-chrome .editor-heading .note-title { padding-block:0; }
+.editor-chrome .note-organization { margin:0; padding:3px 0 4px; gap:5px; font-size:11px; }
+.editor-chrome .note-organization label { gap:5px; }
+.editor-chrome .editor-actions { margin:6px 0 4px; padding:4px 0; gap:5px; border-bottom:0; }
+.editor-chrome .primary,.editor-chrome .secondary,.editor-chrome .select-trigger,.preferences .select-trigger,.preferences .notifications-bell { min-height:26px; height:26px; margin:0; padding:3px 8px; gap:5px; font-size:11px; line-height:18px; }
+.editor-chrome app-icon svg,.editor-chrome .select-trigger svg,.editor-chrome .compact-editor-toolbar .select-trigger svg,.preferences svg { width:12px; height:12px; }
+.editor-chrome .editor-actions .segmented-radio { padding:2px; }
+.editor-chrome .editor-actions .segmented-radio label > span { height:26px; padding:3px 8px; gap:5px; font-size:11px; line-height:18px; }
+.editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow button { width:26px; height:26px; padding:5px; }
+.editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow button svg { width:12px; height:12px; }
+.editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow .ql-picker { height:26px; font-size:11px; }
+.editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow .ql-picker-label { padding-block:3px; line-height:18px; }
+.editor-chrome .compact-editor-toolbar .ql-picker-label svg { width:12px; height:12px; }
+.editor-chrome .compact-editor-toolbar .ql-picker:not(.ql-color-picker) .ql-picker-label > svg { margin-top:-6px; }
+@container (max-width:590px) { .editor-chrome .editor-actions .segmented-radio label > span { font-size:0; gap:0; } }
 .editor-area.editor-paginated { margin-inline:0; }
 .editor-document,.editor-body { min-width:0; width:100%; }
 .editor-actions { flex-wrap:wrap; }

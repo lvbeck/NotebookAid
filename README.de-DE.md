@@ -33,6 +33,8 @@ Die lokale Folgeversion 0.15.23 ergänzt die Rich-Text-Bearbeitung von Markdown-
 
 Die lokale Version 0.15.23 ergänzt offline verfügbare KaTeX-Formeln in Markdown: `$…$` / `\(…\)` im Text und `$$…$$` / `\[…\]` als Block. Formeln lassen sich anklicken, als LaTeX bearbeiten und vorab ansehen oder über die vorhandene Werkzeugleiste einfügen. Markdown behält den Quelltext; Rückgängig/Wiederholen und PDF-Formeln werden unterstützt. KaTeX, Schriftarten und Abhängigkeiten stehen im Lizenzkatalog. Vom Benutzer abgenommen; siehe [Formeltests und Rücksetzung](docs/math-testing.md).
 
+Die lokale Folgeversion 0.15.25 hält den gesamten Editorkopf, Titel, Notizaktionen und die Rich-Text-/Quelltextleiste beim Scrollen sichtbar, im normalen und im Vollbildmodus. Vom Benutzer abgenommen; siehe [Tests und Rücksetzung](docs/sticky-editor-testing.md). Die kompakte Kopfzeile verwendet einheitliche 26-Pixel-Schaltflächen mit 11-Pixel-Text und 12-Pixel-Symbolen, auch für Sprache, Design und App-Menü. Die Vollbild-/Speicherzeile hat oben und unten jeweils 6 Pixel Abstand; Titelabstände und die Trennlinie unter der Werkzeugleiste entfallen beziehungsweise werden reduziert.
+
 ## Downloads
 
 [NotebookAid 0.15.23 für Windows und macOS herunterladen](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). Pakete und SHA256-Prüfsummen sind der Veröffentlichung beigefügt. Windows-Installer sind unsigniert; macOS verwendet Ad-hoc-Signierung ohne Notarisierung. Automatische Updates bleiben deaktiviert. Die folgenden CI-Links verweisen auf die neuesten geprüften Builds 0.15.23.

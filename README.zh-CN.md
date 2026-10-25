@@ -33,6 +33,8 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 
 本地 0.15.23 为 Markdown 新增离线 KaTeX 公式：行内 `$…$`／`\(…\)` 与块级 `$$…$$`／`\[…\]`。点击公式可编辑 LaTeX 源码并预览，也可从现有工具栏插入；Markdown 保留源码，支持撤销重做和 PDF 公式输出。许可证清单包含 KaTeX、随包字体及依赖声明。已通过用户验收，参见[公式测试与回退](docs/math-testing.md)。
 
+本地后续版本 0.15.25 将编辑区顶部、标题、笔记属性和富文本／源码工具行统一固定，正文滚动时在全屏与非全屏下均保持可见。已通过用户验收，参见[测试与回退](docs/sticky-editor-testing.md)。 紧凑顶栏统一使用 26px 按钮、11px 文字与 12px 图标，包含顶部语言／主题／应用菜单；全屏／保存行上下各留 6px，缩小标题间距，并移除编辑工具行下方分割线。
+
 ## 下载
 
 [下载 NotebookAid 0.15.23（Windows 和 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23)。安装包和 SHA256 校验清单附于发布页面。Windows 安装器未签名；macOS 使用 ad-hoc 签名，未经公证。自动更新仍未启用。下方 CI 链接指向最新验证通过的 0.15.23 构建。

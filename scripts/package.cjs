@@ -107,6 +107,7 @@ const { execFileSync } = require('node:child_process');
   cpSync('docs/outline-testing.md', join(packageRoot, 'OUTLINE-TESTING.md'));
   cpSync('docs/markdown-blocks-testing.md', join(packageRoot, 'MARKDOWN-BLOCKS-TESTING.md'));
   cpSync('docs/math-testing.md', join(packageRoot, 'MATH-TESTING.md'));
+  cpSync('docs/sticky-editor-testing.md', join(packageRoot, 'STICKY-EDITOR-TESTING.md'));
   cpSync('node_modules/driver.js/license', join(packageRoot, 'DRIVER-JS-LICENSE.txt'));
   cpSync('node_modules/ical.js/LICENSE', join(packageRoot, 'ICAL-LICENSE.txt'));
   cpSync('node_modules/parse5/LICENSE', join(packageRoot, 'PARSE5-LICENSE.txt'));

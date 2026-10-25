@@ -119,6 +119,7 @@
         <div class="editor-empty-state" data-testid="editor-empty" role="status" [hidden]="!!workspace.session() || workspace.initializing() || workspace.libraryUnavailable() || workspace.lockedEmpty()"><app-icon name="FileText" /><h2>{{ t('noNoteSelected') }}</h2><p>{{ t('selectNoteHint') }}</p></div>
         <div class="editor-selection" [hidden]="!workspace.session() || workspace.initializing()">
         <ng-template #noteTitle><input class="note-title" data-testid="note-title" [attr.aria-label]="t('title')" [(ngModel)]="title" [disabled]="!workspace.session() || workspace.switching()" (compositionstart)="workspace.setComposing(true)" (compositionend)="workspace.setComposing(false)" maxlength="300"></ng-template>
+        <div class="editor-chrome" data-testid="editor-chrome">
         <div class="editor-heading">@if (editorFullscreen()) { <ng-container [ngTemplateOutlet]="noteTitle" /> }<span class="format-badge">{{ format() === 'text' ? 'TXT' : format().toUpperCase() }} · v{{ workspace.session()?.note?.version || 0 }}</span><span class="save-status" data-testid="save-status">{{ saveLabel() }}</span><button class="secondary fullscreen-toggle" data-testid="editor-fullscreen" (click)="toggleEditorFullscreen()" [disabled]="!workspace.session()" [attr.aria-pressed]="editorFullscreen()" [attr.aria-label]="t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff')" [title]="t(editorFullscreen() ? 'exitFullscreen' : 'enterFullscreen') + ' (Ctrl+Shift+F · Esc)'"><app-icon [name]="editorFullscreen() ? 'Minimize2' : 'Maximize2'" /><span>{{ t(editorFullscreen() ? 'fullscreenOn' : 'fullscreenOff') }}</span></button><button class="primary" data-testid="save-note" (click)="workspace.manualSave()" [disabled]="!workspace.session() || workspace.saving()"><app-icon name="Save" />{{ t(workspace.saving() ? 'saving' : 'save') }}</button></div>
         @if (!editorFullscreen()) { <ng-container [ngTemplateOutlet]="noteTitle" /> }
         @if (workspace.session(); as session) {
@@ -193,6 +194,7 @@
           <button cdkMenuItem data-testid="print-direct" (cdkMenuItemTriggered)="openPrint(false)"><app-icon name="Printer" />{{printLabel('print')}}</button>
           <button cdkMenuItem data-testid="print-pdf" (cdkMenuItemTriggered)="openPrint(true)"><app-icon name="FileOutput" />{{printLabel('pdf')}}</button>
         </div></ng-template>
+        </div>
         </div>
         <ng-template #tableMenu>
           <div cdkMenu class="editor-table-menu" [attr.aria-label]="t('tableTools')">

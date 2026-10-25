@@ -227,7 +227,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       const nodes = [...this.host.nativeElement.querySelectorAll<HTMLElement>('.ql-editor > h1,.ql-editor > h2,.ql-editor > h3,.ql-editor > h4,.ql-editor > h5,.ql-editor > h6')];
       const target = nodes[index];
       if (target) {
-        const pane = target.closest<HTMLElement>('.editor-pane'), heading = pane?.querySelector<HTMLElement>('.editor-heading');
+        const pane = target.closest<HTMLElement>('.editor-pane'), heading = pane?.querySelector<HTMLElement>('.editor-chrome');
         if (pane) pane.scrollTop += target.getBoundingClientRect().top - pane.getBoundingClientRect().top - (heading?.offsetHeight ?? 0) - 12;
       } else this.host.nativeElement.querySelector<HTMLElement>('.ql-editor')?.focus({ preventScroll: true });
     });
@@ -254,7 +254,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       const pane = this.host.nativeElement.closest('.editor-pane');
       if (!image?.isConnected || !panel || !pane) return;
       const bounds = pane.getBoundingClientRect(), rect = image.getBoundingClientRect();
-      const heading = pane.querySelector('.editor-heading')?.getBoundingClientRect();
+      const heading = pane.querySelector('.editor-chrome')?.getBoundingClientRect();
       const left = Math.max(8, bounds.left + 12), right = Math.min(innerWidth - 8, bounds.right - 12);
       const top = Math.max(8, bounds.top, heading?.bottom ?? 0) + 8, bottom = Math.min(innerHeight - 8, bounds.bottom - 8);
       const visible = rect.bottom > top && rect.top < bottom && rect.right > left && rect.left < right;
@@ -506,6 +506,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       observer.observe(image);
       const pane = this.host.nativeElement.closest('.editor-pane');
       if (pane) observer.observe(pane);
+      const chrome = pane?.querySelector('.editor-chrome');
+      if (chrome) observer.observe(chrome);
       const frame = requestAnimationFrame(() => { if (this.imageSizePanel) observer.observe(this.imageSizePanel.nativeElement); this.positionImagePanel(); });
       document.addEventListener('scroll', this.positionImagePanel, true);
       window.addEventListener('resize', this.positionImagePanel);

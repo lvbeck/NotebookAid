@@ -483,3 +483,13 @@ User authorization: save notebook settings inside each notebook directory in pre
 
 - The user explicitly accepted KaTeX formulas, Markdown horizontal rules and H4/H5/H6 rich editing, multilingual README updates and third-party notices, and authorized their scoped local commit. This later decision supersedes the pending acceptance status above for both follow-ups.
 - Keep T15-A shelved and its prototypes excluded. No next task, formal release or push is authorized. Existing validation limitations and retained ZIP rollback instructions remain applicable.
+
+### Persistent editor controls (2026-10-25; authorized)
+
+- The user requests that the complete editor toolbar row containing Rich text/Source and everything above it remain visible regardless of note-body scrolling, in normal and editor-fullscreen modes.
+- Group the existing version/save/fullscreen controls, title, organization controls and editing toolbar into a single sticky region. Preserve responsive wrapping, menus, theme/gutter coverage and body content. Adjust outline and image-panel offsets to the full region.
+- Deliver local 0.15.24 for acceptance with affected GUI/package checks and the authorized portable update. No new labels or dependency changes are required. T15-A remains shelved; await acceptance before committing this development follow-up. Do not infer new push/release permission from the earlier 0.15.23 publication.
+
+- Compact-header refinement (local 0.15.25): uniform 26px buttons, 11px labels and 12px icons in editor and top preferences; fullscreen/save row padding 6px above and below; normal title margin 0 0 8px; remove lower toolbar divider. Preserve sticky behavior in both modes. Update ten READMEs, verify packages, then update portable and existing all-users MSI installation for acceptance. No commit, push or GitHub release; T15-A remains shelved.
+
+- 2026-10-25: the user accepted the compact sticky header and explicitly authorized its scoped commit, push and GitHub release as v0.15.25. Earlier temporary publication restrictions are superseded for this work only. T15-A remains shelved and no next task is authorized.

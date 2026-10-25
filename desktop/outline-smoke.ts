@@ -65,7 +65,7 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
       await until('(()=>{const p=document.querySelector(".editor-pane"),h=p.querySelector(".editor-heading").getBoundingClientRect(),t=[...p.querySelectorAll(".ql-editor h2")].find(n=>n.textContent==="Child").getBoundingClientRect();return t.top>=h.bottom-1 && t.top<p.getBoundingClientRect().bottom;})()');
       for (const [row,tag] of [[3,'h4'],[4,'h5'],[5,'h6']]) {
         await click('.outline-row:nth-child('+row+') .outline-link');
-        await until('(()=>{const p=document.querySelector(".editor-pane"),h=p.querySelector(".editor-heading").getBoundingClientRect(),t=p.querySelector(".ql-editor '+tag+'").getBoundingClientRect();return t.top>=h.bottom-1 && t.top<p.getBoundingClientRect().bottom;})()');
+        await until('(()=>{const p=document.querySelector(".editor-pane"),h=p.querySelector(".editor-chrome").getBoundingClientRect(),t=p.querySelector(".ql-editor '+tag+'").getBoundingClientRect();return t.top>=h.bottom-1 && t.top<p.getBoundingClientRect().bottom;})()');
       }
       await run('{const t=document.querySelector("[data-testid=theme]");t.value="dark";t.dispatchEvent(new Event("change",{bubbles:true}));}');
       await until('document.documentElement.dataset.theme==="dark"');
@@ -98,22 +98,51 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
   await run('{const input=document.querySelector("[data-testid=language]");input.value="zh-CN";input.dispatchEvent(new Event("change",{bubbles:true}));const theme=document.querySelector("[data-testid=theme]");theme.value="dark";theme.dispatchEvent(new Event("change",{bubbles:true}));}');
   await until('document.documentElement.dataset.theme==="dark"');
   const boundaries: unknown[]=[];
+  const stickyPositions: unknown[]=[];
+  const compactMeasurements: unknown[]=[];
+  const checkSticky = async (details: object) => {
+    const compact=await run('(()=>{const c=document.querySelector(".editor-chrome"),h=c.querySelector(".editor-heading"),s=getComputedStyle(h),title=c.querySelector("[data-testid=note-title]"),buttons=[...c.querySelectorAll(".primary,.secondary,.select-trigger,.editor-actions .segmented-radio label > span"),...document.querySelectorAll(".preferences .select-trigger,.preferences .notifications-bell")].filter(e=>e.getClientRects().length);return {heights:buttons.map(e=>e.getBoundingClientRect().height),fontSizes:buttons.map(e=>getComputedStyle(e).fontSize),compactLabels:buttons.filter(e=>getComputedStyle(e).fontSize==="0px").every(e=>e.matches(".segmented-radio label > span")),icons:[...c.querySelectorAll("app-icon svg,.select-trigger svg"),...document.querySelectorAll(".preferences svg")].filter(e=>e.getClientRects().length).map(e=>({width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height})),paddingTop:s.paddingTop,paddingBottom:s.paddingBottom,titleMargin:getComputedStyle(title).marginTop,divider:getComputedStyle(c.querySelector(".editor-actions")).borderBottomWidth,shadow:getComputedStyle(c).boxShadow};})()');
+    compactMeasurements.push({...details,...compact});
+    if(compact.heights.some((n:number)=>Math.abs(n-26)>.1)||(compact.fontSizes.some((s:string)=>s!=="11px"&&s!=="0px")||!compact.compactLabels)||compact.icons.some((i:{width:number;height:number})=>i.width!==12||i.height!==12)||compact.paddingTop!=="6px"||compact.paddingBottom!=="6px"||compact.titleMargin!=="0px"||compact.divider!=="0px"||compact.shadow!=="none")throw Error('Compact header geometry: '+JSON.stringify({...details,...compact}));
+    for (const fraction of [0,.5,1]) {
+      await run('document.querySelector(".editor-pane").scrollTop=(document.querySelector(".editor-pane").scrollHeight-document.querySelector(".editor-pane").clientHeight)*'+fraction);
+      await new Promise(resolve=>setTimeout(resolve,40));
+      const result=await run('(()=>{const p=document.querySelector(".editor-pane"),c=p.querySelector(".editor-chrome"),a=p.getBoundingClientRect(),b=c.getBoundingClientRect();const visible=[".editor-heading","[data-testid=note-title]",".note-organization",".editor-actions"].every(s=>{const e=c.querySelector(s),r=e.getBoundingClientRect();return r.top>=a.top-1&&r.bottom<=a.bottom+1&&r.bottom<=b.bottom+1;});const actions=c.querySelector(".editor-actions").getBoundingClientRect(),hit=document.elementFromPoint(actions.left+8,actions.top+8);return {top:b.top-a.top,left:b.left-a.left,right:a.left+p.clientWidth-b.right,overflow:p.scrollWidth-p.clientWidth,visible,covered:c.contains(hit),scrollTop:p.scrollTop};})()');
+      stickyPositions.push({...details,fraction,...result});
+      if(Math.abs(result.top)>1||Math.abs(result.left)>1||Math.abs(result.right)>1||result.overflow>1||!result.visible||!result.covered)throw Error('Sticky editor controls moved or were covered: '+JSON.stringify({...details,fraction,...result}));
+    }
+  };
   for(const fullscreen of [false,true]){
     if(fullscreen)await click('[data-testid=editor-fullscreen]');
     for(const width of [1400,1000]){
       window.setSize(width,850);await new Promise(resolve=>setTimeout(resolve,180));
-      for(const mode of ['continuous','pages','fold','directory']){
-        await layout(mode);
-        const result=await run('(()=>{const p=document.querySelector(".editor-pane"),h=p.querySelector(".editor-heading");p.scrollTop=200;const a=p.getBoundingClientRect(),b=h.getBoundingClientRect();return {left:b.left-a.left,right:a.left+p.clientWidth-b.right,overflow:p.scrollWidth-p.clientWidth,mode:'+JSON.stringify(mode)+',width:'+width+',fullscreen:'+fullscreen+'};})()');
-        boundaries.push(result);
-        if(Math.abs(result.left)>1||Math.abs(result.right)>1||result.overflow>1)throw Error('Editor boundary overflow: '+JSON.stringify(result));
+      for(const theme of ['dark','light']){
+        await run('{const t=document.querySelector("[data-testid=theme]");t.value='+JSON.stringify(theme)+';t.dispatchEvent(new Event("change",{bubbles:true}));}');
+        for(const mode of ['continuous','pages','fold','directory']){
+          await layout(mode);
+          const result=await run('(()=>{const p=document.querySelector(".editor-pane"),h=p.querySelector(".editor-heading");p.scrollTop=200;const a=p.getBoundingClientRect(),b=h.getBoundingClientRect();return {left:b.left-a.left,right:a.left+p.clientWidth-b.right,overflow:p.scrollWidth-p.clientWidth,mode:'+JSON.stringify(mode)+',width:'+width+',fullscreen:'+fullscreen+'};})()');
+          boundaries.push({...result,theme});
+          if(Math.abs(result.left)>1||Math.abs(result.right)>1||result.overflow>1)throw Error('Editor boundary overflow: '+JSON.stringify(result));
+          await checkSticky({fullscreen,width,theme,mode,source:false});
+        }
+        await layout('continuous');await click('[data-testid=source-mode]');
+        await until('!!document.querySelector("[data-testid=body-source]")');
+        await run('document.querySelector("[data-testid=body-source]").style.minHeight="1400px"');
+        await checkSticky({fullscreen,width,theme,mode:'continuous',source:true});
+        await run('document.querySelector("[data-testid=body-source]").style.removeProperty("min-height")');
+        await click('[data-testid=rich-mode]');
       }
     }
   }
+  await run('{const t=document.querySelector("[data-testid=theme]");t.value="dark";t.dispatchEvent(new Event("change",{bubbles:true}));}');
+  await run('document.querySelectorAll("[data-testid=notification] .icon-button").forEach(n=>n.click());document.querySelector(".editor-pane").scrollTop=600');
+  await snapshot('sticky-fullscreen-dark.png');
+  await click('[data-testid=editor-fullscreen]');window.setSize(1400,850);await layout('pages');
+  await run('document.querySelector(".editor-pane").scrollTop=600');await snapshot('sticky-normal-dark.png');
   await layout('directory');await snapshot('outline-directory-dark.png');
   await run('{const theme=document.querySelector("[data-testid=theme]");theme.value="light";theme.dispatchEvent(new Event("change",{bubbles:true}));}');
   await snapshot('outline-directory-light.png');
   for(const note of notes){const actual=await bodyAt(note.id);if(actual.body!==note.body||actual.version!==note.version)throw Error('Final body or version changed');}
   writeFileSync(join(directory,'outline-fixture.json'),JSON.stringify({notes}));
-  writeFileSync(join(directory,'outline-report.json'),JSON.stringify({formats:2,layouts:4,locales:10,exactBodies:true,unchangedVersions:true,collapseExpand:true,navigation:true,unsupportedFallback:true,defaultPreferenceRemoved:true,emptyOutline:true,boundaries}));
+  writeFileSync(join(directory,'outline-report.json'),JSON.stringify({formats:2,layouts:4,locales:10,exactBodies:true,unchangedVersions:true,collapseExpand:true,navigation:true,unsupportedFallback:true,defaultPreferenceRemoved:true,emptyOutline:true,boundaries,stickyPositions,compactMeasurements}));
 }

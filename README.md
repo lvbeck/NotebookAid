@@ -33,6 +33,8 @@ Local follow-up 0.15.23 adds Markdown horizontal rules and H4/H5/H6 rich-text ed
 
 Local 0.15.23 adds offline KaTeX formulas to Markdown: inline `$…$` / `\(…\)` and block `$$…$$` / `\[…\]`. Click a formula to edit its LaTeX source and preview it; existing toolbar actions insert formulas. Source remains in Markdown, with undo/redo and rendered PDF output. KaTeX, bundled fonts and dependency notices appear in the license catalog. Accepted by the user; see [formula testing and rollback](docs/math-testing.md).
 
+Local follow-up 0.15.25 keeps the complete editor header, title, note controls and rich-text/source toolbar visible while the body scrolls, in normal and fullscreen modes. Accepted by the user; see [testing and rollback](docs/sticky-editor-testing.md). The compact header uses uniform 26px buttons with 11px labels and 12px icons, including the language/theme/app menu controls. The fullscreen/save row has equal 6px top and bottom spacing; title gaps are reduced and the divider below the editing toolbar is removed.
+
 ## Downloads
 
 [Download NotebookAid 0.15.23 for Windows and macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). Packages and SHA256 checksums are attached to the release. Windows installers are unsigned; macOS packages use ad-hoc signing without notarization. Automatic updates remain disabled. The CI links below point to the latest verified 0.15.23 builds.

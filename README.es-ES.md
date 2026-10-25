@@ -34,6 +34,8 @@ La versión local 0.15.23 añade edición enriquecida de líneas horizontales Ma
 
 La versión local 0.15.23 añade fórmulas KaTeX sin conexión en Markdown: `$…$` / `\(…\)` en línea y `$$…$$` / `\[…\]` en bloque. Haga clic para editar y previsualizar LaTeX o inserte una fórmula desde la barra existente. Markdown conserva el código, con deshacer/rehacer y fórmulas en PDF. El catálogo de licencias incluye KaTeX, fuentes y dependencias. Aceptado por el usuario; consulte [pruebas y reversión](docs/math-testing.md).
 
+La versión local 0.15.25 mantiene visibles toda la cabecera del editor, el título, los controles de nota y la barra de texto enriquecido/código fuente al desplazar el texto, en modo normal y pantalla completa. Aceptado por el usuario; consulte [pruebas y reversión](docs/sticky-editor-testing.md). La cabecera compacta usa botones uniformes de 26 px, texto de 11 px e iconos de 12 px, también en idioma, tema y menú. La fila de pantalla completa/guardar tiene márgenes superior e inferior de 6 px; se reduce el espacio del título y se elimina la línea bajo la barra de edición.
+
 ## Descargas
 
 [Descargar NotebookAid 0.15.23 para Windows y macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). Los paquetes y las sumas SHA256 se adjuntan a la versión. Los instaladores Windows no están firmados; macOS usa firma ad hoc sin notarización. Las actualizaciones automáticas siguen desactivadas. Los enlaces CI siguientes apuntan a las últimas compilaciones 0.15.23 verificadas.
