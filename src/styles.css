@@ -644,9 +644,12 @@ input[type=checkbox], input[type=radio], input[type=range] { accent-color:var(--
 .editor-chrome .editor-actions .segmented-radio label > span { height:26px; padding:3px 8px; gap:5px; font-size:11px; line-height:18px; }
 .editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow button { width:26px; height:26px; padding:5px; }
 .editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow button svg { width:12px; height:12px; }
+.editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow .rich-tools button:not(.select-trigger) { display:inline-flex; align-items:center; justify-content:center; float:none; padding:4px; }
+.editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow .rich-tools button:not(.select-trigger) svg { width:18px; height:18px; }
 .editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow .ql-picker { height:26px; font-size:11px; }
 .editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow .ql-picker-label { padding-block:3px; line-height:18px; }
 .editor-chrome .compact-editor-toolbar .ql-picker-label svg { width:12px; height:12px; }
+.editor-chrome .compact-editor-toolbar .rich-tools .ql-color-picker .ql-picker-label svg { width:18px; height:18px; position:static; float:none; margin:0; }
 .editor-chrome .compact-editor-toolbar .ql-picker:not(.ql-color-picker) .ql-picker-label > svg { margin-top:-6px; }
 @container (max-width:590px) { .editor-chrome .editor-actions .segmented-radio label > span { font-size:0; gap:0; } }
 .editor-area.editor-paginated { margin-inline:0; }

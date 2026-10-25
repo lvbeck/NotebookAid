@@ -35,6 +35,8 @@ Local 0.15.23 adds offline KaTeX formulas to Markdown: inline `$…$` / `\(…\)
 
 Local follow-up 0.15.25 keeps the complete editor header, title, note controls and rich-text/source toolbar visible while the body scrolls, in normal and fullscreen modes. Accepted by the user; see [testing and rollback](docs/sticky-editor-testing.md). The compact header uses uniform 26px buttons with 11px labels and 12px icons, including the language/theme/app menu controls. The fullscreen/save row has equal 6px top and bottom spacing; title gaps are reduced and the divider below the editing toolbar is removed.
 
+Local 0.15.26 uses 18px Quill format-tool icons inside the existing buttons, with vertically centered rows and normal/fullscreen sticky behavior. Other buttons keep their previous size. Accepted by the user; see [testing and rollback](docs/editor-icon-testing.md).
+
 ## Downloads
 
 [Download NotebookAid 0.15.25 for Windows and macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25). Packages and SHA256 checksums are attached to the release. Windows installers are unsigned; macOS packages use ad-hoc signing without notarization. Automatic updates remain disabled. The CI links below point to the latest verified 0.15.25 builds.

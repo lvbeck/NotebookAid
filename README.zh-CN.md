@@ -35,6 +35,8 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 
 本地后续版本 0.15.25 将编辑区顶部、标题、笔记属性和富文本／源码工具行统一固定，正文滚动时在全屏与非全屏下均保持可见。已通过用户验收，参见[测试与回退](docs/sticky-editor-testing.md)。 紧凑顶栏统一使用 26px 按钮、11px 文字与 12px 图标，包含顶部语言／主题／应用菜单；全屏／保存行上下各留 6px，缩小标题间距，并移除编辑工具行下方分割线。
 
+本地 0.15.26 将 Quill 格式工具图标放大至 18px，按钮尺寸不变，同一行垂直居中，并保留全屏／非全屏 sticky 效果；其他按钮维持原尺寸。已通过用户验收，参见[测试与回退](docs/editor-icon-testing.md)。
+
 ## 下载
 
 [下载 NotebookAid 0.15.25（Windows 和 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25)。安装包和 SHA256 校验清单附于发布页面。Windows 安装器未签名；macOS 使用 ad-hoc 签名，未经公证。自动更新仍未启用。下方 CI 链接指向最新验证通过的 0.15.25 构建。

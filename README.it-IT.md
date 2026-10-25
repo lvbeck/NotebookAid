@@ -36,6 +36,8 @@ La versione locale 0.15.23 aggiunge formule KaTeX offline in Markdown: `$…$` /
 
 La versione locale 0.15.25 mantiene visibili l’intera intestazione dell’editor, il titolo, i comandi della nota e la barra rich text/sorgente durante lo scorrimento, in modalità normale e a schermo intero. Accettato dall’utente; vedere [test e ripristino](docs/sticky-editor-testing.md). L’intestazione compatta usa pulsanti uniformi da 26 px, testo da 11 px e icone da 12 px, anche per lingua, tema e menu. La riga schermo intero/salva ha 6 px sopra e sotto; si riducono gli spazi del titolo e si rimuove la linea sotto la barra di modifica.
 
+La versione locale 0.15.26 ingrandisce a 18 px le icone di formattazione Quill nei pulsanti esistenti, con centratura verticale e intestazione fissa in modalità normale e a schermo intero. Gli altri pulsanti mantengono le dimensioni. Accettato dall’utente; vedere [test e ripristino](docs/editor-icon-testing.md).
+
 ## Download
 
 [Scarica NotebookAid 0.15.25 per Windows e macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25). Pacchetti e checksum SHA256 sono allegati alla versione. Gli installer Windows non sono firmati; macOS usa una firma ad hoc senza notarizzazione. Gli aggiornamenti automatici restano disabilitati. I collegamenti CI seguenti rimandano alle ultime build 0.15.25 verificate.

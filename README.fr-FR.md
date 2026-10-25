@@ -36,6 +36,8 @@ La version locale 0.15.23 ajoute les formules KaTeX hors ligne dans Markdown : `
 
 La version locale 0.15.25 maintient visibles l’en-tête complet de l’éditeur, le titre, les commandes de note et la barre texte enrichi/source pendant le défilement, en mode normal et plein écran. Validé par l’utilisateur ; voir [tests et retour arrière](docs/sticky-editor-testing.md). L’en-tête compact utilise des boutons uniformes de 26 px, du texte de 11 px et des icônes de 12 px, y compris pour la langue, le thème et le menu. La ligne plein écran/enregistrer conserve 6 px en haut et en bas ; les marges du titre sont réduites et le séparateur sous la barre d’édition est supprimé.
 
+La version locale 0.15.26 agrandit à 18 px les icônes de mise en forme Quill dans les boutons existants, avec un centrage vertical et un en-tête fixe en mode normal et plein écran. Les autres boutons gardent leur taille. Validé par l’utilisateur ; voir [tests et retour arrière](docs/editor-icon-testing.md).
+
 ## Téléchargements
 
 [Télécharger NotebookAid 0.15.25 pour Windows et macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25). Les paquets et sommes SHA256 sont joints à la version. Les installateurs Windows ne sont pas signés ; macOS utilise une signature ad hoc sans notarisation. Les mises à jour automatiques restent désactivées. Les liens CI ci-dessous pointent vers les dernières compilations 0.15.25 vérifiées.

@@ -36,6 +36,8 @@ La versión local 0.15.23 añade fórmulas KaTeX sin conexión en Markdown: `$�
 
 La versión local 0.15.25 mantiene visibles toda la cabecera del editor, el título, los controles de nota y la barra de texto enriquecido/código fuente al desplazar el texto, en modo normal y pantalla completa. Aceptado por el usuario; consulte [pruebas y reversión](docs/sticky-editor-testing.md). La cabecera compacta usa botones uniformes de 26 px, texto de 11 px e iconos de 12 px, también en idioma, tema y menú. La fila de pantalla completa/guardar tiene márgenes superior e inferior de 6 px; se reduce el espacio del título y se elimina la línea bajo la barra de edición.
 
+La versión local 0.15.26 amplía a 18 px los iconos de formato Quill dentro de los botones existentes, con centrado vertical y cabecera fija en modo normal y pantalla completa. Los demás botones conservan su tamaño. Aceptado por el usuario; consulte [pruebas y reversión](docs/editor-icon-testing.md).
+
 ## Descargas
 
 [Descargar NotebookAid 0.15.25 para Windows y macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25). Los paquetes y las sumas SHA256 se adjuntan a la versión. Los instaladores Windows no están firmados; macOS usa firma ad hoc sin notarización. Las actualizaciones automáticas siguen desactivadas. Los enlaces CI siguientes apuntan a las últimas compilaciones 0.15.25 verificadas.

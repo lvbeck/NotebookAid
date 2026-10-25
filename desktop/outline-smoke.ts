@@ -100,10 +100,11 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
   const boundaries: unknown[]=[];
   const stickyPositions: unknown[]=[];
   const compactMeasurements: unknown[]=[];
+  const editorIconMeasurements: unknown[]=[];
   const checkSticky = async (details: object) => {
-    const compact=await run('(()=>{const c=document.querySelector(".editor-chrome"),h=c.querySelector(".editor-heading"),s=getComputedStyle(h),title=c.querySelector("[data-testid=note-title]"),buttons=[...c.querySelectorAll(".primary,.secondary,.select-trigger,.editor-actions .segmented-radio label > span"),...document.querySelectorAll(".preferences .select-trigger,.preferences .notifications-bell")].filter(e=>e.getClientRects().length);return {heights:buttons.map(e=>e.getBoundingClientRect().height),fontSizes:buttons.map(e=>getComputedStyle(e).fontSize),compactLabels:buttons.filter(e=>getComputedStyle(e).fontSize==="0px").every(e=>e.matches(".segmented-radio label > span")),icons:[...c.querySelectorAll("app-icon svg,.select-trigger svg"),...document.querySelectorAll(".preferences svg")].filter(e=>e.getClientRects().length).map(e=>({width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height})),paddingTop:s.paddingTop,paddingBottom:s.paddingBottom,titleMargin:getComputedStyle(title).marginTop,divider:getComputedStyle(c.querySelector(".editor-actions")).borderBottomWidth,shadow:getComputedStyle(c).boxShadow};})()');
+    const compact=await run('(()=>{const c=document.querySelector(".editor-chrome"),h=c.querySelector(".editor-heading"),s=getComputedStyle(h),title=c.querySelector("[data-testid=note-title]"),buttons=[...c.querySelectorAll(".primary,.secondary,.select-trigger,.editor-actions .segmented-radio label > span"),...document.querySelectorAll(".preferences .select-trigger,.preferences .notifications-bell")].filter(e=>e.getClientRects().length);return {heights:buttons.map(e=>e.getBoundingClientRect().height),fontSizes:buttons.map(e=>getComputedStyle(e).fontSize),compactLabels:buttons.filter(e=>getComputedStyle(e).fontSize==="0px").every(e=>e.matches(".segmented-radio label > span")),icons:[...c.querySelectorAll("app-icon svg,.select-trigger svg"),...document.querySelectorAll(".preferences svg")].filter(e=>e.getClientRects().length).map(e=>({width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height,expected:e.closest(".rich-tools button:not(.select-trigger)")?18:12})),paddingTop:s.paddingTop,paddingBottom:s.paddingBottom,titleMargin:getComputedStyle(title).marginTop,divider:getComputedStyle(c.querySelector(".editor-actions")).borderBottomWidth,shadow:getComputedStyle(c).boxShadow};})()');
     compactMeasurements.push({...details,...compact});
-    if(compact.heights.some((n:number)=>Math.abs(n-26)>.1)||(compact.fontSizes.some((s:string)=>s!=="11px"&&s!=="0px")||!compact.compactLabels)||compact.icons.some((i:{width:number;height:number})=>i.width!==12||i.height!==12)||compact.paddingTop!=="6px"||compact.paddingBottom!=="6px"||compact.titleMargin!=="0px"||compact.divider!=="0px"||compact.shadow!=="none")throw Error('Compact header geometry: '+JSON.stringify({...details,...compact}));
+    if(compact.heights.some((n:number)=>Math.abs(n-26)>.1)||(compact.fontSizes.some((s:string)=>s!=="11px"&&s!=="0px")||!compact.compactLabels)||compact.icons.some((i:{width:number;height:number;expected:number})=>i.width!==i.expected||i.height!==i.expected)||compact.paddingTop!=="6px"||compact.paddingBottom!=="6px"||compact.titleMargin!=="0px"||compact.divider!=="0px"||compact.shadow!=="none")throw Error('Compact header geometry: '+JSON.stringify({...details,...compact}));
     for (const fraction of [0,.5,1]) {
       await run('document.querySelector(".editor-pane").scrollTop=(document.querySelector(".editor-pane").scrollHeight-document.querySelector(".editor-pane").clientHeight)*'+fraction);
       await new Promise(resolve=>setTimeout(resolve,40));
@@ -111,6 +112,14 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
       stickyPositions.push({...details,fraction,...result});
       if(Math.abs(result.top)>1||Math.abs(result.left)>1||Math.abs(result.right)>1||result.overflow>1||!result.visible||!result.covered)throw Error('Sticky editor controls moved or were covered: '+JSON.stringify({...details,fraction,...result}));
     }
+  };
+  const checkEditorIcons = async (details: object) => {
+    const opened=await run('(()=>{const b=document.querySelector("[data-testid=more-editor-tools]");if(b&&b.getClientRects().length&&b.getAttribute("aria-expanded")!=="true"){b.click();return true;}return false;})()');
+    await new Promise(resolve=>setTimeout(resolve,50));
+    const icons=await run('(()=>{const t=document.querySelector(".compact-editor-toolbar"),visible=e=>e.getClientRects().length>0;const controls=[...t.querySelectorAll(".rich-tools button:not(.select-trigger),.rich-tools .ql-color-picker .ql-picker-label")].filter(visible);const sizes=controls.map(e=>{const r=e.getBoundingClientRect(),svg=e.querySelector("svg"),s=svg?.getBoundingClientRect();return {height:r.height,width:s?.width,iconHeight:s?.height,center:s?Math.abs((r.top+r.bottom-s.top-s.bottom)/2):999};});const groups=[...document.querySelectorAll(".editor-actions > :not(ng-template)")].filter(visible).map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,center:(r.top+r.bottom)/2};});let rowCentered=true;for(const a of groups)for(const b of groups)if(Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>2&&Math.abs(a.center-b.center)>1)rowCentered=false;return {sizes,rowCentered,nativeBold:!!t.querySelector(".ql-bold .ql-stroke"),nativeColor:!!t.querySelector(".ql-color-picker .ql-color-label")};})()');
+    editorIconMeasurements.push({...details,...icons});
+    if(icons.sizes.length<15||icons.sizes.some((i:{height:number;width:number;iconHeight:number;center:number})=>i.height!==26||i.width!==18||i.iconHeight!==18||i.center>1)||!icons.rowCentered||!icons.nativeBold||!icons.nativeColor)throw Error('Native editor icon geometry: '+JSON.stringify({...details,...icons}));
+    if(opened)await click('[data-testid=more-editor-tools]');
   };
   for(const fullscreen of [false,true]){
     if(fullscreen)await click('[data-testid=editor-fullscreen]');
@@ -124,6 +133,7 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
           boundaries.push({...result,theme});
           if(Math.abs(result.left)>1||Math.abs(result.right)>1||result.overflow>1)throw Error('Editor boundary overflow: '+JSON.stringify(result));
           await checkSticky({fullscreen,width,theme,mode,source:false});
+          if(mode==='continuous')await checkEditorIcons({fullscreen,width,theme});
         }
         await layout('continuous');await click('[data-testid=source-mode]');
         await until('!!document.querySelector("[data-testid=body-source]")');
@@ -134,6 +144,7 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
       }
     }
   }
+  window.setSize(1900,850);await layout('continuous');await new Promise(resolve=>setTimeout(resolve,120));await checkEditorIcons({fullscreen:true,width:1900,theme:'light'});
   await run('{const t=document.querySelector("[data-testid=theme]");t.value="dark";t.dispatchEvent(new Event("change",{bubbles:true}));}');
   await run('document.querySelectorAll("[data-testid=notification] .icon-button").forEach(n=>n.click());document.querySelector(".editor-pane").scrollTop=600');
   await snapshot('sticky-fullscreen-dark.png');
@@ -144,5 +155,5 @@ export async function smokeOutline(window: BrowserWindow, directory: string): Pr
   await snapshot('outline-directory-light.png');
   for(const note of notes){const actual=await bodyAt(note.id);if(actual.body!==note.body||actual.version!==note.version)throw Error('Final body or version changed');}
   writeFileSync(join(directory,'outline-fixture.json'),JSON.stringify({notes}));
-  writeFileSync(join(directory,'outline-report.json'),JSON.stringify({formats:2,layouts:4,locales:10,exactBodies:true,unchangedVersions:true,collapseExpand:true,navigation:true,unsupportedFallback:true,defaultPreferenceRemoved:true,emptyOutline:true,boundaries,stickyPositions,compactMeasurements}));
+  writeFileSync(join(directory,'outline-report.json'),JSON.stringify({formats:2,layouts:4,locales:10,exactBodies:true,unchangedVersions:true,collapseExpand:true,navigation:true,unsupportedFallback:true,defaultPreferenceRemoved:true,emptyOutline:true,boundaries,stickyPositions,compactMeasurements,editorIconMeasurements}));
 }
