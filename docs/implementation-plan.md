@@ -1717,7 +1717,7 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - Public release page and representative Windows/arm64/x64 download URLs returned HTTP 200 with expected sizes. Public SHA256SUMS-0.15.25.txt exactly matches the local manifest, whose ten binary hashes match GitHub asset digests (output/release-025-public-verification.json). Automatic updates remain disabled.
 - Ten README download sections and latest-verified CI tables now point to v0.15.25 and this commit’s successful run/artifact IDs. Historical feature-version paragraphs remain unchanged. README links and final staged diff are checked before the documentation follow-up commit. T15-A remains shelved; no next development task started.
 
-### Native Quill editor icons — local 0.15.26, awaiting acceptance
+### Native Quill editor icons — 0.15.26, accepted 2026-10-25
 
 - User approved the Quill-native 18px icon preview and authorized implementation, tests, packages and updating both portable and installed programs. Preview approval is not acceptance of the resulting implementation. No commit, push or publication is authorized. T15-A remains shelved and excluded.
 - Keep existing Quill-generated format controls and handlers; scoped CSS increases only rich-format icons to 18px and centers them within the unchanged buttons. Existing custom divider/formula/table controls follow the same icon size; rich/source and all other controls remain unchanged. Normal/fullscreen sticky behavior is preserved. Validation/deployment pending.
@@ -1735,3 +1735,11 @@ Prepare-TestPortable.ps1已更新C:\Softwares\NotebookAid-win32-x64：verified=t
 - User acceptance: "Quill 原生编辑图标和垂直居中验收通过，请按项目规则提交本次修改。T15-A 继续搁置，暂时不进行下个任务，推送、发布。"
 - This accepts the implemented 0.15.26 native icon/alignment changes and explicitly authorizes committing on main, pushing and publishing v0.15.26. Earlier no-commit/no-push/no-publication restrictions are superseded for this accepted scope only. T15-A prototype files remain excluded and no next task is authorized.
 - Retain the accepted local Windows binaries, verify upload hashes and actual release-asset scanning, and publish only after source-matched Windows/macOS CI passes. Download macOS arm64/x64 artifacts from those successful runs.
+
+### v0.15.26 GitHub publication — completed 2026-10-25
+
+- The 21 reviewed implementation/test/documentation/version files were committed and pushed as 9293a2208a59c20517cf76045f133e8a21d5a1cd (Enlarge native Quill editor icons and center toolbar controls). T15-A note-icon and shell-probe prototypes remain untracked, shelved and excluded.
+- Source-matched Windows CI 40183811761 and macOS CI 40183811759 passed, including both arm64/x64 jobs. Windows verification includes platform tests, MSI upgrade/rollback and scope tests, package inventory, Defender, packaged UI/editor and NSIS install/reinstall/uninstall. macOS verification includes platform tests, package/addon checks and packaged smoke tests. Physical-device limitations remain.
+- Published https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.26 as the latest non-prerelease with fifteen assets. The tag points exactly to 9293a2208a59c20517cf76045f133e8a21d5a1cd. Accepted local Windows EXE/MSI/ZIP and both XPIs were retained byte-for-byte; all upload digests were verified. The three actual Windows release binaries passed local Defender scanning with remediation disabled. Four macOS DMG/ZIP packages came from the successful source-matched CI, with artifact and package checksum verification.
+- The public release and representative Windows/arm64/x64 download URLs returned HTTP 200 with expected sizes. Public SHA256SUMS-0.15.26.txt exactly matches the local manifest and its ten binary hashes match the uploaded asset digests (output/release-026-public-verification.json). Automatic updates remain disabled.
+- Ten README download sections and latest-verified CI tables now point to v0.15.26 and the successful run/artifact IDs. Historical feature-version text is retained. Link checks and the final staged diff are checked before the documentation follow-up commit. No next development task was started.

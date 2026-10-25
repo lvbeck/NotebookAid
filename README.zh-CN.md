@@ -39,13 +39,13 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 
 ## 下载
 
-[下载 NotebookAid 0.15.25（Windows 和 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25)。安装包和 SHA256 校验清单附于发布页面。Windows 安装器未签名；macOS 使用 ad-hoc 签名，未经公证。自动更新仍未启用。下方 CI 链接指向最新验证通过的 0.15.25 构建。
+[下载 NotebookAid 0.15.26（Windows 和 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.26)。安装包和 SHA256 校验清单附于发布页面。Windows 安装器未签名；macOS 使用 ad-hoc 签名，未经公证。自动更新仍未启用。下方 CI 链接指向最新验证通过的 0.15.26 构建。
 
 | 平台 | 产物 | 最新已验证测试构建 | 工作流 |
 | --- | --- | --- | --- |
-| Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.25 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/40178011749/artifacts/12592964552) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.25 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/40178011749/artifacts/12593335284) | [MSI 安装和更新说明](docs/msi-testing.md) |
-| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、十语言安装说明和 SHA256 校验清单 | [macOS 0.15.25 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739/artifacts/12592428676) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739/artifacts/12593093857)) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.26 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/40183811761/artifacts/12595069739) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.26 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/40183811761/artifacts/12595880523) | [MSI 安装和更新说明](docs/msi-testing.md) |
+| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、十语言安装说明和 SHA256 校验清单 | [macOS 0.15.26 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/40183811759) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/40183811759/artifacts/12594989081) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/40183811759/artifacts/12595049150)) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 登录 GitHub，打开成功的运行记录，在 **Artifacts** 区域下载：
 
