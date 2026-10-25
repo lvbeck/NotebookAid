@@ -38,11 +38,11 @@ NotebookAid 是開源桌面筆記應用程式，提供可選的 Thunderbird 附�
 
 ## 下載
 
-[下載 NotebookAid 0.15.23（Windows 及 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23)。安裝套件及 SHA256 核對清單附於發佈頁面。Windows 安裝程式未簽署；macOS 使用 ad-hoc 簽署，未經公證。自動更新仍未啟用。下方 CI 連結指向最新驗證通過的 0.15.23 建置。
+[下載 NotebookAid 0.15.25（Windows 及 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25)。安裝套件及 SHA256 核對清單附於發佈頁面。Windows 安裝程式未簽署；macOS 使用 ad-hoc 簽署，未經公證。自動更新仍未啟用。下方 CI 連結指向最新驗證通過的 0.15.25 建置。
 
-- [EXE 安裝程式／可攜式 ZIP 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265549/artifacts/12225042339): `NotebookAid-windows-x64-test`.
-- [原生 MSI 安裝程式 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265549/artifacts/12223624925): `NotebookAid-windows-x64-msi-test`.
-- [macOS 安裝檔 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250/artifacts/12224442881) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250/artifacts/12224908114)): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
+- [EXE 安裝程式／可攜式 ZIP 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/40178011749/artifacts/12592964552): `NotebookAid-windows-x64-test`.
+- [原生 MSI 安裝程式 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/40178011749/artifacts/12593335284): `NotebookAid-windows-x64-msi-test`.
+- [macOS 安裝檔 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739/artifacts/12592428676) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739/artifacts/12593093857)): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
 
 ## 安裝及限制
 

@@ -38,11 +38,11 @@ NotebookAid は、任意の Thunderbird アドオンを備えたオープンソ�
 
 ## ダウンロード
 
-[NotebookAid 0.15.23（Windows・macOS）をダウンロード](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23)。配布パッケージと SHA256 はリリースに添付しています。Windows インストーラーは未署名、macOS は公証なしの ad-hoc 署名です。自動更新は引き続き無効です。以下の CI リンクは検証済みの最新 0.15.23 ビルドを指しています。
+[NotebookAid 0.15.25（Windows・macOS）をダウンロード](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25)。配布パッケージと SHA256 はリリースに添付しています。Windows インストーラーは未署名、macOS は公証なしの ad-hoc 署名です。自動更新は引き続き無効です。以下の CI リンクは検証済みの最新 0.15.25 ビルドを指しています。
 
-- [EXE インストーラー／ポータブル ZIP 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265549/artifacts/12225042339): `NotebookAid-windows-x64-test`.
-- [ネイティブ MSI インストーラー 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265549/artifacts/12223624925): `NotebookAid-windows-x64-msi-test`.
-- [macOS パッケージ 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250/artifacts/12224442881) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250/artifacts/12224908114)): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
+- [EXE インストーラー／ポータブル ZIP 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/40178011749/artifacts/12592964552): `NotebookAid-windows-x64-test`.
+- [ネイティブ MSI インストーラー 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/40178011749/artifacts/12593335284): `NotebookAid-windows-x64-msi-test`.
+- [macOS パッケージ 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739/artifacts/12592428676) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739/artifacts/12593093857)): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
 
 ## インストールと制限
 

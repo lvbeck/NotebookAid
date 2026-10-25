@@ -38,11 +38,11 @@ La version locale 0.15.25 maintient visibles l’en-tête complet de l’éditeu
 
 ## Téléchargements
 
-[Télécharger NotebookAid 0.15.23 pour Windows et macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.23). Les paquets et sommes SHA256 sont joints à la version. Les installateurs Windows ne sont pas signés ; macOS utilise une signature ad hoc sans notarisation. Les mises à jour automatiques restent désactivées. Les liens CI ci-dessous pointent vers les dernières compilations 0.15.23 vérifiées.
+[Télécharger NotebookAid 0.15.25 pour Windows et macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25). Les paquets et sommes SHA256 sont joints à la version. Les installateurs Windows ne sont pas signés ; macOS utilise une signature ad hoc sans notarisation. Les mises à jour automatiques restent désactivées. Les liens CI ci-dessous pointent vers les dernières compilations 0.15.25 vérifiées.
 
-- [Installateur EXE / ZIP portable 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265549/artifacts/12225042339): `NotebookAid-windows-x64-test`.
-- [Installateur MSI natif 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265549/artifacts/12223624925): `NotebookAid-windows-x64-msi-test`.
-- [Paquets macOS 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250/artifacts/12224442881) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/39331265250/artifacts/12224908114)): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
+- [Installateur EXE / ZIP portable 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/40178011749/artifacts/12592964552): `NotebookAid-windows-x64-test`.
+- [Installateur MSI natif 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/40178011749/artifacts/12593335284): `NotebookAid-windows-x64-msi-test`.
+- [Paquets macOS 0.15.23](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739/artifacts/12592428676) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739/artifacts/12593093857)): `NotebookAid-macos-arm64-test` / `NotebookAid-macos-x64-test`.
 
 ## Installation et limites
 

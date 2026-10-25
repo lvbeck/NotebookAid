@@ -19,3 +19,7 @@ The user accepted the local Windows 0.15.25 build. Packaged and actually install
 Windows installers are unsigned. macOS uses ad-hoc signing without Apple notarization. Physical macOS, native keyboard/IME, screen readers and physical-printer testing are not established by these automated checks. Very short windows and extreme display scaling should be checked with real notes. Automatic updates remain disabled. T15-A Windows New-menu prototypes remain shelved and excluded.
 
 Back up notebooks before installing. For portable program rollback, fully exit the application and restore a retained prior ZIP. MSI rollback requires removing only the program, preserving notebook/configuration data, then installing a retained earlier MSI. Program rollback does not undo note edits. This layout change introduces no notebook schema migration.
+
+## Published verification
+
+Source/tag commit: `38f40d5139eba67cb1ceced7dc617763cf1d2b6c`. [Windows CI](https://github.com/lvbeck/NotebookAid/actions/runs/40178011749) and [macOS CI](https://github.com/lvbeck/NotebookAid/actions/runs/40178011739) passed. The [published release](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.25) contains fifteen assets, including the ten binaries listed in SHA256SUMS-0.15.25.txt. Windows assets retain the accepted local hashes; macOS packages come from these verified CI runs. All upload digests, public downloads and the public checksum manifest were checked.
