@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { closeSync, fsyncSync, fstatSync, openSync, readSync, writeFileSync } from 'node:fs';
+import { closeSync, fsyncSync, fstatSync, openSync, readSync, writeFileSync, unlinkSync } from 'node:fs';
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { realpathSync } from 'node:fs';
 import { LibraryError } from './library';
@@ -51,5 +51,7 @@ export function exportAttachmentFile(path: string, bytes: Buffer, roots: string[
     const distance=relative(canonical.toLowerCase(),target.toLowerCase());
     if (!distance || (!distance.startsWith('..'+sep) && distance!=='..' && !isAbsolute(distance))) throw new LibraryError('INVALID_INPUT');
   }
-  const fd=openSync(target,'wx'); try { writeFileSync(fd,bytes); fsyncSync(fd); } finally { closeSync(fd); }
+  const fd=openSync(target,'wx'); let complete=false;
+  try { writeFileSync(fd,bytes); fsyncSync(fd); complete=true; }
+  finally { try { closeSync(fd); } finally { if(!complete)unlinkSync(target); } }
 }

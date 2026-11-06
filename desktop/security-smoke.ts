@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { NoteLibrary } from '../core/library';
 import type { BrowserWindow } from 'electron';
-import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { basename, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { recoveryFileName } from '../shared/recovery-document';
 import { latestNotebookSchemaVersion } from '../shared/library';
 export async function smokeSecurity(window: BrowserWindow, directory: string): Promise<void> {
@@ -31,6 +32,10 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
     writeFileSync(join(directory, 'security-reopen.json'), JSON.stringify({ lockedOnRestart: true, passwordUnlock: true })); return;
   }
   await until("document.querySelector('[data-testid=create-note]')?.disabled === false && document.querySelector('[data-testid=editor-empty]')?.getClientRects().length > 0");
+  await run("document.querySelector('[data-select-trigger=theme]').click()");
+  await until("!!document.querySelector('.select-menu [data-value=dark]')");
+  await run("document.querySelector('.select-menu [data-value=dark]').click()");
+  await until("document.documentElement.dataset.theme==='dark'");
   if (!await run("!!document.querySelector('[data-select-trigger=language] .select-leading-icon') && !!document.querySelector('[data-select-trigger=theme] .select-leading-icon')")) throw Error('Preference selector icons missing');
   if (await run("document.querySelector('[data-testid=global-security-default]').checked")) throw Error('Global encryption must default off');
   if (!await run("document.querySelector('[data-testid=editor-empty]').getClientRects().length>0 && document.querySelector('[data-testid=save-note]').getClientRects().length===0 && document.querySelector('.editor-actions').getClientRects().length===0")) throw Error('Empty selection still shows editing controls');
@@ -61,7 +66,7 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
   await click('sidebar-toggle');
   await click('unfiled-folder');
   await click('create-note'); await click('create-markdown'); await until("!!document.querySelector('[data-testid=note-title]') && !document.querySelector('[data-testid=note-title]').disabled");
-  await fill('note-title', 'T08 SECRET TITLE'); await click('save-note'); await until("document.querySelector('[data-testid=save-status]')?.textContent.includes('已保存')");
+  await fill('note-title', 'T08 SECRET TITLE'); await fill('markdown-source', 'Private export fixture body'); await click('save-note'); await until("document.querySelector('[data-testid=save-status]')?.textContent.includes('已保存')");
   const id = (await run('window.notebookAid.library.list()')).value[0].id;
   await click('pin-note'); await until(`!!document.querySelector('[data-note-id="${id}"] [data-testid=note-card-pin]')`);
   if (!await run(`document.querySelector('[data-note-id="${id}"] .note-meta-end').lastElementChild.matches('[data-testid=note-card-pin]') && !document.querySelector('[data-note-id="${id}"] strong app-icon')`)) throw Error('Pin icon is not at card top right');
@@ -87,7 +92,7 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
   const previewBounds = window.getBounds(); window.setSize(820, 700);
   const previewTheme = await run("document.documentElement.dataset.theme");
   await run("document.documentElement.dataset.theme='dark'");
-  await until("getComputedStyle(document.querySelector('[data-testid=recovery-preview-cancel]')).backgroundColor==='rgb(24, 24, 31)'");
+  await until("getComputedStyle(document.querySelector('[data-testid=recovery-preview-cancel]')).backgroundColor===getComputedStyle(document.body).backgroundColor");
   await until("document.querySelector('[data-testid=recovery-preview] footer').getBoundingClientRect().bottom < innerHeight && document.querySelector('[data-testid=recovery-preview] iframe').getBoundingClientRect().width <= document.querySelector('.recovery-preview-scroll').clientWidth");
   await run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
   await window.webContents.capturePage().then(image => writeFileSync(join(directory, 'recovery-preview-narrow-dark-redacted.png'), image.toPNG()));
@@ -113,6 +118,27 @@ export async function smokeSecurity(window: BrowserWindow, directory: string): P
   await until(`document.querySelector('[data-note-id="${id}"] [data-testid=note-card-security]')?.dataset.unlocked==='true'`);
   if (!await run(`document.querySelector('[data-note-id="${id}"] [data-testid=note-card-security] svg')!==null`)) throw Error('Encrypted card unlock icon missing');
   await window.webContents.capturePage().then(image => writeFileSync(join(directory, 'security-encrypted.png'), image.toPNG()));
+  const exportDirectory = join(tmpdir(), 'notebookaid-export-' + basename(directory)); mkdirSync(exportDirectory, { recursive: true });
+  for (const [format, extension] of [['text','txt'],['markdown','md'],['html','html']]) {
+    for (const accepted of [false, true]) {
+      const output = join(exportDirectory, `encrypted-${format}-${accepted ? 'confirmed' : 'cancelled'}.${extension}`);
+      writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: output }));
+      await click('prepare-export'); await until(`!!document.querySelector('[data-testid=export-${format}]')`); await click('export-' + format);
+      await click('confirm-export'); await until("!!document.querySelector('[data-testid=app-dialog]')"); await click(accepted ? 'dialog-confirm' : 'dialog-cancel');
+      await until(`document.querySelector('[data-testid=file-message]')?.textContent.includes('${accepted ? '导出' : '取消'}')`);
+      if (accepted ? !existsSync(output) || !readFileSync(output, 'utf8').includes('Private export fixture body') : existsSync(output)) throw Error('Encrypted export confirmation failed: ' + format + '/' + accepted + ' · ' + await run("document.querySelector('[data-testid=file-message]').textContent"));
+    }
+  }
+  const notePdf = join(exportDirectory, 'encrypted-note.pdf');
+  writeFileSync(join(directory, 'note-file-dialog.json'), JSON.stringify({ path: notePdf }));
+  await click('print-note'); await click('print-pdf'); await until("!!document.querySelector('[data-testid=app-dialog]')"); await click('dialog-cancel');
+  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('已取消')");
+  if (existsSync(notePdf)) throw Error('Cancelled protected PDF created output');
+  await click('print-note'); await click('print-pdf'); await until("!!document.querySelector('[data-testid=app-dialog]')"); await click('dialog-confirm');
+  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('已完成')");
+  if (readFileSync(notePdf).subarray(0, 5).toString() !== '%PDF-') throw Error('Confirmed protected PDF missing');
+  await click('print-note'); await click('print-direct'); await until("!!document.querySelector('[data-testid=app-dialog]')"); await click('dialog-confirm');
+  await until("document.querySelector('[data-testid=file-message]')?.textContent.includes('已完成')");
   const sourcePath = join(directory, 'T08-import-source'), source = new NoteLibrary(sourcePath);
   try {
     const sourceNote = source.create(randomUUID(), { title: 'Import source', primaryFormat: 'text', body: 'Fixture' }).note;

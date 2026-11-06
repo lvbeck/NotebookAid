@@ -37,7 +37,7 @@ import { backupText } from './backup-i18n';
 import { securityText, type SecurityKey } from './security-i18n';
 import { LifecycleComponent } from './lifecycle.component';
 import { lifecycleText, type LifecycleKey } from './lifecycle-i18n';
-import { emptyDelta, parseDelta, deltaSnapshot, type DeltaOp } from '../../shared/delta-document';
+import { emptyDelta, parseDelta, deltaSnapshot, deltaClipboard, type DeltaOp } from '../../shared/delta-document';
 import { AttachmentsComponent } from './attachments.component';
 import { TooltipDirective } from './tooltip.directive';
 import { OrganizationComponent } from './organization.component';
@@ -405,7 +405,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.loadSource(); if (this.warning()) return;
       const body = this.exportFormat() === 'delta' ? this.source() : convertBody(semanticHtml(this.editor.getSemanticHTML()), 'html', this.exportFormat());
       this.exportPreview.set({ primaryFormat: this.exportFormat(), title: this.title, body, attachmentNoteId: this.workspace.session()!.note.id });
-    } else this.exportPreview.set({ primaryFormat: this.exportFormat() === 'delta' ? 'markdown' : this.exportFormat(), title: this.title, body: convertBody(this.source(), this.format(), this.exportFormat() === 'delta' ? 'markdown' : this.exportFormat()) });
+    } else this.exportPreview.set({ primaryFormat: this.exportFormat() === 'delta' ? 'markdown' : this.exportFormat(), title: this.title, body: convertBody(this.source(), this.format(), this.exportFormat() === 'delta' ? 'markdown' : this.exportFormat()), attachmentNoteId: this.workspace.session()!.note.id });
     this.fileMessage.set('');
   }
   async saveExport(): Promise<void> {
@@ -429,7 +429,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       this.sourcePending.set(true); return;
     }
     if (this.warning() || this.sourcePending() || this.format() === 'text') return;
-    this.workspace.updateBody(this.format() === 'delta' ? deltaSnapshot(this.editor.getContents().ops as DeltaOp[]) : this.format() === 'html' ? cleanHtml(semanticHtml(this.editor.getSemanticHTML())) : this.toMarkdown());
+    try {
+      this.workspace.updateBody(this.format() === 'delta' ? deltaSnapshot(this.editor.getContents().ops as DeltaOp[]) : this.format() === 'html' ? cleanHtml(semanticHtml(this.editor.getSemanticHTML())) : this.toMarkdown());
+    } catch (error) {
+      if (this.format() !== 'delta') throw error;
+      // Retain the visible draft and block a false saved state if serialization fails.
+      this.workspace.updateBody(JSON.stringify({ format: 'NotebookAidDelta', version: 1, ops: this.editor.getContents().ops }));
+      this.issues.set(sourceIssues(this.source(), 'delta')); this.warning.set(true); this.editor.enable(false);
+    }
     this.record();
     this.roundtripResult.set('');
     this.roundtripStatus.set('');
@@ -566,6 +573,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       if (align && ['left', 'center', 'right'].includes(align)) attributes['cell-align'] = align;
       return new Delta(delta.ops.map(op => typeof op.insert === 'string' && op.insert.includes('\n') ? { ...op, attributes: { ...op.attributes, ...attributes } } : op));
     });
+    const convertClipboard = this.editor.clipboard.convert.bind(this.editor.clipboard);
+    this.editor.clipboard.convert = (input, formats) => {
+      const delta = convertClipboard(input, formats);
+      return this.format() === 'delta' ? new Delta(deltaClipboard(delta.ops as DeltaOp[], input.text)) : delta;
+    };
     this.host.nativeElement.addEventListener('paste', this.pastePagedSource, true);
     this.host.nativeElement.addEventListener('keydown', this.plainPageKeys, true);
     this.host.nativeElement.addEventListener('click', this.preventNavigation);

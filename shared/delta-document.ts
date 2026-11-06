@@ -61,3 +61,25 @@ export function deltaSnapshot(ops: DeltaOp[]): string {
   }) });
   parseDelta(body); return body;
 }
+
+/** Keep supported clipboard formatting; unsupported fragments fall back to their text. */
+export function deltaClipboard(ops: DeltaOp[], text?: string): DeltaOp[] {
+  // Quill clipboard block attributes initially cover text as well as its newline.
+  const normalized = ops.flatMap(op => {
+    if (!op.attributes) return [op];
+    const attributes = { ...op.attributes }, inline = { ...attributes };
+    for (const key of block) delete inline[key];
+    if (typeof op.insert !== 'string') return [{ insert: op.insert, ...(Object.keys(inline).length ? { attributes: inline } : {}) }];
+    if (typeof attributes['table'] === 'number' && Number.isSafeInteger(attributes['table']) && attributes['table'] > 0) attributes['table'] = String(attributes['table']);
+    return (op.insert.match(/[^\n]+|\n+/g) ?? []).map(insert => {
+      const formats = insert.startsWith('\n') ? attributes : inline;
+      return { insert, ...(Object.keys(formats).length ? { attributes: formats } : {}) };
+    });
+  });
+  try { deltaSnapshot([...normalized, { insert: '\n' }]); return normalized; }
+  catch (error) { if (!(error instanceof DeltaError)) throw error; }
+  const fallback = text || ops.map(op => typeof op.insert === 'string' ? op.insert :
+    Object.hasOwn(op.insert, 'divider') ? '\n---\n' : typeof op.attributes?.['alt'] === 'string' ? op.attributes['alt'] : '').join('');
+  const insert = fallback.replace(/\r\n?/g, '\n').replace(/\0/g, '');
+  return insert ? [{ insert }] : [];
+}

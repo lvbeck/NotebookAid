@@ -483,14 +483,17 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
   });
   handle('exportFile', async (_owner, input: NoteInput) => {
     if (choosing) throw new LibraryError('LIBRARY_IN_USE');
-    if (!input || !Object.hasOwn(formatExtensions, input.primaryFormat) || typeof input.body !== 'string' || Buffer.byteLength(input.body) > 2 * 1024 * 1024) throw new LibraryError('INVALID_INPUT');
+    if (!input || !Object.hasOwn(formatExtensions, input.primaryFormat) || typeof input.body !== 'string' || Buffer.byteLength(input.body) > 2 * 1024 * 1024 || typeof input.attachmentNoteId !== 'string') throw new LibraryError('INVALID_INPUT');
     choosing = true;
     try {
       const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
-      const exported = input.attachmentNoteId ? get().read(input.attachmentNoteId) : undefined;
-      if (exported?.encrypted && !await confirmPlainExport(target)) return false;
+      const exported = get().read(input.attachmentNoteId);
+      // A renderer-supplied ID cannot establish the provenance of converted or unsaved text.
+      const exactSource = input.primaryFormat === exported.primaryFormat && input.title === exported.title && input.body === exported.body;
+      if ((exported.encrypted || !exactSource) && !await confirmPlainExport(target)) return false;
       const path = await fileDialog(input); if (!path) return false;
       const library = get();
+      library.read(exported.id);
       const note = input.primaryFormat === 'delta' ? library.read(input.attachmentNoteId ?? '') : undefined;
       const source = note ? { items: note.attachments ?? [], read: (item: import('../shared/attachments').Attachment) => library.attachmentBytes(note.id, item.id) } : undefined;
       exportNote(path, input, [dataPath, app.isPackaged ? dirname(process.execPath) : app.getAppPath(), ...manager().state().entries.map(entry => entry.path)], source);
@@ -504,7 +507,8 @@ export function registerLibrary(dataPath: string, window: () => BrowserWindow | 
     choosing = true;
     try {
       const target = window(); if (!target) throw new LibraryError('INVALID_INPUT');
-      if (note.encrypted && !await confirmPlainExport(target)) return false;
+      const exactSource = input.primaryFormat === note.primaryFormat && input.title === note.title && input.body === note.body;
+      if ((note.encrypted || !exactSource) && !await confirmPlainExport(target)) return false;
       let path: string | null = null;
       if (mode === 'pdf') {
         if (selfTest && existsSync(join(dataPath, 'note-file-dialog.json'))) path = await fileDialog();

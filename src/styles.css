@@ -640,6 +640,9 @@ input[type=checkbox], input[type=radio], input[type=range] { accent-color:var(--
 .editor-chrome .editor-actions { margin:6px 0 4px; padding:4px 0; gap:5px; border-bottom:0; }
 .editor-chrome .primary,.editor-chrome .secondary,.editor-chrome .select-trigger,.preferences .select-trigger,.preferences .notifications-bell { min-height:26px; height:26px; margin:0; padding:3px 8px; gap:5px; font-size:11px; line-height:18px; }
 .editor-chrome app-icon svg,.editor-chrome .select-trigger svg,.editor-chrome .compact-editor-toolbar .select-trigger svg,.preferences svg { width:12px; height:12px; }
+.preferences .select-trigger.topbar-icon-button { width:30px; min-width:30px; height:30px; min-height:30px; padding:0; justify-content:center; gap:0; }
+.preferences .topbar-icon-button .select-value,.preferences .topbar-icon-button .select-arrow { display:none; }
+.preferences .topbar-icon-button svg { width:16px; height:16px; }
 .editor-chrome .editor-actions .segmented-radio { padding:2px; }
 .editor-chrome .editor-actions .segmented-radio label > span { height:26px; padding:3px 8px; gap:5px; font-size:11px; line-height:18px; }
 .editor-chrome .compact-editor-toolbar.ql-toolbar.ql-snow button { width:26px; height:26px; padding:5px; }

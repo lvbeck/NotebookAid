@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os';
 import { deltaSnapshot } from '../shared/delta-document';
 
 export async function smokeDelta(window: BrowserWindow, directory: string): Promise<void> {
-  const run = (script: string) => window.webContents.executeJavaScript(script);
+  const run = async (script: string) => { try { return await window.webContents.executeJavaScript(script); } catch (error) { throw new Error('Delta test script failed: ' + script.slice(0, 400), { cause: error }); } };
   const wait = () => new Promise(resolve => setTimeout(resolve, 120));
   const until = async (script: string) => { for (let i=0;i<120;i++) { if (await run(script)) return; await wait(); } writeFileSync(join(directory,'delta-dom.txt'),await run('document.body.innerHTML')); throw Error('Delta timeout: '+script); };
-  const click = async (id: string) => { await run(`{const el=document.querySelector('[data-testid=${id}]');if(el.closest('.export-controls')&&!el.getClientRects().length)document.querySelector('[data-testid=compact-export]').click();}`);await wait();await run(`document.querySelector('[data-testid=${id}]').click()`); await wait(); };
+  const click = async (id: string) => { await run(`document.querySelector('[data-testid=${id}]').click()`); await wait(); };
   const input = async (id: string, value: string, event='input') => { await run(`{const el=document.querySelector('[data-testid=${id}]');el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('${event}',{bubbles:true}));}`); await wait(); };
   if (process.argv.includes('--self-test-reopen')) {
     const expected=JSON.parse(readFileSync(join(directory,'delta-expected.json'),'utf8'));
@@ -21,10 +21,9 @@ export async function smokeDelta(window: BrowserWindow, directory: string): Prom
   await until("!document.querySelector('[data-testid=create-note]').disabled");
   await click('create-note');await click('create-delta');
   await until("document.querySelector('.format-badge').textContent.includes('DELTA')");
-  await run("{const el=document.querySelector('[data-select-trigger=export-format]');if(!el.getClientRects().length)document.querySelector('[data-testid=compact-export]').click();}");await wait();await run("document.querySelector('[data-select-trigger=export-format]').click()");
-  await until("!!document.querySelector('.select-menu-export-format')");
-  if (!await run("(()=>{const el=document.querySelector('.select-menu-export-format [data-value=delta] span');return el.getClientRects().length===1 && el.scrollWidth<=el.clientWidth && getComputedStyle(el).whiteSpace==='nowrap';})()")) throw Error('Delta export label wraps or overflows');
-  await run("document.querySelector('.select-menu-export-format [data-value=markdown]').click()");
+  await click('prepare-export');await until("!!document.querySelector('[data-testid=export-delta]')");
+  if (!await run("(()=>{const el=document.querySelector('[data-testid=export-delta]');return el.getClientRects().length===1 && el.scrollWidth<=el.clientWidth && el.textContent.includes('Delta (.nadelta)');})()")) throw Error('Delta export menu label is unavailable or overflows');
+  await run("document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");await wait();
   const fixture=deltaSnapshot([{insert:'Delta heading'},{insert:'\n',attributes:{header:1}},{insert:'Task'},{insert:'\n',attributes:{list:'checked'}},{insert:'Nested'},{insert:'\n',attributes:{list:'bullet',indent:2}},{insert:'const count=1;'},{insert:'\n',attributes:{'code-block':'javascript'}},{insert:'Cell'},{insert:'\n',attributes:{table:'row-1','cell-header':'true'}},{insert:'\n'}]);
   await click('source-mode');await input('body-source',fixture);
   await click('format-source');
@@ -46,10 +45,22 @@ export async function smokeDelta(window: BrowserWindow, directory: string): Prom
   let notes=(await run('window.notebookAid.library.list()')).value;
   let note=(await run(`window.notebookAid.library.begin('${notes[0].id}')`)).value.note;
   if(!note.body.includes('Typed rich text') || !note.body.includes('Delta heading'))throw Error('Delta saved incremental content');
+  await run("{const el=document.querySelector('.ql-editor');el.focus();const range=document.createRange();range.selectNodeContents(el);range.collapse(false);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);const data=new DataTransfer();data.setData('text/html','<h4>Pasted heading</h4><hr><p>Pasted tail</p>');data.setData('text/plain','Pasted heading\\nPasted tail');el.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));}");
+  await until("document.querySelector('.ql-editor').textContent.includes('Pasted tail') && !document.querySelector('[data-testid=format-warning]')");
+  await click('save-note');await wait();
+  note=(await run(`window.notebookAid.library.begin('${note.id}')`)).value.note;
+  if(!note.body.includes('Pasted heading')||!note.body.includes('Pasted tail'))throw Error('Unsupported clipboard formatting lost the Delta draft');
   const file=join(directory,'delta-image.svg');writeFileSync(file,'<svg xmlns="http://www.w3.org/2000/svg" width="80" height="40"><rect width="80" height="40" fill="#7460c9"/></svg>');
   writeFileSync(join(directory,'note-file-dialog.json'),JSON.stringify({path:file}));
   await run("document.querySelector('.ql-image').click()");await until("document.querySelector('.ql-editor img')?.naturalWidth===80");await click('save-note');await wait();
-  await input('export-format','delta','change');await click('prepare-export');
+  note=(await run(`window.notebookAid.library.begin('${note.id}')`)).value.note;
+  const imageReference='attachments/'+note.attachments!.at(-1)!.id;
+  await run(`{const el=document.querySelector('.ql-editor');el.focus();const range=document.createRange();range.selectNodeContents(el);range.collapse(false);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);const data=new DataTransfer();data.setData('text/html',${JSON.stringify('<h2><img src="'+imageReference+'">Pasted image block</h2>')});data.setData('text/plain','Pasted image block');el.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));}`);
+  await until("document.querySelectorAll('.ql-editor img').length===2 && !!document.querySelector('.ql-editor h2 img')");
+  await click('save-note');await wait();
+  note=(await run(`window.notebookAid.library.begin('${note.id}')`)).value.note;
+  if(JSON.parse(note.body).ops.filter((op:{insert:unknown})=>typeof op.insert==='object'&&op.insert!==null&&(op.insert as {image?:string}).image===imageReference).length!==2)throw Error('Block clipboard paste lost an attachment image');
+  await click('prepare-export');await until("!!document.querySelector('[data-testid=export-delta]')");await click('export-delta');
   const out=join(tmpdir(),'notebookaid-export-'+basename(directory));mkdirSync(out,{recursive:true});const native=join(out,'native.nadelta');
   writeFileSync(join(directory,'note-file-dialog.json'),JSON.stringify({path:native}));await click('confirm-export');await until("document.querySelector('[data-testid=file-message]').textContent.includes('导出')");
   const exported=JSON.parse(readFileSync(native,'utf8'));if(exported.attachments.length!==1)throw Error('Native attachment missing');

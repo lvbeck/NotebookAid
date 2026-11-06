@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { randomUUID, createHash } = require('node:crypto');
 const { NoteLibrary } = require('../dist/runtime/core/library');
-const { parseDelta, deltaSnapshot, emptyDelta } = require('../dist/runtime/shared/delta-document');
+const { parseDelta, deltaSnapshot, deltaClipboard, emptyDelta } = require('../dist/runtime/shared/delta-document');
 const { parseNative, serializeNative } = require('../dist/runtime/core/delta-files');
 const { importNote, exportNote } = require('../dist/runtime/core/note-files');
 const { planImport, executeImport } = require('../dist/runtime/core/library-import');
@@ -31,6 +31,36 @@ test('Delta rejects incremental operations, unknown versions, attributes, unsafe
  for(const ops of [[{retain:1}],[{delete:1}],[{insert:'no newline'}],[{insert:'x\n',attributes:{onclick:'evil'}}],[{insert:{video:'https://example.com'}},{insert:'\n'}],[{insert:'x',attributes:{link:'javascript:alert(1)'}},{insert:'\n'}],[{insert:'x\n',attributes:{header:1}}],[{insert:{image:'file:///C:/private'}},{insert:'\n'}]])assert.throws(()=>parseDelta(wrap(ops)));
  assert.throws(()=>parseDelta(emptyDelta.replace('"version":1','"version":9')),e=>e.code==='UNSUPPORTED_DELTA');
  assert.deepEqual(parseDelta(body).ops,JSON.parse(body).ops);
+});
+
+test('Delta clipboard preserves supported fragments and degrades unsupported pasted formatting to text', () => {
+ const supported=[{insert:'Bold',attributes:{bold:true}},{insert:'\n',attributes:{header:2}}];
+ assert.deepEqual(deltaClipboard(supported,'Bold\n'),supported);
+ for(const attributes of [{header:2},{list:'bullet',indent:2},{'code-block':'typescript'},{table:1,'cell-header':'true'}]) {
+   const converted=deltaClipboard([{insert:'Clipboard block\n',attributes}],'Clipboard block\n');
+   assert.equal(converted[0].insert,'Clipboard block');assert.equal(converted[0].attributes,undefined);
+   assert.deepEqual(converted[1],{insert:'\n',attributes:attributes.table?{...attributes,table:'1'}:attributes});
+   assert.doesNotThrow(()=>deltaSnapshot([...converted,{insert:'\n'}]));
+ }
+ const image={image:'attachments/12345678-1234-1234-1234-123456789abc'};
+ for(const block of [{header:2},{list:'bullet',indent:2},{table:1,'cell-header':'true'}]) {
+   const converted=deltaClipboard([{insert:image,attributes:{...block,width:'200',alt:'Fixture image'}},{insert:'\n',attributes:block}]);
+   assert.deepEqual(converted[0],{insert:image,attributes:{width:'200',alt:'Fixture image'}});
+   assert.deepEqual(converted[1],{insert:'\n',attributes:block.table?{...block,table:'1'}:block});
+   assert.doesNotThrow(()=>deltaSnapshot([...converted,{insert:'\n'}]));
+ }
+ const unsupported=[{insert:'Before\n'},{insert:{divider:true}},{insert:'After'},{insert:'\n',attributes:{header:4}}];
+ const pasted=deltaClipboard(unsupported,'Before\r\nAfter\0');
+ assert.deepEqual(pasted,[{insert:'Before\nAfter'}]);
+ assert.equal(parseDelta(deltaSnapshot([...pasted,{insert:'\n'}])).ops[0].insert,'Before\nAfter');
+ const htmlOnly=deltaClipboard(unsupported);
+ assert.ok(htmlOnly[0].insert.includes('Before\n\n---\nAfter'));
+ assert.doesNotThrow(()=>deltaSnapshot([...htmlOnly,{insert:'\n'}]));
+ for(const insert of [{image:'data:image/png;base64,AAAA'},{image:'file:///private'},{video:'https://example.invalid'}]) {
+   const fallback=deltaClipboard([{insert},{insert:'\n'}],'Pasted caption');
+   assert.deepEqual(fallback,[{insert:'Pasted caption'}]);
+   assert.doesNotThrow(()=>deltaSnapshot([...fallback,{insert:'\n'}]));
+ }
 });
 test('Native exchange verifies metadata, attachment bytes, paths and missing resources',()=>{
  const dir=root(),id=randomUUID(),bytes=Buffer.from('attachment fixture'),file={id,name:'test.txt',size:bytes.length,mediaType:'application/octet-stream',sha256:createHash('sha256').update(bytes).digest('hex'),data:bytes.toString('base64')};

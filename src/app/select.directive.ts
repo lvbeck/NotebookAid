@@ -84,7 +84,10 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
     associated?.querySelectorAll('select,button,input').forEach(element => element.remove());
     const name = this.select.getAttribute('aria-label') || associated?.textContent?.trim() || this.label.textContent;
     for (const attribute of ['aria-describedby', 'aria-invalid']) { const value = this.select.getAttribute(attribute); if (value !== null) button.setAttribute(attribute, value); else button.removeAttribute(attribute); }
-    button.setAttribute('aria-label', name || 'Select');
+    const iconOnly = this.select.classList.contains('topbar-icon-button');
+    const description = iconOnly ? `${name}: ${this.label.textContent}` : name;
+    button.setAttribute('aria-label', description || 'Select');
+    if (iconOnly) button.title = description;
     button.setAttribute('aria-required', String(this.select.required));
     const snapshot = JSON.stringify(options.map((option, index) => [option.value, option.label, option.selected, this.enabled(index)]));
     if (this.ref && (button.disabled || !button.getClientRects().length || button.closest('[inert]'))) { this.close(); return; }
@@ -92,7 +95,7 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
     this.snapshot = snapshot;
   }
   private readonly click = (event: MouseEvent) => {
-    if (this.themeValue === 'dark' && this.eggs.state().enabled && !this.eggs.state().found.includes('moon') && (event.target as Element)?.closest('.select-leading-icon')) { this.close(); void this.eggs.collect('moon'); return; }
+    if (!this.select.classList.contains('topbar-icon-button') && this.themeValue === 'dark' && this.eggs.state().enabled && !this.eggs.state().found.includes('moon') && (event.target as Element)?.closest('.select-leading-icon')) { this.close(); void this.eggs.collect('moon'); return; }
     if (this.ref) this.close(); else this.open();
   };
   private readonly blur = () => { this.close(); this.select.dispatchEvent(new Event('blur')); };

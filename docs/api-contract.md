@@ -85,6 +85,8 @@ library:settings(legacy)、updateSettings(patch)、librarySettings(entryId,autos
 
 `importFile()` 在主进程打开单文件选择器，由 core/note-files 校验并返回 NoteInput 或取消 null。renderer 保存当前草稿后新建导入笔记；不接受 renderer 任意路径。`exportFile(input)` 在主进程选择保存路径，由核心校验格式、2 MiB 限制及路径，再以排他创建写入副本；返回 true 成功、false 取消。转换在无网络 renderer 中进行，用户必须先检查快照预览。同格式 HTML 副本是原始源码，界面明确提示在其他应用中的活动内容风险。
 
+2026-11-06 审计修复补充（待运行验证和验收）：所有 `exportFile(input)` 均须携带 `attachmentNoteId`，由主进程读取来源。仅当来源未加密，且格式、标题、正文与已保存快照完全一致时可省略明文确认；加密来源及转换后、未保存或无法证明来源的内容均先显示现有明文警告。`printNote(input, mode)` 的打印和 PDF 遵守相同规则。取消确认不进入输出选择或生成；文件选择完成后重新读取来源，以拒绝已锁定或不可用的来源。来源 ID 本身不能证明 renderer 正文的来源。
+
 文件对话框期间拒绝另一个选择操作及库激活。IPC 仍限定可信主 frame；测试文件路径夹具只在 self-test 模式生效，限制到当前测试目录／专用临时导出目录。没有扩展 Thunderbird Native Messaging 权限或协议。
 
 editOrganization 新增 kind=folder-order，参数 ids 为全库文件夹 ID 的无重复完整排列，expectedVersion 防止覆盖过期组织版本。通过原子组织写入保存，拒绝缺失/额外/重复 ID；不改变父子关系。

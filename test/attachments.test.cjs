@@ -9,6 +9,21 @@ const { exportAttachmentFile } = require('../dist/runtime/core/attachments');
 const root = () => { fs.mkdirSync('output/attachment-tests',{recursive:true}); return fs.mkdtempSync(path.resolve('output/attachment-tests/case-')); };
 const request = (lib,id) => { const s=lib.begin(id,'test'); return { noteId:id,token:s.token,generation:s.generation,expectedVersion:s.note.version,operationId:randomUUID() }; };
 
+test('Failed attachment exports remove partial files and allow retry without overwriting existing files', t => {
+  const base=root(), target=path.join(base,'retry.bin'), bytes=Buffer.from('Complete attachment');
+  t.after(()=>fs.rmSync(base,{recursive:true,force:true}));
+  const write=fs.writeFileSync;
+  const fault=t.mock.method(fs,'writeFileSync',(fd,value)=>{write(fd,value.subarray(0,3));throw Object.assign(Error('Fixture disk full'),{code:'ENOSPC'});});
+  assert.throws(()=>exportAttachmentFile(target,bytes,[]),{code:'ENOSPC'});
+  assert.equal(fs.existsSync(target),false);fault.mock.restore();
+  const sync=t.mock.method(fs,'fsyncSync',()=>{throw Object.assign(Error('Fixture sync failure'),{code:'EIO'});});
+  assert.throws(()=>exportAttachmentFile(target,bytes,[]),{code:'EIO'});
+  assert.equal(fs.existsSync(target),false);sync.mock.restore();
+  exportAttachmentFile(target,bytes,[]);assert.deepEqual(fs.readFileSync(target),bytes);
+  assert.throws(()=>exportAttachmentFile(target,Buffer.from('Replacement'),[]),{code:'EEXIST'});
+  assert.deepEqual(fs.readFileSync(target),bytes);
+});
+
 test('Attachments preserve bytes, names, revisions, duplicate names, paths and restart', () => {
   const base=root(), dir=path.join(base,'book'), file=path.join(base,'test.txt');fs.writeFileSync(file,'Attachment content');
   let lib=new NoteLibrary(dir);const id=lib.create(randomUUID(),{title:'Note',body:'',primaryFormat:'markdown'}).note.id;
