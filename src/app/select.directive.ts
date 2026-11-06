@@ -95,7 +95,7 @@ export class SelectDirective implements AfterViewInit, DoCheck, OnDestroy {
     this.snapshot = snapshot;
   }
   private readonly click = (event: MouseEvent) => {
-    if (!this.select.classList.contains('topbar-icon-button') && this.themeValue === 'dark' && this.eggs.state().enabled && !this.eggs.state().found.includes('moon') && (event.target as Element)?.closest('.select-leading-icon')) { this.close(); void this.eggs.collect('moon'); return; }
+    if (this.themeValue === 'dark' && this.eggs.state().enabled && !this.eggs.state().found.includes('moon') && (event.target as Element)?.closest('.select-leading-icon')) { this.close(); void this.eggs.collect('moon'); return; }
     if (this.ref) this.close(); else this.open();
   };
   private readonly blur = () => { this.close(); this.select.dispatchEvent(new Event('blur')); };
