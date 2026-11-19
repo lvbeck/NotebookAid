@@ -8,6 +8,7 @@ import { informationText } from '../src/app/information-i18n';
 import { projectLicense } from '../src/app/project-license';
 import { updateText } from '../src/app/updates-i18n';
 import { settingsLayoutText } from '../src/app/settings-layout-i18n';
+import type { UpdateState } from '../shared/updates';
 
 export async function smokeUi(window: BrowserWindow, directory: string): Promise<void> {
   const run = async (script: string) => { try { return await window.webContents.executeJavaScript(script); } catch (error) { throw new Error('UI script failed: ' + script, { cause: error }); } };
@@ -18,6 +19,11 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   const updateSelect = async (id: string, value: string) => { await run(`{const select=document.querySelector('[data-testid="${id}"]');select.value=${JSON.stringify(value)};select.dispatchEvent(new Event('change',{bubbles:true}));}`); await until(`!document.querySelector('[data-testid="${id}"]').disabled`); };
   const capture = async (name: string) => { await run("document.querySelectorAll('[data-testid=notification] .notification-card-top button').forEach(button=>button.click());document.querySelector('[data-testid=interface-settings]').scrollIntoView({block:'center'});"); window.showInactive(); await run('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))'); await new Promise(r=>setTimeout(r,200)); writeFileSync(join(directory,name),(await window.webContents.capturePage()).toPNG()); };
   await until("document.querySelector('app-root')?.dataset.ready==='true' && !document.querySelector('[data-testid=create-note]').disabled");
+  const updateState: UpdateState = await run('window.notebookAid.updates.state()');
+  const expectedUpdatePhase = process.env['NOTEBOOKAID_UI_TEST_EXPECT_UPDATE_PHASE'];
+  if (!['portable', 'unconfigured'].includes(updateState.phase) || (expectedUpdatePhase && updateState.phase !== expectedUpdatePhase)) {
+    throw Error('Unexpected self-test update phase: ' + updateState.phase);
+  }
   if (!await run("document.querySelector('[data-testid=diagnostics-tab]').getClientRects().length===0")) throw Error('Technical validation entry is visible');
   if (process.argv.includes('--self-test-reopen')) {
     const settings = JSON.parse(readFileSync(join(directory,'settings.json'),'utf8'));
@@ -27,7 +33,8 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
     const expected = JSON.parse(readFileSync(join(directory,'ui-expected.json'),'utf8'));
     const result = await run(`window.notebookAid.library.begin(${JSON.stringify(expected.id)})`);
     if (!result.ok || result.value.note.body!=='T14 unchanged body') throw Error('UI changes altered note data');
-    writeFileSync(join(directory,'ui-reopen.json'),JSON.stringify({zoomRestored:true,contentPreserved:true})); return;
+    writeFileSync(join(directory, 'ui-reopen.json'), JSON.stringify({ zoomRestored: true, contentPreserved: true, updatePhase: updateState.phase }));
+    return;
   }
   await until("!!document.querySelector('[data-testid=backup-missed]')");
   if(!await run("(()=>{const warning=document.querySelector('[data-testid=backup-missed]'),text=warning.querySelector('span').getBoundingClientRect(),button=warning.querySelector('button').getBoundingClientRect();return Math.abs(text.top+text.height/2-button.top-button.height/2)<.5;})()"))throw Error('Backup reminder and button are misaligned');
@@ -57,7 +64,7 @@ export async function smokeUi(window: BrowserWindow, directory: string): Promise
   window.webContents.sendInputEvent({type:'mouseMove',x:10,y:100});
   await click('application-menu');await click('menu-settings');await click('settings-global');await until("document.querySelector('[data-testid=interface-settings]').getClientRects().length>0");
   if (!await run("(()=>{const theme=document.querySelector('[data-testid=settings-theme]').closest('label'),size=document.querySelector('[data-testid=note-page-size]').closest('label');return theme.nextElementSibling===size;})()")) throw Error('Note page size is not immediately after theme');
-  await until(`document.querySelector('[data-testid=update-settings] p').textContent.includes(${JSON.stringify(updateText('zh-CN',process.platform === 'darwin' ? 'unconfigured' : 'portable'))})`);
+  await until(`document.querySelector('[data-testid=update-settings] p').textContent.includes(${JSON.stringify(updateText('zh-CN',updateState.phase))})`);
   await click('auto-update');
   await until("window.notebookAid.library.settings({locale:null,theme:null,autosave:null}).then(result=>result.ok&&result.value.global.autoUpdates===false)");
   await run("document.querySelector('[data-testid=update-settings]').scrollIntoView({block:'center'})");
