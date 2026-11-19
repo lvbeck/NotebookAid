@@ -102,7 +102,12 @@ export class AiNetwork {
     const key = id === 'chatgpt' ? await this.access() : this.store.credential(id).key!;
     if (signal.aborted) throw new AiError('REQUEST_CANCELLED'); this.permitted();
     let url: string, headers: Record<string,string>, body: unknown;
-    if (id === 'chatgpt') { url = 'https://api.openai.com/v1/responses'; headers = { Authorization: 'Bearer ' + key }; body = { model, input: [{ role: 'user', content: prompt }], store: false, stream: true }; }
+    if (id === 'chatgpt' || id === 'openai') { url = 'https://api.openai.com/v1/responses'; headers = { Authorization: 'Bearer ' + key }; body = { model, input: [{ role: 'user', content: prompt }], store: false, stream: true }; }
+    else if (id === 'ollama') {
+      url = this.store.credential(id).server + '/api/chat';
+      headers = {};
+      body = { model, messages: [{ role: 'user', content: prompt }], stream: false };
+    }
     else if (id === 'gemini') { url = 'https://generativelanguage.googleapis.com/v1beta/' + model + ':generateContent'; headers = { 'x-goog-api-key': key }; body = { contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 8192 } }; }
     else { url = 'https://api.anthropic.com/v1/messages'; headers = { 'x-api-key': key, 'anthropic-version': '2023-06-01' }; body = { model, max_tokens: 8192, messages: [{role:'user',content:prompt}] }; }
     const controller = new AbortController(), abort = () => controller.abort(); signal.addEventListener('abort',abort,{once:true});
@@ -113,7 +118,7 @@ export class AiNetwork {
       const reader=response.body?.getReader(); if(!reader)throw new AiError('INVALID_RESPONSE');
       let bytes=0,raw='',text='',completed=false; const decoder=new TextDecoder();
       for(;;){const next=await reader.read();if(next.done)break;bytes+=next.value.length;if(bytes>2*1024*1024){await reader.cancel();throw new AiError('OUTPUT_TOO_LARGE_OR_EMPTY');}raw+=decoder.decode(next.value,{stream:true});
-        if(id==='chatgpt'){
+        if (id === 'chatgpt' || id === 'openai'){
           raw=raw.replace(/\r\n/g,'\n');let boundary;
           while((boundary=raw.indexOf('\n\n'))>=0){const block=raw.slice(0,boundary);raw=raw.slice(boundary+2);const payload=block.split('\n').filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trimStart()).join('\n');if(!payload||payload==='[DONE]')continue;
             const event=JSON.parse(payload);if(event.type==='response.output_text.delta')text+=event.delta??'';
@@ -123,8 +128,14 @@ export class AiNetwork {
           }
         }
       }
-      if(id==='chatgpt'){if(!completed)throw new AiError('INCOMPLETE_RESPONSE');return text;}
+      if (id === 'chatgpt' || id === 'openai'){if(!completed)throw new AiError('INCOMPLETE_RESPONSE');return text;}
       const result=JSON.parse(raw);
+      if (id === 'ollama') {
+        if (result?.done !== true || (result.done_reason && result.done_reason !== 'stop')) throw new AiError('INCOMPLETE_RESPONSE');
+        const content = result.message?.content;
+        if (typeof content !== 'string' || !content.trim() || content.length > 64000) throw new AiError('OUTPUT_TOO_LARGE_OR_EMPTY');
+        return content;
+      }
       if(id==='claude'){if(!['end_turn','stop_sequence'].includes(result.stop_reason))throw new AiError('INCOMPLETE_RESPONSE');return (result.content??[]).filter((x:any)=>x.type==='text').map((x:any)=>x.text).join('');}
       const candidate=result.candidates?.[0];if(candidate?.finishReason!=='STOP')throw new AiError('INCOMPLETE_RESPONSE');return (candidate.content?.parts??[]).filter((x:any)=>typeof x.text==='string'&&!x.thought).map((x:any)=>x.text).join('');
     } catch(e){if(e instanceof AiError)throw e;throw new AiError(signal.aborted?'REQUEST_CANCELLED':controller.signal.aborted?'REQUEST_TIMEOUT':'INFERENCE_FAILED');}
@@ -136,16 +147,24 @@ export class AiNetwork {
     const seen = new Set<string>();
     for (let page = 0; page < 10; page++) {
       let url: string, headers: Record<string, string>;
-      if (id === 'chatgpt') { url = 'https://api.openai.com/v1/models'; headers = { Authorization: 'Bearer ' + key }; }
+      if (id === 'chatgpt' || id === 'openai') { url = 'https://api.openai.com/v1/models'; headers = { Authorization: 'Bearer ' + key }; }
+      else if (id === 'ollama') {
+        url = this.store.credential(id).server + '/api/tags';
+        headers = {};
+      }
       else if (id === 'gemini') { url = 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=100' + (cursor ? '&pageToken=' + encodeURIComponent(cursor) : ''); headers = { 'x-goog-api-key': key }; }
       else { url = 'https://api.anthropic.com/v1/models?limit=100' + (cursor ? '&after_id=' + encodeURIComponent(cursor) : ''); headers = { 'x-api-key': key, 'anthropic-version': '2023-06-01' }; }
       const result = await this.request(url, { headers });
-      const rows = id === 'claude' ? result.data : result.models;
+      const rows = id === 'claude' || id === 'openai' ? result?.data : result?.models;
       if (!Array.isArray(rows) || rows.length > 1000) throw new AiError('INVALID_RESPONSE');
       for (const row of rows) {
+        if (!row || typeof row !== 'object') throw new AiError('INVALID_RESPONSE');
         if (id === 'chatgpt' && row.visibility !== 'list') continue;
         if (id === 'gemini' && !row.supportedGenerationMethods?.includes('generateContent')) continue;
-        const modelId = id === 'chatgpt' ? row.slug : id === 'gemini' ? row.name : row.id;
+        const modelId = id === 'chatgpt' ? row.slug : id === 'gemini' || id === 'ollama' ? row.name : row.id;
+        // The API catalog also includes models dedicated to other endpoints.
+        if (id === 'openai' && typeof modelId === 'string' &&
+            /(?:^|[-:])(?:embed(?:ding)?|moderation|whisper|tts|transcribe|realtime|audio|image|dall-e|sora|davinci|babbage)(?:[-:]|$)/i.test(modelId)) continue;
         const name = row.display_name ?? row.displayName ?? modelId;
         if (typeof modelId !== 'string' || !/^[\w./:-]{1,160}$/.test(modelId) || typeof name !== 'string' || name.length > 200) throw new AiError('INVALID_RESPONSE');
         if (!models.some(m => m.id === modelId)) models.push({ id: modelId, name });

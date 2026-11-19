@@ -16,7 +16,7 @@ NotebookAid è un’applicazione desktop open source per note, con un componente
 - Cifratura facoltativa, password principale e chiave di recupero per taccuino, backup e ripristino, blocco Windows Passkey.
 - Colori e copertine, temi chiaro/scuro/sistema e dieci lingue: inglese, cinese semplificato, cinese tradizionale (Hong Kong), tedesco, francese, italiano, spagnolo, portoghese (Portogallo), giapponese e coreano. Guida iniziale e raccolta facoltativa di uova nascoste.
 - Integrazione Thunderbird tramite Native Messaging locale e importazione Tasks da ICS.
-- IA facoltativa con abbonamento ChatGPT o chiavi API Gemini/Claude. Si applicano requisiti e condizioni del fornitore; nessun cambio automatico di fornitore o fatturazione.
+- IA facoltativa con abbonamento ChatGPT o chiavi API OpenAI API Key / Ollama / Gemini/Claude. Si applicano requisiti e condizioni del fornitore; nessun cambio automatico di fornitore o fatturazione.
 
 ## Ultime modifiche locali
 

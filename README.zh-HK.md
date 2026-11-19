@@ -16,7 +16,7 @@ NotebookAid 是開源桌面筆記應用程式，提供可選的 Thunderbird 附�
 - 可選的筆記加密、獨立主密碼及復原金鑰、備份還原，以及 Windows Passkey 應用程式鎖。
 - 筆記本顏色與封面、淺色／深色／跟隨系統主題，以及十種介面語言：英語、簡體中文、繁體中文（香港）、德語、法語、意大利語、西班牙語、葡萄牙語（葡萄牙）、日語和韓語。另提供新手引導及可關閉的彩蛋收集。
 - Thunderbird 透過本機 Native Messaging 橋接整合；可從 ICS 匯入 Tasks。
-- AI 為可選功能：ChatGPT 訂閱登入、Gemini 或 Claude API Key。使用資格受供應商條款限制，不會自動切換供應商或收費渠道。
+- AI 為可選功能：ChatGPT 訂閱登入、OpenAI API Key / Ollama / Gemini 或 Claude API Key。使用資格受供應商條款限制，不會自動切換供應商或收費渠道。
 
 ## 近期本機更新
 

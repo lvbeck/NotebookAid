@@ -16,7 +16,7 @@ O NotebookAid é uma aplicação de notas de código aberto com um extra Thunder
 - Encriptação opcional, palavra-passe principal e chave de recuperação por caderno, cópia de segurança e restauro, bloqueio Windows Passkey.
 - Cores e capas, temas claro/escuro/sistema e dez idiomas: inglês, chinês simplificado, chinês tradicional (Hong Kong), alemão, francês, italiano, espanhol, português (Portugal), japonês e coreano. Guia inicial e coleção opcional de ovos escondidos.
 - Integração Thunderbird por Native Messaging local e importação de tarefas ICS.
-- IA opcional por subscrição ChatGPT ou chaves API Gemini/Claude. Aplicam-se as condições e elegibilidade do fornecedor; não há troca automática de fornecedor ou faturação.
+- IA opcional por subscrição ChatGPT ou chaves API OpenAI API Key / Ollama / Gemini/Claude. Aplicam-se as condições e elegibilidade do fornecedor; não há troca automática de fornecedor ou faturação.
 
 ## Alterações locais recentes
 

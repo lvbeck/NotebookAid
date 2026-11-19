@@ -20,14 +20,18 @@ export function registerAi(root: string, authorize: (event: IpcMainInvokeEvent) 
       if (busy) throw new AiError('CONNECTION_BUSY'); busy = true;
       network = new AiNetwork(get(), simulated ? async () => {} : url => shell.openExternal(url), simulated ? async url => { if (existsSync(join(root, 'simulate-ai-offline'))) throw new AiError('NETWORK_ERROR'); if (url.startsWith('https://generativelanguage.googleapis.com/')) return { models: [{ name: 'models/fixture-text', displayName: 'Fixture Text', supportedGenerationMethods: ['generateContent'] }] }; if (url.startsWith('https://api.anthropic.com/')) return { data: [{ id: 'fixture-claude', display_name: 'Fixture Claude' }] }; throw new AiError('INVALID_RESPONSE'); } : undefined, () => authorize(event));
       let warning: string | undefined, welcome = false;
-      const refreshModels = async (id: 'chatgpt') => { try { await network!.check(id); } catch (e) { warning = e instanceof AiError ? e.code : 'NETWORK_ERROR'; get().failure(id, warning); } };
+      const refreshModels = async (id: 'chatgpt' | 'ollama') => { try { await network!.check(id); } catch (e) { warning = e instanceof AiError ? e.code : 'NETWORK_ERROR'; get().failure(id, warning); } };
       try {
         if (request.action === 'login') { if (request.fresh !== undefined && typeof request.fresh !== 'boolean') throw new AiError('INVALID_INPUT'); welcome = await network.login(request.fresh === true); renewalRetry.delete(get().state().accountId!); await refreshModels('chatgpt'); }
         else if (request.action === 'account') { get().account(request.id); if (get().state().connections[0].connected) await refreshModels('chatgpt'); }
         else if (request.action === 'usage') await shell.openExternal('https://chatgpt.com/settings/usage');
         else {
           const id = provider(request.provider);
-          if (request.action === 'key') { if (id === 'chatgpt') throw new AiError('INVALID_INPUT'); get().key(id, request.key); }
+          if (request.action === 'key') { if (id === 'chatgpt' || id === 'ollama') throw new AiError('INVALID_INPUT'); get().key(id, request.key); }
+          else if (request.action === 'server' && id === 'ollama') {
+            get().server(request.server);
+            await refreshModels(id);
+          }
           else if (request.action === 'check') { try { await network.check(id); if (id === 'chatgpt') renewalRetry.delete(get().state().accountId!); } catch (e) { get().failure(id, e instanceof AiError ? e.code : 'NETWORK_ERROR'); throw e; } }
           else if (request.action === 'disconnect') { if (id === 'chatgpt') warning = await network.disconnect(); else get().disconnect(id); }
           else if (request.action === 'select') get().select(id, request.model);
@@ -52,10 +56,10 @@ export function registerAi(root: string, authorize: (event: IpcMainInvokeEvent) 
     } catch { /* Preserve unreadable credentials and let settings report the failure. */ }
   }, 30000);
   renewal.unref();
-  return { store: get, generate: async (id: import('../shared/ai').AiProvider, model: string, prompt: string, signal: AbortSignal) => {
+  return { store: get, generate: async (id: import('../shared/ai').AiProvider, model: string, prompt: string, signal: AbortSignal, server?: string) => {
     if (closed || !backgroundAllowed()) throw new AiError('APP_LOCKED'); if (busy) throw new AiError('CONNECTION_BUSY');
     const state=get().state(),connection=state.connections.find(c=>c.provider===state.selected);
-    if(connection?.provider!==id||connection.model!==model)throw new AiError('MODEL_UNAVAILABLE');
+    if(connection?.provider!==id||connection.model!==model || connection.server !== server)throw new AiError('MODEL_UNAVAILABLE');
     busy=true;
     try { if(simulated){await new Promise(resolve=>setTimeout(resolve,50));if(signal.aborted)throw new AiError('REQUEST_CANCELLED');return 'Fixture AI result';}
       return await new AiNetwork(get(),url=>shell.openExternal(url),undefined,()=>{if(closed||!backgroundAllowed())throw new AiError('APP_LOCKED');}).writeText(id,model,prompt,signal);

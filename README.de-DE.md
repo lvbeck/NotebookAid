@@ -16,7 +16,7 @@ NotebookAid ist eine quelloffene Desktop-Anwendung für Notizbücher mit einer o
 - Optionale Verschlüsselung, Hauptpasswort je Notizbuch, Wiederherstellungsschlüssel, Sicherung und Wiederherstellung sowie eine Windows-Anwendungssperre mit Passkey.
 - Farben und Titelbilder für Notizbücher, helle und dunkle Darstellung oder Systemdesign, zehn Oberflächensprachen (Englisch, vereinfachtes Chinesisch, traditionelles Chinesisch für Hongkong, Deutsch, Französisch, Italienisch, Spanisch, Portugiesisch für Portugal, Japanisch und Koreanisch), Einführung und abschaltbare Sammel-Easter-Eggs.
 - Thunderbird-Anbindung über lokales Native Messaging und Import von Aufgaben aus ICS-Dateien.
-- Optionale KI-Unterstützung mit ChatGPT-Abonnementanmeldung, Gemini-API-Schlüssel oder Claude-API-Schlüssel. Zugang und Berechtigung richten sich nach dem Konto und den Bedingungen des Anbieters. Anbieter und Abrechnungsweg werden nicht automatisch gewechselt.
+- Optionale KI-Unterstützung mit ChatGPT-Abonnementanmeldung, OpenAI API Key / Ollama / Gemini-API-Schlüssel oder Claude-API-Schlüssel. Zugang und Berechtigung richten sich nach dem Konto und den Bedingungen des Anbieters. Anbieter und Abrechnungsweg werden nicht automatisch gewechselt.
 
 ## Neueste lokale Änderungen
 

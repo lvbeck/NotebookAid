@@ -21,3 +21,63 @@ test('refresh replaces rotated token atomically and lists account catalog',async
 test('remote revocation failure clears local tokens while retaining client identity',async t=>{const {store}=fixture(t);store.chatgpt(credential('oaiapp_first','first'));const warning=await new AiNetwork(store,async()=>{},async()=>{throw new AiError('NETWORK_ERROR')}).disconnect();assert.equal(warning,'REVOCATION_FAILED');assert(!store.registration().credential);assert.equal(store.registration().clientId,'oaiapp_first');assert.throws(()=>store.credential('chatgpt'),{code:'NOT_CONNECTED'});});
 test('discovery cannot redirect refresh token to another origin',async t=>{const {store}=fixture(t);store.chatgpt(credential('oaiapp_first','first'));let requests=0;assert.equal(await new AiNetwork(store,async()=>{},async()=>{requests++;return {revocation_endpoint:'https://attacker.invalid/revoke'}}).disconnect(),'REVOCATION_FAILED');assert.equal(requests,1);});
 test('permission revoked during model request prevents refreshed UI catalog',async t=>{const {store}=fixture(t);store.key('gemini','fixture-secret-123');await assert.rejects(new AiNetwork(store,async()=>{},async()=>({models:[]}),()=>{throw new AiError('APP_LOCKED')}).check('gemini'),{code:'APP_LOCKED'});assert(!store.state().connections[1].checkedAt);});
+
+test('Ollama discovers models at the saved server and invalidates selection on host change', async t => {
+ const { store, root } = fixture(t);
+ for (const invalid of ['file:///example', 'https://user:pass@example.org', 'http://localhost/?key=secret']) {
+   assert.throws(() => store.server(invalid), { code: 'INVALID_SERVER' });
+ }
+ store.server('http://localhost:11434/');
+ const network = new AiNetwork(store, async () => {}, async (url, init) => {
+   assert.equal(url, 'http://localhost:11434/api/tags');
+   assert.deepEqual(init.headers, {});
+   return { models: [{ name: 'local/model:q4' }] };
+ });
+ await network.check('ollama');
+ store.select('ollama', 'local/model:q4');
+ store.models('ollama', []);
+ assert.equal(store.state().selected, null);
+ await network.check('ollama');
+ store.select('ollama', 'local/model:q4');
+ const reopened = new AiStore(root, protection);
+ assert.equal(reopened.credential('ollama').server, 'http://localhost:11434');
+ store.server('https://example.org/inference');
+ assert.equal(store.state().selected, null);
+ assert.throws(() => store.select('ollama', 'local/model:q4'), { code: 'MODEL_UNAVAILABLE' });
+});
+test('OpenAI API discovery and inference use only the saved API key', async t => {
+ const { store } = fixture(t);
+ store.key('openai', 'fixture-api-key');
+ const network = new AiNetwork(store, async () => {}, async (url, init) => {
+   assert.equal(url, 'https://api.openai.com/v1/models');
+   assert.equal(init.headers.Authorization, 'Bearer fixture-api-key');
+   return { data: [{ id: 'gpt-fixture' }, { id: 'text-embedding-3-small' }] };
+ });
+ await network.check('openai');
+ assert.throws(() => store.select('openai', 'text-embedding-3-small'), { code: 'MODEL_UNAVAILABLE' });
+ store.select('openai', 'gpt-fixture');
+ assert(!JSON.stringify(store.state()).includes('fixture-api-key'));
+ t.mock.method(global, 'fetch', async (url, init) => {
+   assert.equal(url, 'https://api.openai.com/v1/responses');
+   assert.equal(init.headers.Authorization, 'Bearer fixture-api-key');
+   return new Response('data: {"type":"response.output_text.delta","delta":"ok"}\n\ndata: {"type":"response.completed"}\n\n');
+ });
+ assert.equal(await network.writeText('openai', 'gpt-fixture', 'input', new AbortController().signal), 'ok');
+});
+test('Ollama writes only to the configured endpoint and rejects truncated results', async t => {
+ const { store } = fixture(t);
+ store.server('https://example.org/inference');
+ const network = new AiNetwork(store, async () => {});
+ let done = true;
+ t.mock.method(global, 'fetch', async (url, init) => {
+   assert.equal(url, 'https://example.org/inference/api/chat');
+   assert.deepEqual(init.headers, { 'Content-Type': 'application/json' });
+   assert.equal(init.redirect, 'error');
+   assert.deepEqual(JSON.parse(init.body), { model: 'local', messages: [{ role: 'user', content: 'test' }], stream: false });
+   return Response.json({ done, message: { content: 'ok' } });
+ });
+ const write = () => network.writeText('ollama', 'local', 'test', new AbortController().signal);
+ assert.equal(await write(), 'ok');
+ done = false;
+ await assert.rejects(write(), { code: 'INCOMPLETE_RESPONSE' });
+});

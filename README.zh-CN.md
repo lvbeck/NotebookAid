@@ -16,7 +16,11 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 - 可选笔记加密、笔记本主密码和恢复密钥、备份恢复，以及 Windows Passkey 应用锁。
 - 笔记本颜色与封面、浅色／深色／跟随系统主题、十种界面语言（英语、简体中文、繁体中文〔香港〕、德语、法语、意大利语、西班牙语、葡萄牙语〔葡萄牙〕、日语、韩语）、新手引导和可关闭的彩蛋收集。
 - 通过本地 Native Messaging 与 Thunderbird 集成，并支持从 ICS 文件导入 Tasks。
-- 可选 AI 辅助：ChatGPT 订阅登录、Gemini API Key、Claude API Key。实际访问受提供商账户资格和服务条款约束，不自动切换提供商或计费渠道。
+- 可选 AI 辅助：ChatGPT 订阅登录、OpenAI API Key / Ollama / Gemini API Key、Claude API Key。实际访问受提供商账户资格和服务条款约束，不自动切换提供商或计费渠道。
+
+在 AI 设置中选择 **OpenAI API**，保存 API key 后刷新模型。使用 **Ollama** 时，填写服务器地址（默认 `http://localhost:11434`），点击检查连接。NotebookAid 会从该服务器的 `/api/tags` 读取模型，选中模型后即可用于辅助写作。
+
+升级前请备份笔记本和本机 AI 配置文件 `ai-connections.bin`（如已存在）。回退到 0.15.28 前先退出应用并另存当前数据。只要保存过 OpenAI key 或 Ollama 地址，就需要恢复升级前的 AI 配置；若升级前没有该文件，请把新文件移出配置目录。使用新提供商保存过摘要或译文的笔记本也需要从升级前的备份恢复。
 
 ## 近期本地更新
 

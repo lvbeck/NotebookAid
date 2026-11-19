@@ -16,7 +16,11 @@ NotebookAid is an open-source desktop notebook application with an optional Thun
 - Optional note encryption, notebook master passwords and recovery keys, backup and restore, and Windows Passkey application locking.
 - Notebook colors and covers, light/dark/system themes, ten interface languages (English, Simplified Chinese, Traditional Chinese for Hong Kong, German, French, Italian, Spanish, Portuguese for Portugal, Japanese and Korean), onboarding and optional collectible Easter eggs.
 - Thunderbird integration through local Native Messaging, and Tasks import from ICS files.
-- Optional AI assistance using ChatGPT subscription sign-in, Gemini API keys or Claude API keys. Access depends on the provider's account eligibility and terms; the application does not switch providers or billing channels automatically.
+- Optional AI assistance using ChatGPT subscription sign-in, OpenAI API Key / Ollama / Gemini API keys or Claude API keys. Access depends on the provider's account eligibility and terms; the application does not switch providers or billing channels automatically.
+
+In AI settings, select **OpenAI API** to save an API key and refresh models. For **Ollama**, enter your server address (default `http://localhost:11434`) and check the connection. NotebookAid lists models from `/api/tags`. Select a model to use it for writing.
+
+Before upgrading, back up your notebooks and your local AI configuration file, `ai-connections.bin`, if present. To roll back to 0.15.28, quit the app and retain a separate copy of your current data. If you saved an OpenAI key or an Ollama address, restore the pre-upgrade AI configuration, or move the new file aside if no file existed before. Also restore any notebook where you saved summaries or translations with the new providers from its pre-upgrade backup.
 
 ## Recent local changes
 

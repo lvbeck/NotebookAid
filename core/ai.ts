@@ -1,15 +1,23 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync, renameSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { providers, type KeyProvider } from '../shared/ai';
 import type { AiProvider, AiConnection, AiState, AiModel } from '../shared/ai';
 
 export class AiError extends Error { constructor(readonly code: string) { super(code); } }
 export interface ChatgptCredential { clientId: string; subject: string; account: string; accessToken: string; refreshToken: string; idToken: string; expiresAt: number; scopes: string[] }
-interface Credential { key?: string; chatgpt?: ChatgptCredential; model: string | null }
+interface Credential { server?: string; key?: string; chatgpt?: ChatgptCredential; model: string | null }
 interface Saved { version: 1; hostId: string; selected: AiProvider | null; providers: Partial<Record<AiProvider, Credential>>; accounts: { clientId: string; subject: string; account: string; credential?: ChatgptCredential; model: string | null }[]; accountId: string | null }
 export interface CredentialProtection { available(): boolean; encrypt(value: string): Buffer; decrypt(value: Buffer): string }
-export const aiProviders: AiProvider[] = ['chatgpt', 'gemini', 'claude'];
+export const aiProviders: readonly AiProvider[] = providers;
 export function provider(value: unknown): AiProvider { if (!aiProviders.includes(value as AiProvider)) throw new AiError('INVALID_INPUT'); return value as AiProvider; }
+// Keep reverse-proxy path prefixes and exclude credentials from public connection state.
+function serverAddress(input: unknown): string {
+  if (typeof input !== 'string' || input.length > 2048 || !/^https?:\/\/[^/]/i.test(input) || /[\s\\?#\x00-\x1f]/.test(input)) throw new AiError('INVALID_SERVER');
+  const url = URL.parse(input);
+  if (!url || url.username || url.password) throw new AiError('INVALID_SERVER');
+  return url.href.replace(/\/+$/, '');
+}
 export class AiStore {
   private saved: Saved = { version: 1, hostId: 'urn:uuid:' + randomUUID(), selected: null, providers: {}, accounts: [], accountId: null };
   private readonly catalog = new Map<AiProvider, { models: AiModel[]; checkedAt: string; error?: string }>();
@@ -26,7 +34,8 @@ export class AiStore {
     for (const [id, entry] of Object.entries(value.providers)) {
       provider(id);
       if (!entry || (entry.model !== null && (typeof entry.model !== 'string' || entry.model.length > 160))) throw new AiError('CREDENTIAL_STORAGE_UNREADABLE');
-      if (id !== 'chatgpt') this.validateKey(entry.key);
+      if (id === 'ollama') serverAddress(entry.server);
+      else if (id !== 'chatgpt') this.validateKey(entry.key);
       else { const c = entry.chatgpt; if (!c || !c.clientId.startsWith('oaiapp_') || !c.subject || !c.accessToken || !c.refreshToken || !c.idToken || !Number.isFinite(c.expiresAt) || !Array.isArray(c.scopes) || !c.scopes.every(s => typeof s === 'string')) throw new AiError('CREDENTIAL_STORAGE_UNREADABLE'); }
     }
     if (value.selected && !value.providers[value.selected]) throw new AiError('CREDENTIAL_STORAGE_UNREADABLE');
@@ -48,7 +57,17 @@ export class AiStore {
   host(): string { this.write(structuredClone(this.saved)); return this.saved.hostId; }
   credential(id: AiProvider): Credential { const c = this.saved.providers[id]; if (!c) throw new AiError('NOT_CONNECTED'); return structuredClone(c); }
   validateKey(key: unknown): asserts key is string { if (typeof key !== 'string' || key.length < 10 || key.length > 4096 || /[\s\x00-\x1f]/.test(key)) throw new AiError('INVALID_KEY'); }
-  key(id: 'gemini' | 'claude', key: unknown): void { this.validateKey(key); const next = structuredClone(this.saved); next.providers[id] = { key, model: null }; this.write(next); this.catalog.delete(id); }
+  // Require a new model selection when the destination changes.
+  server(input: unknown): void {
+    const server = serverAddress(input);
+    if (this.saved.providers.ollama?.server === server) return;
+    const next = structuredClone(this.saved);
+    next.providers.ollama = { server, model: null };
+    if (next.selected === 'ollama') next.selected = null;
+    this.write(next);
+    this.catalog.delete('ollama');
+  }
+  key(id: KeyProvider, key: unknown): void { this.validateKey(key); const next = structuredClone(this.saved); next.providers[id] = { key, model: null }; this.write(next); this.catalog.delete(id); }
   chatgpt(c: ChatgptCredential): void {
     const next = structuredClone(this.saved), previous = next.providers.chatgpt;
     const same = previous?.chatgpt?.subject === c.subject && previous.chatgpt.clientId === c.clientId;
@@ -62,7 +81,17 @@ export class AiStore {
   registration(): Saved['accounts'][number] | undefined { return structuredClone(this.saved.accounts.find(a => a.clientId === this.saved.accountId)); }
   account(id: unknown): void { const next = structuredClone(this.saved), account = next.accounts.find(a => a.clientId === id); if (!account) throw new AiError('INVALID_INPUT'); next.accountId = account.clientId; if (account.credential) next.providers.chatgpt = { chatgpt: account.credential, model: account.model }; else delete next.providers.chatgpt; if (next.selected === 'chatgpt') next.selected = null; this.write(next); this.catalog.delete('chatgpt'); }
   disconnect(id: AiProvider): void { const next = structuredClone(this.saved); if (id === 'chatgpt') { const account = next.accounts.find(a => a.clientId === next.accountId); if (account) delete account.credential; } delete next.providers[id]; if (next.selected === id) next.selected = null; this.write(next); this.catalog.delete(id); }
-  models(id: AiProvider, models: AiModel[]): void { this.catalog.set(id, { models, checkedAt: new Date().toISOString() }); }
+  // A refreshed catalog invalidates selections the destination no longer advertises.
+  models(id: AiProvider, models: AiModel[]): void {
+    const selection = this.saved.providers[id]?.model;
+    if ((id === 'openai' || id === 'ollama') && selection && !models.some(model => model.id === selection)) {
+      const next = structuredClone(this.saved);
+      next.providers[id]!.model = null;
+      if (next.selected === id) next.selected = null;
+      this.write(next);
+    }
+    this.catalog.set(id, { models, checkedAt: new Date().toISOString() });
+  }
   failure(id: AiProvider, error: string): void { const old = this.catalog.get(id); this.catalog.set(id, { models: old?.models ?? [], checkedAt: old?.checkedAt ?? '', error }); }
   clearFailure(id: AiProvider): void { if (this.catalog.get(id)?.error) this.catalog.delete(id); }
   select(id: AiProvider, model: unknown): void {
@@ -74,7 +103,7 @@ export class AiStore {
   state(): AiState {
     return { available: this.protection.available(), selected: this.saved.selected, accountId: this.saved.accountId, accounts: this.saved.accounts.map(a => ({ id: a.clientId, label: a.account + (this.saved.accounts.some(other => other.clientId !== a.clientId && other.account.toLowerCase() === a.account.toLowerCase()) ? ' · ' + a.clientId.slice(-8) : ''), connected: !!a.credential })), connections: aiProviders.map(id => {
       const credential = this.saved.providers[id], catalog = this.catalog.get(id);
-      return { provider: id, connected: !!credential, model: credential?.model ?? null, ...(credential?.chatgpt ? { account: credential.chatgpt.account } : {}), models: catalog?.models ?? [], ...(catalog?.checkedAt ? { checkedAt: catalog.checkedAt } : {}), ...(catalog?.error ? { error: catalog.error } : {}) } satisfies AiConnection;
+      return { provider: id, connected: !!credential, ...(id === 'ollama' ? { server: credential?.server } : {}), model: credential?.model ?? null, ...(credential?.chatgpt ? { account: credential.chatgpt.account } : {}), models: catalog?.models ?? [], ...(catalog?.checkedAt ? { checkedAt: catalog.checkedAt } : {}), ...(catalog?.error ? { error: catalog.error } : {}) } satisfies AiConnection;
     }) };
   }
 }

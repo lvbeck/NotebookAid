@@ -1,4 +1,6 @@
 import { ipcMain, type IpcMainInvokeEvent } from 'electron';
+import { isRemoteHttp } from '../shared/ai';
+import { aiText } from '../src/app/ai-i18n';
 import { WritingJobs } from '../core/writing';
 import { AiError } from '../core/ai';
 import type { registerAi } from './ai-ipc';
@@ -16,7 +18,15 @@ export function registerWriting(storage: ReturnType<typeof registerLibrary>, ai:
      if(input?.action==='load')return{ok:true,value:await jobs.prepare(input.input,owner,true)};
      if(input?.action==='generate'){
        const preview=jobs.preview(input.token,owner);
-       if(preview.encrypted&&!await storage.confirmWriting(label(storage.writingContext().locale,'outbound').replace('{provider}',preview.provider).replace('{count}',String(preview.sourceText.length)))){jobs.cancel(input.token,owner);return{ok:false,code:'REQUEST_CANCELLED'};}
+       if (preview.encrypted) {
+         const locale = storage.writingContext().locale;
+         let message = label(locale, 'outbound').replace('{count}', String(preview.sourceText.length)).replace('{provider}', () => preview.server ?? preview.provider);
+         if (preview.server && isRemoteHttp(preview.server)) message += '\n\n' + aiText(locale, 'httpWarning');
+         if (!await storage.confirmWriting(message)) {
+           jobs.cancel(input.token, owner);
+           return { ok: false, code: 'REQUEST_CANCELLED' };
+         }
+       }
        authorize(event);if(!storage.writingEnabled())throw new AiError('AI_DISABLED');jobs.preview(input.token,owner);const result=await jobs.generate(input.token,owner);authorize(event);if(!storage.writingEnabled()){jobs.close();throw new AiError('AI_DISABLED');}return{ok:true,value:result};
      }
      if(input?.action==='apply'||input?.action==='summary')return{ok:true,value:jobs.apply(input.token,owner,input.action==='summary')};
