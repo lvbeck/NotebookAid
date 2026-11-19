@@ -39,13 +39,13 @@ Die lokale Version 0.15.26 vergrößert Quill-Formatierungssymbole auf 18 Pixel 
 
 ## Downloads
 
-[NotebookAid 0.15.27 für Windows und macOS herunterladen](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.27). Pakete und SHA256-Prüfsummen sind der Veröffentlichung beigefügt. Windows-Installer sind unsigniert; macOS verwendet Ad-hoc-Signierung ohne Notarisierung. Automatische Updates bleiben deaktiviert. Die folgenden CI-Links verweisen auf die neuesten geprüften Builds 0.15.27.
+[NotebookAid 0.15.28 für Windows und macOS herunterladen](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.28). Pakete und SHA256-Prüfsummen sind der Veröffentlichung beigefügt. Windows-Installer sind unsigniert; macOS verwendet Ad-hoc-Signierung ohne Notarisierung. Automatische Updates bleiben deaktiviert. Die folgenden CI-Links verweisen auf die neuesten geprüften Builds 0.15.28.
 
 | Plattform / Paket | Download | Inhalt |
 | --- | --- | --- |
-| Windows x64 EXE | [EXE / ZIP 0.15.27](https://github.com/lvbeck/NotebookAid/actions/runs/42288066077/artifacts/13538792652) | NSIS-Installationsprogramm, portable ZIP-Datei, Thunderbird-XPI-Dateien und SHA256-Prüfsummen; Artefakt `NotebookAid-windows-x64-test` |
-| Windows x64 MSI | [MSI 0.15.27](https://github.com/lvbeck/NotebookAid/actions/runs/42288066077/artifacts/13538882621) | Eigenständiges Windows-Installer-Paket und SHA256-Prüfsumme; Artefakt `NotebookAid-windows-x64-msi-test` |
-| macOS Apple Silicon / Intel | [macOS 0.15.27-Testdownload](https://github.com/lvbeck/NotebookAid/actions/runs/42288066068) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/42288066068/artifacts/13539570064) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/42288066068/artifacts/13538164165)) | Separate arm64- und x64-DMG/ZIP-Dateien, `NotebookAid.xpi` und Installations-/Bridge-Anleitungen in zehn Sprachen |
+| Windows x64 EXE | [EXE / ZIP 0.15.28](https://github.com/lvbeck/NotebookAid/actions/runs/44536099511/artifacts/14536512419) | NSIS-Installationsprogramm, portable ZIP-Datei, Thunderbird-XPI-Dateien und SHA256-Prüfsummen; Artefakt `NotebookAid-windows-x64-test` |
+| Windows x64 MSI | [MSI 0.15.28](https://github.com/lvbeck/NotebookAid/actions/runs/44536099511/artifacts/14535778578) | Eigenständiges Windows-Installer-Paket und SHA256-Prüfsumme; Artefakt `NotebookAid-windows-x64-msi-test` |
+| macOS Apple Silicon / Intel | [macOS 0.15.28-Testdownload](https://github.com/lvbeck/NotebookAid/actions/runs/44536099849) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/44536099849/artifacts/14535862508) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/44536099849/artifacts/14535439892)) | Separate arm64- und x64-DMG/ZIP-Dateien, `NotebookAid.xpi` und Installations-/Bridge-Anleitungen in zehn Sprachen |
 
 Bei GitHub anmelden, einen erfolgreichen Workflow-Lauf öffnen und unter **Artifacts** das gewünschte Paket herunterladen. Die Pakete werden 30 Tage aufbewahrt, Prüfberichte 14 Tage. Zuerst das äußere Artefaktarchiv entpacken. Die EXE befindet sich im Unterordner `installer`; die portable ZIP muss vor dem Start von `NotebookAid.exe` zusätzlich entpackt werden. Auf dem Mac die zum Prozessor passende Architektur wählen.
 

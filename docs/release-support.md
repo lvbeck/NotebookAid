@@ -1,6 +1,6 @@
 # 发布构建与支持矩阵
 
-2026-11-06，用户已验收 0.15.27 的审计修复和四个统一图标按钮，并明确授权提交、推送及 GitHub 发布；当前版本为 [v0.15.27](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.27)，功能、包格式和验证限制见[发布说明](release-0.15.27.md)。Windows 10 x64是支持目标，尚无真实环境验证；已有Windows 11本地测试及Windows Server CI检查。macOS已有双架构CI检查，实机验收范围见[macOS指南](macos-testing.md)。Thunderbird项目基线为Release 157.0.1，较新Release及ESR需单独验证。T15-A桌面New集成继续搁置。
+2026-11-19，用户已验收安装版通用 UI 测试修正，并明确授权构建、验证和发布新的 0.15.28；当前版本为 [v0.15.28](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.28)，功能、包格式和验证限制见[发布说明](release-0.15.28.md)。0.15.27 标签及资产保留不变。Windows 10 x64是支持目标，尚无真实环境验证；已有Windows 11本地测试及Windows Server CI检查。macOS已有双架构CI检查，实机验收范围见[macOS指南](macos-testing.md)。Thunderbird项目基线为Release 157.0.1，较新Release及ESR需单独验证。T15-A桌面New集成继续搁置。
 
 ## 可复现构建
 

@@ -39,15 +39,17 @@ Local 0.15.26 uses 18px Quill format-tool icons inside the existing buttons, wit
 
 ## Downloads
 
+0.15.28 corrects the installed UI regression's portable-message assertion and includes an isolated runner for the actual installed application. See [release notes and verification limits](docs/release-0.15.28.md).
+
 0.15.27 fixes Delta clipboard persistence, plaintext export/print confirmation and incomplete attachment-export cleanup, and unifies the four header actions as icon buttons. Accepted by the user; see [release notes and verification limits](docs/release-0.15.27.md).
 
-[Download NotebookAid 0.15.27 for Windows and macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.27). Packages and SHA256 checksums are attached to the release. Windows installers are unsigned; macOS packages use ad-hoc signing without notarization. Automatic updates remain disabled. The CI links below point to the latest verified 0.15.27 builds.
+[Download NotebookAid 0.15.28 for Windows and macOS](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.28). Packages and SHA256 checksums are attached to the release. Windows installers are unsigned; macOS packages use ad-hoc signing without notarization. Automatic updates remain disabled. The CI links below point to the latest verified 0.15.28 builds.
 
 | Platform | Packages | Latest verified test build | Workflow |
 | --- | --- | --- | --- |
-| Windows x64 EXE | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [EXE / ZIP 0.15.27](https://github.com/lvbeck/NotebookAid/actions/runs/42288066077/artifacts/13538792652) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| Windows x64 native MSI | Native Windows Installer package and SHA256 checksums; current-user or all-user installation | [MSI 0.15.27](https://github.com/lvbeck/NotebookAid/actions/runs/42288066077/artifacts/13538882621) | [MSI installation and updates](docs/msi-testing.md) |
-| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, ten language setup guides and SHA256 checksums | [macOS 0.15.27 test build](https://github.com/lvbeck/NotebookAid/actions/runs/42288066068) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/42288066068/artifacts/13539570064) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/42288066068/artifacts/13538164165)) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 EXE | NSIS installer, portable ZIP, Thunderbird XPI files and SHA256 checksums | [EXE / ZIP 0.15.28](https://github.com/lvbeck/NotebookAid/actions/runs/44536099511/artifacts/14536512419) | [Windows builds](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 native MSI | Native Windows Installer package and SHA256 checksums; current-user or all-user installation | [MSI 0.15.28](https://github.com/lvbeck/NotebookAid/actions/runs/44536099511/artifacts/14535778578) | [MSI installation and updates](docs/msi-testing.md) |
+| macOS Apple Silicon / Intel | Separate arm64 and x64 DMG/ZIP packages, Thunderbird XPI, ten language setup guides and SHA256 checksums | [macOS 0.15.28 test build](https://github.com/lvbeck/NotebookAid/actions/runs/44536099849) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/44536099849/artifacts/14535862508) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/44536099849/artifacts/14535439892)) | [macOS builds](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 To download, sign in to GitHub, open a successful run, then find **Artifacts**:
 

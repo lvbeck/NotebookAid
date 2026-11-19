@@ -39,15 +39,17 @@ NotebookAid 是开源桌面笔记应用，可选配 Thunderbird 插件。笔记�
 
 ## 下载
 
+0.15.28 修正安装版通用 UI 回归误用便携提示的断言，并提供实际安装版的隔离测试运行器。参见[发布说明和验证边界](docs/release-0.15.28.md)。
+
 0.15.27 修复 Delta 粘贴保存、明文导出／打印确认和附件导出失败清理，并将右上角四个入口统一为图标按钮。已通过用户验收，参见[发布说明和验证边界](docs/release-0.15.27.md)。
 
-[下载 NotebookAid 0.15.27（Windows 和 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.27)。安装包和 SHA256 校验清单附于发布页面。Windows 安装器未签名；macOS 使用 ad-hoc 签名，未经公证。自动更新仍未启用。下方 CI 链接指向最新验证通过的 0.15.27 构建。
+[下载 NotebookAid 0.15.28（Windows 和 macOS）](https://github.com/lvbeck/NotebookAid/releases/tag/v0.15.28)。安装包和 SHA256 校验清单附于发布页面。Windows 安装器未签名；macOS 使用 ad-hoc 签名，未经公证。自动更新仍未启用。下方 CI 链接指向最新验证通过的 0.15.28 构建。
 
 | 平台 | 产物 | 最新已验证测试构建 | 工作流 |
 | --- | --- | --- | --- |
-| Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.27 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/42288066077/artifacts/13538792652) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
-| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.27 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/42288066077/artifacts/13538882621) | [MSI 安装和更新说明](docs/msi-testing.md) |
-| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、十语言安装说明和 SHA256 校验清单 | [macOS 0.15.27 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/42288066068) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/42288066068/artifacts/13539570064) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/42288066068/artifacts/13538164165)) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
+| Windows x64 EXE | NSIS 安装器、便携 ZIP、Thunderbird XPI 和 SHA256 校验清单 | [EXE／ZIP 0.15.28 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/44536099511/artifacts/14536512419) | [Windows 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/windows-build.yml) |
+| Windows x64 原生 MSI | Windows Installer 安装包与 SHA256；支持当前用户和所有用户安装 | [MSI 0.15.28 测试包](https://github.com/lvbeck/NotebookAid/actions/runs/44536099511/artifacts/14535778578) | [MSI 安装和更新说明](docs/msi-testing.md) |
+| macOS Apple Silicon／Intel | 独立 arm64、x64 DMG／ZIP、Thunderbird XPI、十语言安装说明和 SHA256 校验清单 | [macOS 0.15.28 测试构建](https://github.com/lvbeck/NotebookAid/actions/runs/44536099849) ([arm64](https://github.com/lvbeck/NotebookAid/actions/runs/44536099849/artifacts/14535862508) / [x64](https://github.com/lvbeck/NotebookAid/actions/runs/44536099849/artifacts/14535439892)) | [macOS 构建](https://github.com/lvbeck/NotebookAid/actions/workflows/macos-build.yml) |
 
 登录 GitHub，打开成功的运行记录，在 **Artifacts** 区域下载：
 
